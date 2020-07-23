@@ -542,4 +542,382 @@ namespace AForge.Math
         {
             return
                 (
-                    (System.Math.Abs(a.Re - b.Re
+                    (System.Math.Abs(a.Re - b.Re) <= tolerance) &&
+                    (System.Math.Abs(a.Im - b.Im) <= tolerance)
+                );
+        }
+
+        /// <summary>
+        /// Creates an exact copy of this <see cref="Complex"/> object.
+        /// </summary>
+        /// 
+        /// <returns>Returns clone of the complex number.</returns>
+        /// 
+        public Complex Clone()
+        {
+            return new Complex(this);
+        }
+
+        #region Public Static Parse Methods
+
+        /// <summary>
+        /// Converts the specified string to its <see cref="Complex"/> equivalent.
+        /// </summary>
+        /// 
+        /// <param name="s">A string representation of a complex number.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance that represents the complex number
+        /// specified by the <paramref name="s"/> parameter.</returns>
+        /// 
+        /// <exception cref="FormatException">String representation of the complex number is not correctly formatted.</exception>
+        /// 
+        public static Complex Parse(string s)
+        {
+            var r = new Regex(@"\((?<real>.*),(?<imaginary>.*)\)", RegexOptions.None);
+            Match m = r.Match(s);
+
+            if (m.Success)
+            {
+                return new Complex(
+                    double.Parse(m.Result("${real}")),
+                    double.Parse(m.Result("${imaginary}"))
+                    );
+            }
+            else
+            {
+                throw new FormatException("String representation of the complex number is not correctly formatted.");
+            }
+        }
+
+        /// <summary>
+        /// Try to convert the specified string to its <see cref="Complex"/> equivalent.
+        /// </summary>
+        /// 
+        /// <param name="s">A string representation of a complex number.</param>
+        /// 
+        /// <param name="result"><see cref="Complex"/> instance to output the result to.</param>
+        /// 
+        /// <returns>Returns boolean value that indicates if the parse was successful or not.</returns>
+        /// 
+        public static bool TryParse(string s, out Complex result)
+        {
+            try
+            {
+                Complex newComplex = Parse(s);
+                result = newComplex;
+                return true;
+            }
+            catch (FormatException)
+            {
+                result = new Complex();
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Public Static Complex Special Functions
+
+        /// <summary>
+        /// Calculates square root of a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the square root of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Sqrt(Complex a)
+        {
+            Complex result = Zero;
+
+            if ((a.Re == 0.0) && (a.Im == 0.0))
+            {
+                return result;
+            }
+            else if (a.Im == 0.0)
+            {
+                result.Re = (a.Re > 0) ? System.Math.Sqrt(a.Re) : System.Math.Sqrt(-a.Re);
+                result.Im = 0.0;
+            }
+            else
+            {
+                double modulus = a.Magnitude;
+
+                result.Re = System.Math.Sqrt(0.5*(modulus + a.Re));
+                result.Im = System.Math.Sqrt(0.5*(modulus - a.Re));
+                if (a.Im < 0.0)
+                    result.Im = -result.Im;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Calculates natural (base <b>e</b>) logarithm of a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the natural logarithm of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Log(Complex a)
+        {
+            Complex result = Zero;
+
+            if ((a.Re > 0.0) && (a.Im == 0.0))
+            {
+                result.Re = System.Math.Log(a.Re);
+                result.Im = 0.0;
+            }
+            else if (a.Re == 0.0)
+            {
+                if (a.Im > 0.0)
+                {
+                    result.Re = System.Math.Log(a.Im);
+                    result.Im = System.Math.PI/2.0;
+                }
+                else
+                {
+                    result.Re = System.Math.Log(-(a.Im));
+                    result.Im = -System.Math.PI/2.0;
+                }
+            }
+            else
+            {
+                result.Re = System.Math.Log(a.Magnitude);
+                result.Im = System.Math.Atan2(a.Im, a.Re);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Calculates exponent (<b>e</b> raised to the specified power) of a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the exponent of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Exp(Complex a)
+        {
+            Complex result = Zero;
+            double r = System.Math.Exp(a.Re);
+            result.Re = r*System.Math.Cos(a.Im);
+            result.Im = r*System.Math.Sin(a.Im);
+
+            return result;
+        }
+
+        #endregion
+
+        #region Public Static Complex Trigonometry
+
+        /// <summary>
+        /// Calculates Sine value of the complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the Sine value of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Sin(Complex a)
+        {
+            Complex result = Zero;
+
+            if (a.Im == 0.0)
+            {
+                result.Re = System.Math.Sin(a.Re);
+                result.Im = 0.0;
+            }
+            else
+            {
+                result.Re = System.Math.Sin(a.Re)*System.Math.Cosh(a.Im);
+                result.Im = System.Math.Cos(a.Re)*System.Math.Sinh(a.Im);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Calculates Cosine value of the complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the Cosine value of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Cos(Complex a)
+        {
+            Complex result = Zero;
+
+            if (a.Im == 0.0)
+            {
+                result.Re = System.Math.Cos(a.Re);
+                result.Im = 0.0;
+            }
+            else
+            {
+                result.Re = System.Math.Cos(a.Re)*System.Math.Cosh(a.Im);
+                result.Im = -System.Math.Sin(a.Re)*System.Math.Sinh(a.Im);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Calculates Tangent value of the complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the Tangent value of the specified
+        /// complex number.</returns>
+        /// 
+        public static Complex Tan(Complex a)
+        {
+            Complex result = Zero;
+
+            if (a.Im == 0.0)
+            {
+                result.Re = System.Math.Tan(a.Re);
+                result.Im = 0.0;
+            }
+            else
+            {
+                double real2 = 2*a.Re;
+                double imag2 = 2*a.Im;
+                double denom = System.Math.Cos(real2) + System.Math.Cosh(real2);
+
+                result.Re = System.Math.Sin(real2)/denom;
+                result.Im = System.Math.Sinh(imag2)/denom;
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <summary>
+        /// Returns the hashcode for this instance.
+        /// </summary>
+        /// 
+        /// <returns>A 32-bit signed integer hash code.</returns>
+        public override int GetHashCode()
+        {
+            return Re.GetHashCode() ^ Im.GetHashCode();
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether this instance is equal to the specified object.
+        /// </summary>
+        /// 
+        /// <param name="obj">An object to compare to this instance.</param>
+        /// 
+        /// <returns>Returns <see langword="true"/> if <paramref name="obj"/> is a <see cref="Complex"/> and has the same values as this instance or <see langword="false"/> otherwise.</returns>
+        /// 
+        public override bool Equals(object obj)
+        {
+            if (obj is Complex)
+            {
+                var c = (Complex) obj;
+                return (Re == c.Re) && (Im == c.Im);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns a string representation of this object.
+        /// </summary>
+        /// 
+        /// <returns>A string representation of this object.</returns>
+        /// 
+        public override string ToString()
+        {
+            return string.Format("({0}, {1})", Re, Im);
+        }
+
+        #endregion
+
+        #region Comparison Operators
+
+        /// <summary>
+        /// Tests whether two specified complex numbers are equal.
+        /// </summary>
+        /// 
+        /// <param name="u">The left-hand complex number.</param>
+        /// <param name="v">The right-hand complex number.</param>
+        /// 
+        /// <returns>Returns <see langword="true"/> if the two complex numbers are equal or <see langword="false"/> otherwise.</returns>
+        /// 
+        public static bool operator ==(Complex u, Complex v)
+        {
+            return Equals(u, v);
+        }
+
+        /// <summary>
+        /// Tests whether two specified complex numbers are not equal.
+        /// </summary>
+        /// 
+        /// <param name="u">The left-hand complex number.</param>
+        /// <param name="v">The right-hand complex number.</param>
+        /// 
+        /// <returns>Returns <see langword="true"/> if the two complex numbers are not equal or <see langword="false"/> otherwise.</returns>
+        /// 
+        public static bool operator !=(Complex u, Complex v)
+        {
+            return !Equals(u, v);
+        }
+
+        #endregion
+
+        #region Unary Operators
+
+        /// <summary>
+        /// Negates the complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/>  instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the negated values.</returns>
+        /// 
+        public static Complex operator -(Complex a)
+        {
+            return Negate(a);
+        }
+
+        #endregion
+
+        #region Binary Operators
+
+        /// <summary>
+        /// Adds two complex numbers.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the sum.</returns>
+        /// 
+        public static Complex operator +(Complex a, Complex b)
+        {
+            return Add(a, b);
+        }
+
+        /// <summary>
+        /// Adds a complex number and a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the sum.</returns>
+        /// 
+        public static Complex operator +(Complex a, double s)
