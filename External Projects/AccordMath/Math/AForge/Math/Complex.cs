@@ -230,4 +230,316 @@ namespace AForge.Math
         /// </summary>
         /// 
         /// <param name="a">A <see cref="Complex"/> instance to subtract from.</param>
-        /// <pa
+        /// <param name="s">A scalar value to be subtracted.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the subtraction result (<b>a - s</b>).</returns>
+        /// 
+        public static Complex Subtract(Complex a, double s)
+        {
+            return new Complex(a.Re - s, a.Im);
+        }
+
+        /// <summary>
+        /// Subtracts a complex number from a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="s">A scalar value to subtract from.</param>
+        /// <param name="a">A <see cref="Complex"/> instance to be subtracted.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the subtraction result (<b>s - a</b>).</returns>
+        /// 
+        public static Complex Subtract(double s, Complex a)
+        {
+            return new Complex(s - a.Re, a.Im);
+        }
+
+        /// <summary>
+        /// Subtracts one complex number from another and puts the result in the third complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance to subtract from.</param>
+        /// <param name="b">A <see cref="Complex"/> instance to be subtracted.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        public static void Subtract(Complex a, Complex b, ref Complex result)
+        {
+            result.Re = a.Re - b.Re;
+            result.Im = a.Im - b.Im;
+        }
+
+        /// <summary>
+        /// Subtracts a scalar value from a complex number and puts the result into another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance to subtract from.</param>
+        /// <param name="s">A scalar value to be subtracted.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        public static void Subtract(Complex a, double s, ref Complex result)
+        {
+            result.Re = a.Re - s;
+            result.Im = a.Im;
+        }
+
+        /// <summary>
+        /// Subtracts a complex number from a scalar value and puts the result into another complex number.
+        /// </summary>
+        /// 
+        /// <param name="s">A scalar value to subtract from.</param>
+        /// <param name="a">A <see cref="Complex"/> instance to be subtracted.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        public static void Subtract(double s, Complex a, ref Complex result)
+        {
+            result.Re = s - a.Re;
+            result.Im = a.Im;
+        }
+
+        /// <summary>
+        /// Multiplies two complex numbers.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of multiplication.</returns>
+        /// 
+        public static Complex Multiply(Complex a, Complex b)
+        {
+            // (x + yi)(u + vi) = (xu – yv) + (xv + yu)i. 
+            double aRe = a.Re, aIm = a.Im;
+            double bRe = b.Re, bIm = b.Im;
+
+            return new Complex(aRe*bRe - aIm*bIm, aRe*bIm + aIm*bRe);
+        }
+
+        /// <summary>
+        /// Multiplies a complex number by a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of multiplication.</returns>
+        /// 
+        public static Complex Multiply(Complex a, double s)
+        {
+            return new Complex(a.Re*s, a.Im*s);
+        }
+
+        /// <summary>
+        /// Multiplies two complex numbers and puts the result in a third complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        public static void Multiply(Complex a, Complex b, ref Complex result)
+        {
+            // (x + yi)(u + vi) = (xu – yv) + (xv + yu)i. 
+            double aRe = a.Re, aIm = a.Im;
+            double bRe = b.Re, bIm = b.Im;
+
+            result.Re = aRe*bRe - aIm*bIm;
+            result.Im = aRe*bIm + aIm*bRe;
+        }
+
+        /// <summary>
+        /// Multiplies a complex number by a scalar value and puts the result into another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        public static void Multiply(Complex a, double s, ref Complex result)
+        {
+            result.Re = a.Re*s;
+            result.Im = a.Im*s;
+        }
+
+        /// <summary>
+        /// Divides one complex number by another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result.</returns>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static Complex Divide(Complex a, Complex b)
+        {
+            double aRe = a.Re, aIm = a.Im;
+            double bRe = b.Re, bIm = b.Im;
+            double modulusSquared = bRe*bRe + bIm*bIm;
+
+            if (modulusSquared == 0)
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+
+            double invModulusSquared = 1/modulusSquared;
+
+            return new Complex(
+                (aRe*bRe + aIm*bIm)*invModulusSquared,
+                (aIm*bRe - aRe*bIm)*invModulusSquared);
+        }
+
+        /// <summary>
+        /// Divides a complex number by a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result.</returns>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static Complex Divide(Complex a, double s)
+        {
+            if (s == 0)
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+
+            return new Complex(a.Re/s, a.Im/s);
+        }
+
+        /// <summary>
+        /// Divides a scalar value by a complex number.
+        /// </summary>
+        /// 
+        /// <param name="s">A scalar value.</param>
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result.</returns>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static Complex Divide(double s, Complex a)
+        {
+            if ((a.Re == 0) || (a.Im == 0))
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+            return new Complex(s/a.Re, s/a.Im);
+        }
+
+        /// <summary>
+        /// Divides one complex number by another complex number and puts the result in a third complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static void Divide(Complex a, Complex b, ref Complex result)
+        {
+            double aRe = a.Re, aIm = a.Im;
+            double bRe = b.Re, bIm = b.Im;
+            double modulusSquared = bRe*bRe + bIm*bIm;
+
+            if (modulusSquared == 0)
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+
+            double invModulusSquared = 1/modulusSquared;
+
+            result.Re = (aRe*bRe + aIm*bIm)*invModulusSquared;
+            result.Im = (aIm*bRe - aRe*bIm)*invModulusSquared;
+        }
+
+        /// <summary>
+        /// Divides a complex number by a scalar value and puts the result into another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static void Divide(Complex a, double s, ref Complex result)
+        {
+            if (s == 0)
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+
+            result.Re = a.Re/s;
+            result.Im = a.Im/s;
+        }
+
+        /// <summary>
+        /// Divides a scalar value by a complex number and puts the result into another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// <param name="result">A <see cref="Complex"/> instance to hold the result.</param>
+        /// 
+        /// <exception cref="DivideByZeroException">Can not divide by zero.</exception>
+        /// 
+        public static void Divide(double s, Complex a, ref Complex result)
+        {
+            if ((a.Re == 0) || (a.Im == 0))
+            {
+                throw new DivideByZeroException("Can not divide by zero.");
+            }
+
+            result.Re = s/a.Re;
+            result.Im = s/a.Im;
+        }
+
+        /// <summary>
+        /// Negates a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the negated values.</returns>
+        /// 
+        public static Complex Negate(Complex a)
+        {
+            return new Complex(-a.Re, -a.Im);
+        }
+
+        /// <summary>
+        /// Tests whether two complex numbers are approximately equal using default tolerance value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Return <see langword="true"/> if the two vectors are approximately equal or <see langword="false"/> otherwise.</returns>
+        /// 
+        /// <remarks><para>The default tolerance value, which is used for the test, equals to 8.8817841970012523233891E-16.</para></remarks>
+        /// 
+        public static bool ApproxEqual(Complex a, Complex b)
+        {
+            return ApproxEqual(a, b, 8.8817841970012523233891E-16);
+        }
+
+
+        /// <summary>
+        /// Tests whether two complex numbers are approximately equal given a tolerance value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// <param name="tolerance">The tolerance value used to test approximate equality.</param>
+        /// 
+        /// <remarks><para>The default tolerance value, which is used for the test, equals to 8.8817841970012523233891E-16.</para></remarks>
+        /// 
+        public static bool ApproxEqual(Complex a, Complex b, double tolerance)
+        {
+            return
+                (
+                    (System.Math.Abs(a.Re - b.Re
