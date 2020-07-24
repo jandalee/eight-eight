@@ -921,3 +921,183 @@ namespace AForge.Math
         /// <returns>Returns new <see cref="Complex"/> instance containing the sum.</returns>
         /// 
         public static Complex operator +(Complex a, double s)
+        {
+            return Add(a, s);
+        }
+
+        /// <summary>
+        /// Adds a complex number and a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the sum.</returns>
+        /// 
+        public static Complex operator +(double s, Complex a)
+        {
+            return Add(a, s);
+        }
+
+        /// <summary>
+        /// Subtracts one complex number from another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the difference.</returns>
+        /// 
+        public static Complex operator -(Complex a, Complex b)
+        {
+            return Subtract(a, b);
+        }
+
+        /// <summary>
+        /// Subtracts a scalar value from a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the difference.</returns>
+        /// 
+        public static Complex operator -(Complex a, double s)
+        {
+            return Subtract(a, s);
+        }
+
+        /// <summary>
+        /// Subtracts a complex number from a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="s">A scalar value.</param>
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the difference.</returns>
+        /// 
+        public static Complex operator -(double s, Complex a)
+        {
+            return Subtract(s, a);
+        }
+
+        /// <summary>
+        /// Multiplies two complex numbers.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of multiplication.</returns>
+        /// 
+        public static Complex operator *(Complex a, Complex b)
+        {
+            return Multiply(a, b);
+        }
+
+        /// <summary>
+        /// Multiplies a complex number by a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="s">A scalar value.</param>
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of multiplication.</returns>
+        /// 
+        public static Complex operator *(double s, Complex a)
+        {
+            return Multiply(a, s);
+        }
+
+        /// <summary>
+        /// Multiplies a complex number by a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of multiplication.</returns>
+        /// 
+        public static Complex operator *(Complex a, double s)
+        {
+            return Multiply(a, s);
+        }
+
+        /// <summary>
+        /// Divides one complex number by another complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="b">A <see cref="Complex"/> instance.</param>
+        /// 
+        /// <returns>A new Complex instance containing the result.</returns>
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of division.</returns>
+        /// 
+        public static Complex operator /(Complex a, Complex b)
+        {
+            return Divide(a, b);
+        }
+
+        /// <summary>
+        /// Divides a complex number by a scalar value.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of division.</returns>
+        /// 
+        public static Complex operator /(Complex a, double s)
+        {
+            return Divide(a, s);
+        }
+
+        /// <summary>
+        /// Divides a scalar value by a complex number.
+        /// </summary>
+        /// 
+        /// <param name="a">A <see cref="Complex"/> instance.</param>
+        /// <param name="s">A scalar value.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing the result of division.</returns>
+        /// 
+        public static Complex operator /(double s, Complex a)
+        {
+            return Divide(s, a);
+        }
+
+        #endregion
+
+        #region Conversion Operators
+
+        /// <summary>
+        /// Converts from a single-precision real number to a complex number. 
+        /// </summary>
+        /// 
+        /// <param name="value">Single-precision real number to convert to complex number.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing complex number with
+        /// real part initialized to the specified value.</returns>
+        /// 
+        public static explicit operator Complex(float value)
+        {
+            return new Complex(value, 0);
+        }
+
+        /// <summary>
+        /// Converts from a double-precision real number to a complex number. 
+        /// </summary>
+        /// 
+        /// <param name="value">Double-precision real number to convert to complex number.</param>
+        /// 
+        /// <returns>Returns new <see cref="Complex"/> instance containing complex number with
+        /// real part initialized to the specified value.</returns>
+        /// 
+        public static explicit operator Complex(double value)
+        {
+            return new Complex(value, 0);
+        }
+
+        #endregion
+    }
+}
