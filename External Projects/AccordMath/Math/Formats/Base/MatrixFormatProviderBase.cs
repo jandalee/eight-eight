@@ -101,4 +101,52 @@ namespace Accord.Math.Formats
 
         /// <summary>
         /// A string containing the column delimiter for a matrix to be used in parsing.
-        /// </
+        /// </summary>
+        public string ParseColDelimiter { get; protected set; }
+
+        #endregion
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MatrixFormatProviderBase"/> class.
+        /// </summary>
+        /// <param name="culture">The culture.</param>
+        protected MatrixFormatProviderBase(CultureInfo culture)
+        {
+            CultureInfo = culture;
+        }
+
+        #region IMatrixFormatProvider Members
+
+        /// <summary>
+        /// Gets the culture specific formatting information
+        /// to be used during parsing or formatting.
+        /// </summary>
+        public CultureInfo CultureInfo { get; protected set; }
+
+        /// <summary>
+        ///   Returns an object that provides formatting services for the specified
+        ///   type. Currently, only <see cref="IMatrixFormatProvider"/> is supported.
+        /// </summary>
+        /// <param name="formatType">
+        ///   An object that specifies the type of format
+        ///   object to return. </param>
+        /// <returns>
+        ///   An instance of the object specified by formatType, if the
+        ///   <see cref="IFormatProvider">IFormatProvider</see> implementation
+        ///   can supply that type of object; otherwise, null.</returns>
+        ///   
+        public object GetFormat(Type formatType)
+        {
+            // Determine whether custom formatting object is requested.
+
+            if (formatType == typeof (ICustomFormatter))
+            {
+                return new MatrixFormatter();
+            }
+
+            return null;
+        }
+
+        #endregion
+    }
+}
