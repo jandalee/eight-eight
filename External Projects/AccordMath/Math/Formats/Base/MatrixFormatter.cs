@@ -297,4 +297,29 @@ namespace Accord.Math.Formats
 
                     // Remove starting and trailing tokens
                     if (col.StartsWith(provider.ParseColStart, StringComparison.Ordinal))
-                        col = 
+                        col = col.Remove(0, provider.ParseColStart.Length);
+                    if (col.EndsWith(provider.ParseColEnd, StringComparison.Ordinal))
+                        col = col.Remove(col.Length - provider.ParseColEnd.Length, provider.ParseColEnd.Length);
+
+                    // finally, parse the value and store
+                    values.Add(Double.Parse(col, provider.CultureInfo));
+                }
+
+                rows.Add(values.ToArray());
+            }
+
+            return rows.ToArray();
+        }
+
+        /// <summary>
+        ///   Converts a matrix represented in a System.String into a multi-dimensional array.
+        /// </summary>
+        /// 
+        public static double[,] ParseMultidimensional(string str, IMatrixFormatProvider provider)
+        {
+            return ParseJagged(str, provider).ToMatrix();
+        }
+
+        #endregion
+    }
+}
