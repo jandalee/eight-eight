@@ -203,4 +203,9 @@ namespace Accord.Math
             else // Backward operation
             {
                 // Just discard the imaginary part
-               
+                for (int i = 0; i < data.Length; i++)
+                    data[i].Im = 0.0;
+            }
+        }
+    }
+}
