@@ -296,4 +296,14 @@ namespace Accord.Math
             {
                 if (rows != b.Length)
                     throw new ArgumentException(
-        
+                        "Length of B should equal the number of rows in A", "b");
+
+                for (int j = 0; j < cols; j++)
+                    for (int i = 0; i < rows; i++)
+                        r[i, j] = a[i, j]*b[i];
+            }
+
+            return r;
+        }
+    }
+}
