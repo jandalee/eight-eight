@@ -176,3 +176,66 @@
       <Category Ref="CodeMap_TestAsset" />
     </Node>
     <Node Id="@103" Category="CodeSchema_Namespace" Bounds="294.28,1274.73,244.110000000001,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="TRL‎.Connect‎.Smartcom‎.Test‎.Models">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@104" Category="CodeSchema_Namespace" Bounds="40,1274.73,224.28,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="TRL‎.Connect‎.Smartcom‎.Test‎.Net">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@105" Category="CodeSchema_Namespace" Bounds="5706.57943248056,976,141.456666666667,145.96" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Label="TRL‎.Logging" />
+    <Node Id="@106" Category="CodeSchema_Interface" Bounds="5207.95583333334,120,182.25,145.96" CodeSchemaProperty_IsAbstract="True" CodeSchemaProperty_IsGeneric="True" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Label="IGenericSingleton‎&lt;T‎&gt;" />
+    <Node Id="@107" Category="CodeSchema_Type" Bounds="6700.13609914722,982.51,242.643333333333,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_ConnectedEventHandler" />
+    <Node Id="@108" Category="CodeSchema_Type" Bounds="5964.03609914722,1151.35,257.17,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_DisconnectedEventHandler" />
+    <Node Id="@109" Category="CodeSchema_Type" Bounds="6434.02276581389,872.51,143.533333333333,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_Event" />
+    <Node Id="@110" Category="CodeSchema_Type" Bounds="6625.26276581389,644.63,249.41,44" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="0" Group="Expanded" Label="_IStClient_SetMyOrderEventHandler" />
+    <Node Id="@111" Category="CodeSchema_Class" Bounds="1552.89961460783,813.231689506131,146.166666666666,85.9602" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Label="BrokerDateTime" UseManualLocation="True" />
+    <Node Id="@112" Category="CodeSchema_Class" Bounds="4607.53916666667,1083.22,216.833333333334,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="CookieToOrderNoAssociation" />
+    <Node Id="@113" Category="CodeSchema_Class" Bounds="694.766666666667,838.23,151.636666666667,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="FakeAdapterBase">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@114" Category="CodeSchema_Class" Bounds="487.483333333334,838.23,177.283333333333,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="FakeAdapterBaseTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@115" Category="CodeSchema_Class" Bounds="1552.89968378101,929.19198950613,189.6,85.9602" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Label="FortsTradingSchedule" UseManualLocation="True" />
+    <Node Id="@116" Category="CodeSchema_Class" Bounds="1547.71666666667,1754.22,156.926666666667,25" CodeSchemaProperty_IsPublic="True" CommonLabel="GetBarsCommand" DelayedChildNodesState="NotFetched" Group="Collapsed" Icon="CodeSchema_Class" Label="GetBarsCommand" SourceLocation="(Assembly=file:///z:/RD/Projects/Repository/TRx/TRL.Connect.Smartcom/Commands/GetBarsCommand.cs StartLineNumber=14 StartCharacterOffset=17 EndLineNumber=14 EndCharacterOffset=31)" />
+    <Node Id="@117" Category="CodeSchema_Class" Bounds="1547.71666666667,1809.22,178.923333333333,25" CodeSchemaProperty_IsPublic="True" CommonLabel="GetSymbolsCommand" DelayedChildNodesState="NotFetched" Group="Collapsed" Icon="CodeSchema_Class" Label="GetSymbolsCommand" SourceLocation="(Assembly=file:///z:/RD/Projects/Repository/TRx/TRL.Connect.Smartcom/Commands/GetSymbolsCommand.cs StartLineNumber=13 StartCharacterOffset=17 EndLineNumber=13 EndCharacterOffset=34)" />
+    <Node Id="@118" Category="CodeSchema_Interface" Bounds="5726.57943248056,1016,101.456666666667,85.96" CodeSchemaProperty_IsAbstract="True" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Expanded" Label="ILogger" />
+    <Node Id="@120" Category="CodeSchema_Type" Bounds="5964.03609914722,644.63,439.986666666666,421.72" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="16" Group="Expanded" Label="IStServer" />
+    <Node Id="@121" Category="CodeSchema_Class" Bounds="1089.99666666667,838.23,146.166666666667,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="MockSmartCom">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@122" Category="CodeSchema_Class" Bounds="882.293333333334,894.23,171.813333333334,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="MockSmartComTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@123" Category="CodeSchema_Class" Bounds="4759.6525,918.22,122.450000000001,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="OrderFailed" />
+    <Node Id="@124" Category="CodeSchema_Class" Bounds="4607.53916666667,1028.22,152.280000000001,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="OrderMoveFailed" />
+    <Node Id="@125" Category="CodeSchema_Class" Bounds="4789.81916666667,1028.22,178.780000000001,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="OrderMoveSucceeded" />
+    <Node Id="@126" Category="CodeSchema_Class" Bounds="4773.00250000001,973.22,148.950000000001,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="OrderSucceeded" />
+    <Node Id="@127" Category="CodeSchema_Class" Bounds="4607.53916666667,808.22,153.809999999998,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="PendingTradeInfo" />
+    <Node Id="@129" Category="CodeSchema_Class" Bounds="4984.2625,863.22,113.693333333333,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="RawOrder" />
+    <Node Id="@130" Category="CodeSchema_Class" Bounds="4365.54666666667,1019.72,151.869999999999,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="RawOrderFactory" />
+    <Node Id="@131" Category="CodeSchema_Class" Bounds="4607.53916666667,918.22,122.113333333333,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="RawSymbol" />
+    <Node Id="@132" Category="CodeSchema_Class" Bounds="4912.10250000001,918.22,122.893333333333,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SetPortfolio" />
+    <Node Id="@134" Category="CodeSchema_Class" Bounds="3608.67083333334,748,666.753333333334,365.44" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="12" Group="Expanded" Label="SmartCom" />
+    <Node Id="@136" Category="CodeSchema_Class" Bounds="1783.7175,283.74,686.520000000001,1293.96" CodeSchemaProperty_IsPublic="True" CommonLabel="SmartComAdapter" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="27" Group="Expanded" Icon="CodeSchema_Class" Label="SmartComAdapter" SourceLocation="(Assembly=file:///z:/RD/Projects/Repository/TRx/TRL.Connect.Smartcom/SmartComAdapter.cs StartLineNumber=21 StartCharacterOffset=17 EndLineNumber=21 EndCharacterOffset=32)" />
+    <Node Id="@137" Category="CodeSchema_Class" Bounds="232.5,979.23,184.983333333334,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComAdapterTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@139" Category="CodeSchema_Class" Bounds="2553.3475,961.917544723732,666.073333333334,469.604910552536" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="11" Group="Expanded" Label="SmartComConnector" />
+    <Node Id="@140" Category="CodeSchema_Class" Bounds="1783.7175,1607.7,206.52,25" CodeSchemaProperty_IsAbstract="True" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComEventsExtensions" />
+    <Node Id="@141" Category="CodeSchema_Class" Bounds="2020.2375,1607.7,180.753333333332,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComEventsTypes" />
+    <Node Id="@142" Category="CodeSchema_Class" Bounds="60,1034.23,201.306666666667,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComEventTypesTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@144" Category="CodeSchema_Class" Bounds="2500.2375,601.76,772.293333333335,297.92" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="10" Group="Expanded" Label="SmartComOrderManager" />
+    <Node Id="@145" Category="CodeSchema_Class" Bounds="60,1089.23,220.533333333333,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComOrderManagerTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@146" Category="CodeSchema_Class" Bounds="60,979.23,142.5,25" CodeSchemaProperty_IsPublic="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="SmartComTests">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="@147" Category="CodeSchema_Type" Bounds="6625.26276581389,718.63,127.473333333333,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="StBarInterval" />
+    <Node Id="@148" Category="CodeSchema_Type" Bounds="6625.26276581389,773.63,140.846666666666,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="0" Group="Collapsed" Label="StOrder_Action" />
+    <Node Id="@149" Category="CodeSchema_Type" Bounds="6944.26943248055,718.63,133.273333333334,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="StOrder_State" />
+    <Node Id="@150" Category="CodeSchema_Type" Bounds="6782.73609914722,718.63,131.533333333333,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="StOrder_Type" />
+    <Node Id="@151" Category="CodeSchema_Type" Bounds="6607.55609914722,872.51,145.110000000001,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="StOrder_Validity" />
+    <Node Id="
