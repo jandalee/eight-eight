@@ -19,4 +19,73 @@
     <Node Id="(@67 @77 Type=_IStClient_AddTradeEventHandler)" Category="CodeSchema_Type" Bounds="6434.02276581389,982.51,236.113333333335,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_AddTradeEventHandler" />
     <Node Id="(@67 @77 Type=_IStClient_OrderCancelFailedEventHandler)" Category="CodeSchema_Type" Bounds="6270.68943248056,1261.35,281.876666666667,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderCancelFailedEventHandler" />
     <Node Id="(@67 @77 Type=_IStClient_OrderCancelSucceededEventHandler)" Category="CodeSchema_Type" Bounds="5964.03609914722,1316.35,308.376666666667,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderCancelSucceededEventHandler" />
-    <Node Id="(@67 @77 Type=_IStClient_OrderFailedEventHandler)" Category="CodeSchema_Type" Bounds="6710.4260991472
+    <Node Id="(@67 @77 Type=_IStClient_OrderFailedEventHandler)" Category="CodeSchema_Type" Bounds="6710.42609914722,1037.51,246.823333333334,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderFailedEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_OrderMoveFailedEventHandler)" Category="CodeSchema_Type" Bounds="5964.03609914722,1261.35,276.653333333334,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderMoveFailedEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_OrderMoveSucceededEventHandler)" Category="CodeSchema_Type" Bounds="6582.56609914722,1261.35,303.153333333334,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderMoveSucceededEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_OrderSucceededEventHandler)" Category="CodeSchema_Type" Bounds="6556.13276581389,1206.35,273.323333333334,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_OrderSucceededEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_SetMyClosePosEventHandler)" Category="CodeSchema_Type" Bounds="5964.03609914722,1206.35,265.810000000001,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_SetMyClosePosEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_SetMyTradeEventHandler)" Category="CodeSchema_Type" Bounds="6241.30276581389,1096.35,247.540000000001,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_SetMyTradeEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_SetPortfolioEventHandler)" Category="CodeSchema_Type" Bounds="5964.03609914722,1096.35,247.266666666666,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_SetPortfolioEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_SetSubscribtionCheckReultEventHandler)" Category="CodeSchema_Type" Bounds="6302.41276581389,1316.35,326.74,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_SetSubscribtionCheckReultEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_UpdateBidAskEventHandler)" Category="CodeSchema_Type" Bounds="6538.60276581389,1151.35,259.836666666666,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_UpdateBidAskEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_UpdateOrderEventHandler)" Category="CodeSchema_Type" Bounds="6801.26609914722,1096.35,254.923333333332,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_UpdateOrderEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_UpdatePositionEventHandler)" Category="CodeSchema_Type" Bounds="6259.84609914722,1206.35,266.286666666667,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_UpdatePositionEventHandler" />
+    <Node Id="(@67 @77 Type=_IStClient_UpdateQuoteEventHandler)" Category="CodeSchema_Type" Bounds="6251.20609914722,1151.35,257.396666666667,25" CodeSchemaProperty_IsExternal="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="_IStClient_UpdateQuoteEventHandler" />
+    <Node Id="(@71 @93 @133 @211)" Category="CodeSchema_Method" Bounds="3628.67083333334,1067.48,91.8533333333335,25.96" CodeSchemaProperty_IsConstructor="True" CodeSchemaProperty_IsPrivate="True" CodeSchemaProperty_IsSpecialName="True" DelayedCrossGroupLinksState="Fetched" Label="SmartCom" />
+    <Node Id="(@71 @93 @135 @261)" Category="CodeSchema_Property" Bounds="0,0,102.309061454048,25" CodeSchemaProperty_IsPublic="True" CommonLabel="Instance" DelayedChildNodesState="NotFetched" Group="Collapsed" Icon="CodeSchema_Property" Label="Instance" />
+    <Node Id="(@71 @93 @143 Member=(Name=MoveOrder OverloadingParameters=[(@73 Namespace=TRL.Common.Models Type=Order),@186]))" Category="CodeSchema_Method" Bounds="2520.2375,853.72,96.5666666666666,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="MoveOrder" />
+    <Node Id="(@75 @101 @155 Member=(Name=CancelBidAsks @179))" Category="CodeSchema_Method" Bounds="399.904958420877,832.494943434227,111.796666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="CancelBidAsks" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=CancelPortfolio @179))" Category="CodeSchema_Method" Bounds="829.131635870421,832.494943434227,116.23,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="CancelPortfolio" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=CancelQuotes @179))" Category="CodeSchema_Method" Bounds="260.548298264627,832.494943434227,109.356666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="CancelQuotes" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=CancelTicks @179))" Category="CodeSchema_Method" Bounds="712.654967576151,776.454904371727,96.8466666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="CancelTicks" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=CheckSubscribtion @179))" Category="CodeSchema_Method" Bounds="910.86497896938,888.454904371727,133.783333333333,25.96" CodeSchemaProperty_IsPublic="True" DelayedCrossGroupLinksState="Fetched" Label="CheckSubscribtion" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ConfigureClient @179))" Category="CodeSchema_Method" Bounds="-13.9683749378875,888.454904371727,118.596666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ConfigureClient" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ConfigureServer @179))" Category="CodeSchema_Method" Bounds="285.064959845031,888.454904371727,121.24,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ConfigureServer" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=GetMoneyAccount @179))" Category="CodeSchema_Method" Bounds="-13.9683765654917,944.414926344383,134.76,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="GetMoneyAccount" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=GetMyClosePos @179))" Category="CodeSchema_Method" Bounds="975.361638718729,832.494943434227,118.296666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="GetMyClosePos" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=GetMyOrders OverloadingParameters=[@168,@178]))" Category="CodeSchema_Method" Bounds="-13.9683710723276,832.494943434227,106.99,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="GetMyOrders" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=GetMyTrades @179))" Category="CodeSchema_Method" Bounds="974.588338751281,776.454904371727,105.12,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="GetMyTrades" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=GetTrades OverloadingParameters=[@178,@166,@168]))" Category="CodeSchema_Method" Bounds="344.974976121072,776.454904371727,88.5366666666666,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="GetTrades" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ListenBidAsks @179))" Category="CodeSchema_Method" Bounds="123.021632615213,832.494943434227,107.526666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ListenBidAsks" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ListenPortfolio @179))" Category="CodeSchema_Method" Bounds="541.701663946593,832.494943434227,111.96,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ListenPortfolio" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ListenQuotes @179))" Category="CodeSchema_Method" Bounds="839.501642380838,776.454904371727,105.086666666667,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ListenQuotes" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=ListenTicks @179))" Category="CodeSchema_Method" Bounds="463.511632004862,776.454904371727,92.5766666666668,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="ListenTicks" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=(Name=MoveOrder OverloadingParameters=[@178,@178,@186]))" Category="CodeSchema_Method" Bounds="586.088302537088,776.454904371727,96.5666666666666,25.96" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedCrossGroupLinksState="Fetched" Label="MoveOrder" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=AddBar)" Category="CodeSchema_Event" Bounds="-13.9683721595194,1056.33492202768,93.5333333333333,25" CodeSchemaProperty_IsFinal="True" CodeSchemaProperty_IsPublic="True" CodeSchemaProperty_IsVirtual="True" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="AddBar" UseManualLocation="True">
+      <Category Ref="CodeMap_TestAsset" />
+    </Node>
+    <Node Id="(@75 @101 @155 Member=AddPortfolio)" Category="CodeSchema_Event" Bounds="134.568294507147,1111.33492202768,121.55,25" CodeSchemaProperty_IsFinal="True" CodeSchemaProp
