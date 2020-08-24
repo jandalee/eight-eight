@@ -545,4 +545,140 @@
     <Link Source="@104" Target="@152" Category="References" IsSourceVirtualized="True" Weight="1" />
     <Link Source="@104" Target="@189" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
     <Link Source="@104" Target="@226" Category="CodeSchema_Calls" Bounds="-374.835942238119,807.792579516585,3854.85725087621,66.2333605964125" IsSourceVirtualized="True" Weight="3" />
-    <Link Source="@104" Target="@237" 
+    <Link Source="@104" Target="@237" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@104" Target="@269" Category="CodeSchema_Calls" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="4" />
+    <Link Source="@104" Target="@89" Category="References" Bounds="-451.377944978504,513.775241740093,995.81431590402,349.677464676792" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="4">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@105" Target="@118" Category="Contains" FetchingParent="@105" />
+    <Link Source="@106" Target="@262" Category="Contains" FetchingParent="@106" />
+    <Link Source="@111" Target="@167" Category="Contains" FetchingParent="@111" />
+    <Link Source="@113" Target="@139" Category="References" Bounds="386.810054976386,919.159728596178,1697.94919766178,42.9088747265624" IsSourceVirtualized="True" Weight="2">
+      <Category Ref="CodeSchema_ReturnTypeLink" />
+    </Link>
+    <Link Source="@113" Target="@157" Category="References" Bounds="846.4033203125,850.72998046875,21,0" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="6">
+      <Category Ref="CodeSchema_Calls" />
+      <Category Ref="CodeSchema_ReturnTypeLink" />
+    </Link>
+    <Link Source="@113" Target="@189" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@113" Target="@89" Category="References" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="3">
+      <Category Ref="CodeSchema_Calls" />
+      <Category Ref="CodeSchema_ReturnTypeLink" />
+    </Link>
+    <Link Source="@114" Target="@113" Category="References" Bounds="664.766662597656,850.72998046875,21,0" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="12">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@115" Target="@212" Category="Contains" FetchingParent="@115" />
+    <Link Source="@116" Target="@152" Category="References" IsSourceVirtualized="True" Weight="3" />
+    <Link Source="@117" Target="@152" Category="References" IsSourceVirtualized="True" Weight="3" />
+    <Link Source="@118" Target="@183" Category="Contains" FetchingParent="@118" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=CancelBidAsks @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=CancelPortfolio @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=CancelQuotes @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=CancelTicks @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=GetBars OverloadingParameters=[@178,@147,@166,@168]))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=ListenBidAsks @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=ListenPortfolio @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=ListenQuotes @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=(Name=ListenTicks @179))" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="(@67 @77 @119 Member=GetSymbols)" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@191" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@195" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@204" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@235" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@252" Category="Contains" FetchingParent="@120" />
+    <Link Source="@120" Target="@267" Category="Contains" FetchingParent="@120" />
+    <Link Source="@121" Target="@152" Category="CodeSchema_ReturnTypeLink" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@121" Target="@156" Category="References" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@121" Target="@217" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@122" Target="@121" Category="CodeSchema_Calls" Bounds="1011.70001220703,865.715637207031,99.2300415039063,28.5143432617188" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="2" />
+    <Link Source="@125" Target="@167" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@126" Target="@167" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@127" Target="@160" Category="References" Bounds="4761.34912109375,820.719970703125,20.5,0" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="18">
+      <Category Ref="CodeSchema_Calls" />
+      <Category Ref="InheritsFrom" />
+    </Link>
+    <Link Source="@129" Target="@219" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@220" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@230" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@284" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@285" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@295" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@302" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@303" Category="Contains" FetchingParent="@129" />
+    <Link Source="@129" Target="@306" Category="Contains" FetchingParent="@129" />
+    <Link Source="@130" Target="@172" Category="Contains" FetchingParent="@130" />
+    <Link Source="@130" Target="@176" Category="Contains" FetchingParent="@130" />
+    <Link Source="@134" Target="(@71 @93 @133 @211)" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@210" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@233" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@249" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@250" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@251" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@253" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@254" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@255" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@263" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@272" Category="Contains" FetchingParent="@134" />
+    <Link Source="@134" Target="@297" Category="Contains" FetchingParent="@134" />
+    <Link Source="@136" Target="(@71 @93 @135 @261)" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@173" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@174" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@185" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@201" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@213" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@223" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@224" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@227" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@229" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@231" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@232" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@259" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@268" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@274" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@275" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@276" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@279" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@288" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@289" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@290" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@293" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@294" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@296" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@298" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@300" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@301" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@304" Category="Contains" FetchingParent="@136" />
+    <Link Source="@136" Target="@305" Category="Contains" FetchingParent="@136" />
+    <Link Source="@137" Target="@107" Category="References" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="2">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@137" Target="@108" Category="References" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="2">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@137" Target="@136" Category="References" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@139" Category="References" Bounds="-82.0730647895834,699.211629100124,2166.88168517976,234.492169904773" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@152" Category="References" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@157" Category="References" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="3">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@137" Target="@189" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@201" Category="CodeSchema_Calls" Bounds="-81.437117041179,696.40942356353,1580.92648005307,122.008800699849" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@238" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@275" Category="CodeSchema_Calls" Bounds="-2711.38014197456,353.089586216716,1454.18755142298,84.0120060492497" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="3" />
+    <Link Source="@137" Target="@286" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@137" Target="@294" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="7" />
+    <Link Source="@137" Target="@296" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="7" />
+    <Link Source="@137" Target="@89" Category="References" Bounds="-311.892313044819,512.029430473128,801.347733121251,111.106311979214" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="6">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@139" Target="@182" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@189" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@214" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@225" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@226" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@228" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@237" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@260" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@269" Category="Contains" FetchingParent="@139" />
+    <Link Source="@139" Target="@277" Category="Contains" FetchingParent="@
