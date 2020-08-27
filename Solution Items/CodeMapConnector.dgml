@@ -1017,4 +1017,114 @@
     <Link Source="@278" Target="@118" Category="References" Weight="1" />
     <Link Source="@281" Target="@280" Category="CodeSchema_FieldRead" Bounds="487.650689294529,677.474931516125,21.0000102965956,2.79315031548322E-06" IsSourceVirtualized="True" Weight="1" />
     <Link Source="@283" Target="@282" Category="CodeSchema_FieldRead" Bounds="767.84308408191,565.51492169898,20.9999954734069,8.07820015324978E-08" IsSourceVirtualized="True" Weight="1" />
-    <Link Source="@284" Target="@243" Category="Contains" FetchingParent
+    <Link Source="@284" Target="@243" Category="Contains" FetchingParent="@284" />
+    <Link Source="@285" Target="@244" Category="Contains" FetchingParent="@285" />
+    <Link Source="@286" Target="@271" Category="CodeSchema_FieldWrite" Bounds="96.7805969669126,749.175693629963,87.6822555888169,27.359227831608" Weight="1" />
+    <Link Source="@288" Target="@229" Category="CodeSchema_FieldRead" Bounds="2248.91357421875,1153.55419921875,144.08837890625,222.185791015625" Weight="1" />
+    <Link Source="@289" Target="@294" Category="CodeSchema_Calls" Bounds="1907.19079589844,832.719970703125,88.8316650390625,0" Weight="1" />
+    <Link Source="@289" Target="@296" Category="CodeSchema_Calls" Bounds="1904.21508789063,783.525695800781,92.9898681640625,36.2144165039063" Weight="1" />
+    <Link Source="@291" Target="@110" Category="References" Bounds="104.566927207226,951.721085262235,6314.11697642548,170.513599466263" IsSourceVirtualized="True" Weight="6" />
+    <Link Source="@292" Target="@106" Category="References" Weight="1" />
+    <Link Source="@292" Target="@152" Category="References" Weight="1" />
+    <Link Source="@293" Target="@167" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@293" Target="@183" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@293" Target="@276" Category="CodeSchema_FieldRead" Bounds="2253.31103515625,554.18603515625,120.970703125,69.553955078125" Weight="1" />
+    <Link Source="@293" Target="@301" Category="CodeSchema_FieldRead" Bounds="2282.04321289063,649.700012207031,68.689208984375,17.3773193359375" Weight="1" />
+    <Link Source="@294" Target="@224" Category="CodeSchema_Calls" Bounds="2044.90795898438,452.771453857422,141.617431640625,366.968536376953" Weight="1" />
+    <Link Source="@294" Target="@229" Category="CodeSchema_FieldRead" Bounds="2065.42260742188,837.662902832031,331.778076171875,273.575012207031" Weight="1" />
+    <Link Source="@294" Target="@274" Category="CodeSchema_FieldWrite" Bounds="2065.42260742188,832.719970703125,285.58154296875,0" Weight="1" />
+    <Link Source="@295" Target="@245" Category="Contains" FetchingParent="@295" />
+    <Link Source="@296" Target="@229" Category="CodeSchema_FieldRead" Bounds="2065.29077148438,773.641357421875,333.94287109375,337.3671875" Weight="1" />
+    <Link Source="@296" Target="@274" Category="CodeSchema_FieldWrite" Bounds="2065.29077148438,768.719970703125,305.057861328125,47.0299682617188" Weight="1" />
+    <Link Source="@296" Target="@304" Category="CodeSchema_Calls" Bounds="2038.88757324219,398.469024658203,163.441772460938,357.270965576172" Weight="1" />
+    <Link Source="@296" Target="@305" Category="CodeSchema_Calls" Bounds="2043.369140625,596.640319824219,141.310791015625,159.099670410156" Weight="1" />
+    <Link Source="@297" Target="@154" Category="References" Weight="1" />
+    <Link Source="@298" Target="@152" Category="References" Bounds="1984.65808597074,536.812556735222,4066.1863695167,53.2088172584757" Weight="1" />
+    <Link Source="@299" Target="@152" Category="References" Weight="1" />
+    <Link Source="@300" Target="@106" Category="References" Weight="1" />
+    <Link Source="@300" Target="@152" Category="References" Weight="1" />
+    <Link Source="@302" Target="@246" Category="Contains" FetchingParent="@302" />
+    <Link Source="@303" Target="@247" Category="Contains" FetchingParent="@303" />
+    <Link Source="@304" Target="@167" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@304" Target="@183" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@304" Target="@223" Category="CodeSchema_FieldRead" Bounds="2282.04321289063,347.942016601563,78.257568359375,19.7979736328125" Weight="1" />
+    <Link Source="@304" Target="@276" Category="CodeSchema_FieldRead" Bounds="2249.81567382813,393.700012207031,135.5302734375,123.669982910156" Weight="1" />
+    <Link Source="@305" Target="@167" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@305" Target="@183" Category="CodeSchema_Calls" Weight="1" />
+    <Link Source="@305" Target="@276" Category="CodeSchema_FieldRead" Bounds="2279.947265625,547.974060058594,80.226806640625,20.2962036132813" Weight="1" />
+    <Link Source="@305" Target="@301" Category="CodeSchema_FieldRead" Bounds="2267.34399414063,593.700012207031,115.12158203125,68.2233276367188" Weight="2" />
+    <Link Source="@306" Target="@248" Category="Contains" FetchingParent="@306" />
+    <Link Source="@68" Target="@78" Category="Contains" FetchingParent="@68" />
+    <Link Source="@70" Target="@105" Category="Contains" FetchingParent="@70" />
+    <Link Source="@72" Target="@70" Category="CodeMap_ProjectReference" />
+    <Link Source="@72" Target="@74" Category="CodeMap_ProjectReference" />
+    <Link Source="@72" Target="@86" Category="Contains" FetchingParent="@72" />
+    <Link Source="@72" Target="@88" Category="Contains" FetchingParent="@72" />
+    <Link Source="@72" Target="@89" Category="Contains" FetchingParent="@72" />
+    <Link Source="@72" Target="@90" Category="Contains" FetchingParent="@72" />
+    <Link Source="@72" Target="@92" Category="Contains" FetchingParent="@72" />
+    <Link Source="@72" Target="@94" Category="Contains" FetchingParent="@72" />
+    <Link Source="@74" Target="@70" Category="CodeMap_ProjectReference" Bounds="5468.32177734375,305.959991455078,262.08154296875,621.746673583984" />
+    <Link Source="@74" Target="@80" Category="Contains" FetchingParent="@74" />
+    <Link Source="@74" Target="@82" Category="Contains" FetchingParent="@74" />
+    <Link Source="@76" Target="@100" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@102" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@103" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@104" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@70" Category="CodeMap_ProjectReference" Bounds="986.771179199219,1150.25329589844,4743.63214111328,754.726684570313" />
+    <Link Source="@76" Target="@72" Category="CodeMap_ProjectReference" />
+    <Link Source="@76" Target="@74" Category="CodeMap_ProjectReference" />
+    <Link Source="@76" Target="@96" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@97" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@98" Category="Contains" FetchingParent="@76" />
+    <Link Source="@76" Target="@99" Category="Contains" FetchingParent="@76" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddBarEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddPortfolioEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddSymbolEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddTickEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddTickHistoryEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_AddTradeEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderCancelFailedEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderCancelSucceededEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderFailedEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderMoveFailedEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderMoveSucceededEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_OrderSucceededEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_SetMyClosePosEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_SetMyTradeEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_SetPortfolioEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_SetSubscribtionCheckReultEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_UpdateBidAskEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_UpdateOrderEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_UpdatePositionEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="(@67 @77 Type=_IStClient_UpdateQuoteEventHandler)" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@107" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@108" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@109" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@110" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@120" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@147" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@148" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@149" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@150" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@151" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@152" Category="Contains" FetchingParent="@78" />
+    <Link Source="@78" Target="@154" Category="Contains" FetchingParent="@78" />
+    <Link Source="@80" Target="@106" Category="Contains" FetchingParent="@80" />
+    <Link Source="@82" Target="@111" Category="Contains" FetchingParent="@82" />
+    <Link Source="@82" Target="@115" Category="Contains" FetchingParent="@82" />
+    <Link Source="@86" Target="@116" Category="Contains" FetchingParent="@86" />
+    <Link Source="@86" Target="@117" Category="Contains" FetchingParent="@86" />
+    <Link Source="@88" Target="@130" Category="Contains" FetchingParent="@88" />
+    <Link Source="@89" Target="@118" Category="References" Bounds="696.275632820538,507.104742619065,4223.42143280582,345.373333264282" IsSourceVirtualized="True" Weight="4" />
+    <Link Source="@89" Target="@140" Category="CodeSchema_Calls" Bounds="659.174321069409,140.625044382025,1950.85476264756,345.168366124418" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="2" />
+    <Link Source="@89" Target="@141" Category="CodeSchema_Calls" Bounds="666.694322728485,140.478152018734,2159.42668794439,345.315258487709" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="2" />
+    <Link Source="@89" Target="@152" Category="References" Bounds="696.450655298269,503.162016192454,4930.67010549453,222.427505318078" IsSourceVirtualized="True" Weight="2" />
+    <Link Source="@89" Target="@161" Category="References" Bounds="694.385247934473,509.841640497382,3106.29468763823,338.865893767008" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="15">
+      <Category Ref="CodeSchema_Calls" />
+    </Link>
+    <Link Source="@89" Target="@167" Category="CodeSchema_Calls" IsSourceVirtualized="True" Weight="3" />
+    <Link Source="@89" Target="@183" Category="CodeSchema_Calls" Bounds="696.204104732727,507.344125978106,4246.34964179681,356.919166304427" IsSourceVirtualized="True" Weight="2" />
+    <Link Source="@89" Target="@218" Category="CodeSchema_Calls" Bounds="648.681903138338,266.533943126234,1055.18614888043,219.259467380209" IsSourceVirtualized="True" Weight="1" />
+    <Link Source="@89" Target="@264" Category="CodeSchema_Calls" Bounds="1605.6555796015,736.667959461123,1733.82304421139,45.5807890316981" IsSourceVirtualized="True" IsTargetVirtualized="True" Weight="1" />
+    <Link Source="@90" Target="@112" Category="References" IsSourceVirtualized="True" IsTargetVirtual
