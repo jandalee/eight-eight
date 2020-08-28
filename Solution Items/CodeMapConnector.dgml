@@ -1266,4 +1266,86 @@
     <Link Source="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" Target="@70" Category="Contains" FetchingParent="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" />
     <Link Source="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" Target="@72" Category="Contains" FetchingParent="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" />
     <Link Source="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" Target="@74" Category="Contains" FetchingParent="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" />
-    <Link Source="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" Target="@76" Category="Contains" FetchingPare
+    <Link Source="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" Target="@76" Category="Contains" FetchingParent="TRL{623375FA-0C22-458A-86EC-B438C24444BF}" />
+    <Link Source="_standardGraphExternalsGroup" Target="@68" Category="Contains" FetchingParent="_standardGraphExternalsGroup" />
+  </Links>
+  <Categories>
+    <Category Id="CodeMap_ProjectReference" Label="Ссылка проекта" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Ссылается" OutgoingActionLabel="Ссылки" />
+    <Category Id="CodeMap_SolutionFolder" Label="Папка решения" CanBeDataDriven="True" IsProviderRoot="False" NavigationActionLabel="Папка решения" />
+    <Category Id="CodeMap_TestAsset" Label="Тестовый ресурс" CanBeDataDriven="True" IsProviderRoot="False" NavigationActionLabel="Тестовые ресурсы" />
+    <Category Id="CodeMap_TestProject" Label="Тестовый проект" CanBeDataDriven="True" IsProviderRoot="False" NavigationActionLabel="Тестовые проекты" />
+    <Category Id="CodeSchema_Assembly" Label="Сборка" BasedOn="File" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Assembly" NavigationActionLabel="Сборки" />
+    <Category Id="CodeSchema_Calls" Label="Вызовы" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Вызывается" OutgoingActionLabel="Вызовы" />
+    <Category Id="CodeSchema_Class" Label="Класс" BasedOn="CodeSchema_Type" CanBeDataDriven="True" DefaultAction="Node:Both:CodeSchema_Member" Icon="CodeSchema_Class" NavigationActionLabel="Классы" />
+    <Category Id="CodeSchema_Delegate" Label="Делегат" BasedOn="CodeSchema_Class" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Delegate" NavigationActionLabel="Делегаты" />
+    <Category Id="CodeSchema_Event" Label="Событие" BasedOn="CodeSchema_Field" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Event" NavigationActionLabel="События" />
+    <Category Id="CodeSchema_Field" Label="Поле" BasedOn="CodeSchema_Member" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Field" NavigationActionLabel="Поля" />
+    <Category Id="CodeSchema_FieldRead" Label="Чтение поля" BasedOn="CodeSchema_FieldReference" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Чтение по" OutgoingActionLabel="Чтение полей" />
+    <Category Id="CodeSchema_FieldReference" Label="Ссылка на поле" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Ссылается" OutgoingActionLabel="Ссылается на поля" />
+    <Category Id="CodeSchema_FieldWrite" Label="Запись поля" BasedOn="CodeSchema_FieldReference" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Запись по" OutgoingActionLabel="Запись полей" />
+    <Category Id="CodeSchema_FunctionPointer" Label="Указатель функции" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Указатели функций" OutgoingActionLabel="Указатели функций" />
+    <Category Id="CodeSchema_Interface" Label="Интерфейс" BasedOn="CodeSchema_Type" CanBeDataDriven="True" DefaultAction="Node:Both:CodeSchema_Member" Icon="CodeSchema_Interface" NavigationActionLabel="Интерфейсы" />
+    <Category Id="CodeSchema_Member" Label="Член" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Field" NavigationActionLabel="Члены" />
+    <Category Id="CodeSchema_Method" Label="Метод" BasedOn="CodeSchema_Member" CanBeDataDriven="True" DefaultAction="Link:Forward:CodeSchema_Calls" Icon="CodeSchema_Method" NavigationActionLabel="Методы" />
+    <Category Id="CodeSchema_Namespace" Label="Пространство имен" CanBeDataDriven="True" DefaultAction="Node:Both:CodeSchema_Type" Icon="CodeSchema_Namespace" NavigationActionLabel="Пространства имен" />
+    <Category Id="CodeSchema_Property" Label="Свойство" BasedOn="CodeSchema_Member" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="CodeSchema_Property" NavigationActionLabel="Свойства" />
+    <Category Id="CodeSchema_ReturnTypeLink" Label="Вернуть" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Возвращаемые типы" OutgoingActionLabel="Возвращаемые типы" />
+    <Category Id="CodeSchema_Type" Label="Тип" CanBeDataDriven="True" DefaultAction="Node:Both:CodeSchema_Member" Icon="CodeSchema_Class" NavigationActionLabel="Типы" />
+    <Category Id="Contains" Label="Содержит" Description="Указывает, содержит ли источник связи целевой объект" CanBeDataDriven="False" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Содержится в" IsContainment="True" OutgoingActionLabel="Содержит" />
+    <Category Id="Externals" Label="Внешние" CanBeDataDriven="True" IsProviderRoot="False" NavigationActionLabel="Внешние" />
+    <Category Id="File" Label="Файл" CanBeDataDriven="True" DefaultAction="Microsoft.Contains" Icon="File" NavigationActionLabel="Файлы" />
+    <Category Id="FileSystem.Category.FileOfType.dll" BasedOn="CodeSchema_Assembly" CanBeDataDriven="True" IsProviderRoot="False" />
+    <Category Id="Implements" Label="Реализации" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Реализуется" OutgoingActionLabel="Реализации" />
+    <Category Id="InheritsFrom" Label="Наследует от" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Наследуется" OutgoingActionLabel="Наследует от" />
+    <Category Id="References" Label="Ссылки" CanBeDataDriven="True" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Ссылается" OutgoingActionLabel="Ссылки" />
+  </Categories>
+  <Properties>
+    <Property Id="AssemblyTimestamp" DataType="System.DateTime" />
+    <Property Id="Bounds" DataType="System.Windows.Rect" />
+    <Property Id="CanBeDataDriven" Label="CanBeDataDriven" Description="CanBeDataDriven" DataType="System.Boolean" />
+    <Property Id="CanLinkedNodesBeDataDriven" Label="CanLinkedNodesBeDataDriven" Description="CanLinkedNodesBeDataDriven" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsAbstract" Label="Является абстрактным" Description="Флаг, указывающий, что член является Abstract и не содержит полной реализации" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsCompilerGenerated" Label="Создан компилятором" Description="Флаг, указывающий, что представляющий этот узел код создан компилятором" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsConstructor" Label="Является конструктором" Description="Флаг, указывающий, что метод является конструктором" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsExternal" Label="Является внешним" Description="Флаг, указывающий, что этот узел считается внешним" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsFinal" Label="Является Final" Description="Флаг, указывающий, что член является Final, и не допускает наследования" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsGeneric" Label="Является Generic" Description="Флаг, указывающий, что член является Generic" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsPrivate" Label="Является Private" Description="Флаг, указывающий на область видимости Private" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsPublic" Label="Является Public" Description="Флаг, указывающий на область видимости Public" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsSpecialName" Label="Является особым именем" Description="Флаг, указывающий, что некоторые компиляторы обрабатывают этот метод особым образом" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsStatic" Label="Является статическим" Description="Флаг, указывающий, что член является статическим" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_IsVirtual" Label="Является виртуальным" Description="Флаг, указывающий, что метод можно переопределить" DataType="System.Boolean" />
+    <Property Id="CodeSchemaProperty_StrongName" Label="StrongName" Description="StrongName" DataType="System.String" />
+    <Property Id="CommonLabel" DataType="System.String" />
+    <Property Id="DataVirtualized" Label="Виртуализированные данные" Description="При значении true граф может содержать узлы и связи, которые представляют данные для виртуализированных узлов и связей (то есть которые не были фактически созданы в графе)." DataType="System.Boolean" />
+    <Property Id="DefaultAction" Label="DefaultAction" Description="DefaultAction" DataType="System.String" />
+    <Property Id="DelayedChildNodesState" Label="Состояние отложенных дочерних узлов" Description="Unspecified, если не указано состояние отложенных дочерних узлов. NotFetched, если группа содержит дочерние узлы, еще не переданные в граф. Fetched, если все отложенные дочерние узлы группы уже переданы." DataType="Microsoft.VisualStudio.GraphModel.DelayedDataState" />
+    <Property Id="DelayedCrossGroupLinksState" Label="Состояние отложенных связей между группами" Description="Unspecified, если не указано состояние отложенных связей между группами. NotFetched, если отложенные связи между группами в данном узле еще не переданы в граф. Fetched, если все отложенные связи между группами уже переданы." DataType="Microsoft.VisualStudio.GraphModel.DelayedDataState" />
+    <Property Id="ErrorMessage" Label="Ошибка" Description="Ошибка" DataType="System.String" />
+    <Property Id="Expression" DataType="System.String" />
+    <Property Id="FetchedChildrenCount" DataType="System.Int32" />
+    <Property Id="FetchingParent" DataType="Microsoft.VisualStudio.GraphModel.GraphNodeId" />
+    <Property Id="FilePath" Label="Путь к файлу" Description="Путь к файлу" DataType="System.String" />
+    <Property Id="GraphDirection" DataType="Microsoft.VisualStudio.Diagrams.Layout.LayoutOrientation" />
+    <Property Id="Group" Label="Группа" Description="Отображать узел как группу" DataType="Microsoft.VisualStudio.GraphModel.GraphGroupStyle" />
+    <Property Id="GroupLabel" DataType="System.String" />
+    <Property Id="Icon" Label="Значок" DataType="System.String" />
+    <Property Id="IncomingActionLabel" Label="IncomingActionLabel" Description="IncomingActionLabel" DataType="System.String" />
+    <Property Id="IsContainment" DataType="System.Boolean" />
+    <Property Id="IsEnabled" DataType="System.Boolean" />
+    <Property Id="IsProviderRoot" Label="IsProviderRoot" Description="IsProviderRoot" DataType="System.Boolean" />
+    <Property Id="IsSourceVirtualized" Label="Виртуализированный источник связи" Description="При значении true сторона источника связи содержит данные для виртуализированных узлов и связей (то есть которые не были фактически созданы в графе)." DataType="System.Boolean" />
+    <Property Id="IsTargetVirtualized" Label="Виртуализированное назначение связи" Description="При значении true сторона назначения связи содержит данные для виртуализированных узлов и связей (то есть которые не были фактически созданы в графе)." DataType="System.Boolean" />
+    <Property Id="Label" Label="Метка" Description="Отображаемая метка аннотируемого объекта" DataType="System.String" />
+    <Property Id="Layout" DataType="System.String" />
+    <Property Id="LayoutSettings" DataType="Microsoft.VisualStudio.Diagrams.View.GroupLayoutStyle" />
+    <Property Id="NavigationActionLabel" Label="NavigationActionLabel" Description="NavigationActionLabel" DataType="System.String" />
+    <Property Id="OutgoingActionLabel" Label="OutgoingActionLabel" Description="OutgoingActionLabel" DataType="System.String" />
+    <Property Id="SourceLocation" Label="Номер начальной строки" DataType="Microsoft.VisualStudio.GraphModel.CodeSchema.SourceLocation" />
+    <Property Id="TargetType" DataType="System.Type" />
+    <Property Id="UseManualLocation" DataType="System.Boolean" />
+    <Property Id="Value" DataType="System.String" />
+    <Property Id="ValueLabel" DataType="System.String" />
+    <Property Id="Visibility" Label="Visibility" Description="Defines whether a node in the graph is visible or not" DataType="System.Windows.Visibility" />
+    <Property Id="Weight" Label="Толщина" Description="Толщина" DataType="System.Double" />
+    <Property Id="ZoomLeve
