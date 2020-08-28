@@ -1348,4 +1348,164 @@
     <Property Id="ValueLabel" DataType="System.String" />
     <Property Id="Visibility" Label="Visibility" Description="Defines whether a node in the graph is visible or not" DataType="System.Windows.Visibility" />
     <Property Id="Weight" Label="Толщина" Description="Толщина" DataType="System.Double" />
-    <Property Id="ZoomLeve
+    <Property Id="ZoomLevel" DataType="System.String" />
+  </Properties>
+  <QualifiedNames>
+    <Name Id="Assembly" Label="Сборка" ValueType="Uri" />
+    <Name Id="GenericArguments" Label="Универсальные аргументы" ValueType="Microsoft.VisualStudio.GraphModel.GraphNodeIdCollection" />
+    <Name Id="GenericParameterCount" Label="Число универсальных параметров" ValueType="System.String" />
+    <Name Id="Member" Label="Член" ValueType="System.Object" />
+    <Name Id="Name" Label="Имя" ValueType="System.String" />
+    <Name Id="Namespace" Label="Пространство имен" ValueType="System.String" />
+    <Name Id="OverloadingParameters" Label="Параметр" ValueType="Microsoft.VisualStudio.GraphModel.GraphNodeIdCollection" Formatter="NameValueNoEscape" />
+    <Name Id="Type" Label="Тип" ValueType="System.Object" />
+  </QualifiedNames>
+  <IdentifierAliases>
+    <Alias n="11" Id="Namespace=TRL.Connect.Smartcom.Events" />
+    <Alias n="13" Id="Namespace=TRL.Connect.Smartcom.Handlers" />
+    <Alias n="67" Uri="Assembly=$(VsSolutionUri)/TRL.Connect.Smartcom/obj/Debug/Interop.SmartCOM3Lib.dll" />
+    <Alias n="68" Id="(@67)" />
+    <Alias n="69" Uri="Assembly=$(b2c1c965-bfd2-40d4-ad7d-e9c4b55c5f30.OutputPathUri)" />
+    <Alias n="70" Id="(@69)" />
+    <Alias n="71" Uri="Assembly=$(5ce1582e-32b5-466f-91fc-465c9d4b3d5b.OutputPathUri)" />
+    <Alias n="72" Id="(@71)" />
+    <Alias n="73" Uri="Assembly=$(5882134e-de9b-4e9e-9074-617b5ee31af0.OutputPathUri)" />
+    <Alias n="74" Id="(@73)" />
+    <Alias n="75" Uri="Assembly=$(5e2910c4-12eb-46fc-86a4-d9f83c961c8e.OutputPathUri)" />
+    <Alias n="76" Id="(@75)" />
+    <Alias n="77" Id="Namespace=SmartCOM3Lib" />
+    <Alias n="78" Id="(@67 @77)" />
+    <Alias n="79" Id="Namespace=TRL.Common.Data" />
+    <Alias n="80" Id="(@73 @79)" />
+    <Alias n="81" Id="Namespace=TRL.Common.TimeHelpers" />
+    <Alias n="82" Id="(@73 @81)" />
+    <Alias n="85" Id="Namespace=TRL.Connect.Smartcom.Commands" />
+    <Alias n="86" Id="(@71 @85)" />
+    <Alias n="87" Id="Namespace=TRL.Connect.Smartcom.Data" />
+    <Alias n="88" Id="(@71 @87)" />
+    <Alias n="89" Id="(@71 @11)" />
+    <Alias n="90" Id="(@71 @13)" />
+    <Alias n="91" Id="Namespace=TRL.Connect.Smartcom.Models" />
+    <Alias n="92" Id="(@71 @91)" />
+    <Alias n="93" Id="Namespace=TRL.Connect.Smartcom" />
+    <Alias n="94" Id="(@71 @93)" />
+    <Alias n="95" Id="Namespace=TRL.Connect.Smartcom.Test" />
+    <Alias n="96" Id="(@75 @95)" />
+    <Alias n="97" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Commands)" />
+    <Alias n="98" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Data)" />
+    <Alias n="99" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Events)" />
+    <Alias n="100" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Handlers)" />
+    <Alias n="101" Id="Namespace=TRL.Connect.Smartcom.Test.Mocks" />
+    <Alias n="102" Id="(@75 @101)" />
+    <Alias n="103" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Models)" />
+    <Alias n="104" Id="(@75 Namespace=TRL.Connect.Smartcom.Test.Net)" />
+    <Alias n="105" Id="(@69 Namespace=TRL.Logging)" />
+    <Alias n="106" Id="(@73 @79 Type=(Name=IGenericSingleton GenericParameterCount=1))" />
+    <Alias n="107" Id="(@67 @77 Type=_IStClient_ConnectedEventHandler)" />
+    <Alias n="108" Id="(@67 @77 Type=_IStClient_DisconnectedEventHandler)" />
+    <Alias n="109" Id="(@67 @77 Type=_IStClient_Event)" />
+    <Alias n="110" Id="(@67 @77 Type=_IStClient_SetMyOrderEventHandler)" />
+    <Alias n="111" Id="(@73 @81 Type=BrokerDateTime)" />
+    <Alias n="112" Id="(@71 @91 Type=CookieToOrderNoAssociation)" />
+    <Alias n="113" Id="(@75 @101 Type=FakeAdapterBase)" />
+    <Alias n="114" Id="(@75 @101 Type=FakeAdapterBaseTests)" />
+    <Alias n="115" Id="(@73 @81 Type=FortsTradingSchedule)" />
+    <Alias n="116" Id="(@71 @85 Type=GetBarsCommand)" />
+    <Alias n="117" Id="(@71 @85 Type=GetSymbolsCommand)" />
+    <Alias n="118" Id="(@69 Namespace=TRL.Logging Type=ILogger)" />
+    <Alias n="119" Id="Type=IStServer" />
+    <Alias n="120" Id="(@67 @77 @119)" />
+    <Alias n="121" Id="(@75 @101 Type=MockSmartCom)" />
+    <Alias n="122" Id="(@75 @101 Type=MockSmartComTests)" />
+    <Alias n="123" Id="(@71 @91 Type=OrderFailed)" />
+    <Alias n="124" Id="(@71 @91 Type=OrderMoveFailed)" />
+    <Alias n="125" Id="(@71 @91 Type=OrderMoveSucceeded)" />
+    <Alias n="126" Id="(@71 @91 Type=OrderSucceeded)" />
+    <Alias n="127" Id="(@71 @91 Type=PendingTradeInfo)" />
+    <Alias n="128" Id="Type=RawOrder" />
+    <Alias n="129" Id="(@71 @91 @128)" />
+    <Alias n="130" Id="(@71 @87 Type=RawOrderFactory)" />
+    <Alias n="131" Id="(@71 @91 Type=RawSymbol)" />
+    <Alias n="132" Id="(@71 @91 Type=SetPortfolio)" />
+    <Alias n="133" Id="Type=SmartCom" />
+    <Alias n="134" Id="(@71 @93 @133)" />
+    <Alias n="135" Id="Type=SmartComAdapter" />
+    <Alias n="136" Id="(@71 @93 @135)" />
+    <Alias n="137" Id="(@75 @95 Type=SmartComAdapterTests)" />
+    <Alias n="138" Id="Type=SmartComConnector" />
+    <Alias n="139" Id="(@71 @93 @138)" />
+    <Alias n="140" Id="(@71 @93 Type=SmartComEventsExtensions)" />
+    <Alias n="141" Id="(@71 @93 Type=SmartComEventsTypes)" />
+    <Alias n="142" Id="(@75 @95 Type=SmartComEventTypesTests)" />
+    <Alias n="143" Id="Type=SmartComOrderManager" />
+    <Alias n="144" Id="(@71 @93 @143)" />
+    <Alias n="145" Id="(@75 @95 Type=SmartComOrderManagerTests)" />
+    <Alias n="146" Id="(@75 @95 Type=SmartComTests)" />
+    <Alias n="147" Id="(@67 @77 Type=StBarInterval)" />
+    <Alias n="148" Id="(@67 @77 Type=StOrder_Action)" />
+    <Alias n="149" Id="(@67 @77 Type=StOrder_State)" />
+    <Alias n="150" Id="(@67 @77 Type=StOrder_Type)" />
+    <Alias n="151" Id="(@67 @77 Type=StOrder_Validity)" />
+    <Alias n="152" Id="(@67 @77 Type=StServer)" />
+    <Alias n="153" Id="Type=StServerClass" />
+    <Alias n="154" Id="(@67 @77 @153)" />
+    <Alias n="155" Id="Type=StServerClassMock" />
+    <Alias n="156" Id="(@75 @101 @155)" />
+    <Alias n="157" Id="(@75 @101 Type=StServerMockSingleton)" />
+    <Alias n="158" Id="Type=StServerSingleton" />
+    <Alias n="159" Id="(@71 @93 @158)" />
+    <Alias n="160" Id="(@71 @91 Type=TradeInfo)" />
+    <Alias n="161" Id="(@71 @91 Type=UpdateBidAsk)" />
+    <Alias n="162" Id="(@71 @91 Type=UpdateOrder)" />
+    <Alias n="163" Id="(@71 @91 Type=UpdateOrderExtensions)" />
+    <Alias n="164" Uri="Assembly=$(FxReferenceAssembliesUri)/.NETFramework/v4.5.1/mscorlib.dll" />
+    <Alias n="165" Id="Namespace=System" />
+    <Alias n="166" Id="(@164 @165 Type=DateTime)" />
+    <Alias n="167" Id="(@73 @81 Type=BrokerDateTime Member=(Name=Make OverloadingParameters=[@166]))" />
+    <Alias n="168" Id="(@164 @165 Type=Int32)" />
+    <Alias n="169" Id="(@71 @93 @143 Member=(Name=GetUpdate OverloadingParameters=[@168]))" />
+    <Alias n="170" Id="(@71 @93 @143 Member=(Name=GetUpdates OverloadingParameters=[@168]))" />
+    <Alias n="171" Id="Name=.ctor" />
+    <Alias n="172" Id="(@71 @87 Type=RawOrderFactory Member=(@171 OverloadingParameters=[(@73 @81 Type=ITradingSchedule)]))" />
+    <Alias n="173" Id="(@71 @93 @135 Member=(Name=MonitorConnection OverloadingParameters=[(@164 @165 Type=Object)]))" />
+    <Alias n="174" Id="(@71 @93 @135 Member=(Name=MonitorDataFlow OverloadingParameters=[(@164 @165 Type=Object)]))" />
+    <Alias n="175" Id="(@71 @93 @143 Member=(Name=CancelOrder OverloadingParameters=[(@73 Namespace=TRL.Common.Models Type=Order)]))" />
+    <Alias n="176" Id="(@71 @87 Type=RawOrderFactory Member=(Name=Make OverloadingParameters=[(@73 Namespace=TRL.Common.Models Type=Order)]))" />
+    <Alias n="177" Id="(@71 @93 @143 Member=(Name=PlaceOrder OverloadingParameters=[(@73 Namespace=TRL.Common.Models Type=Order)]))" />
+    <Alias n="178" Id="(@164 @165 Type=String)" />
+    <Alias n="179" Id="OverloadingParameters=[@178]" />
+    <Alias n="180" Id="(@67 @77 @153 Member=(Name=ConfigureClient @179))" />
+    <Alias n="181" Id="(@67 @77 @153 Member=(Name=ConfigureServer @179))" />
+    <Alias n="182" Id="(@71 @93 @138 Member=(Name=ConnectorDisconnected @179))" />
+    <Alias n="183" Id="(@69 Namespace=TRL.Logging Type=ILogger Member=(Name=Log @179))" />
+    <Alias n="184" Id="(@75 @101 @155 Member=(Name=ReadTicksFrom @179))" />
+    <Alias n="185" Id="(@71 @93 @135 Member=(Name=SmartComTraderDisconnected @179))" />
+    <Alias n="186" Id="(@164 @165 Type=Double)" />
+    <Alias n="187" Id="(@75 @101 @155 Member=(Name=EmulateOrderSucceededArrival OverloadingParameters=[@168,@178]))" />
+    <Alias n="188" Id="(@71 @93 @143 Member=(@171 OverloadingParameters=[(@73 @79 Type=(Name=IGenericSingleton GenericParameterCount=1 GenericArguments=[@152])),(@73 @79 Type=BaseDataContext),@118]))" />
+    <Alias n="189" Id="(@71 @93 @138 Member=(@171 OverloadingParameters=[@152,(@71 @87 Type=SmartComHandlersDatabase),@118]))" />
+    <Alias n="190" Id="(@75 @101 @155 Member=(Name=EmulateOrderFailedArrival OverloadingParameters=[@168,@178,@178]))" />
+    <Alias n="191" Id="(@67 @77 @119 Member=(Name=CancelOrder OverloadingParameters=[@178,@178,@178]))" />
+    <Alias n="192" Id="(@75 @101 @155 Member=(Name=CancelOrder OverloadingParameters=[@178,@178,@178]))" />
+    <Alias n="193" Uri="Assembly=$(VsSolutionUri)/TRL.Connect.Smartcom.Test/obj/Debug/Interop.SmartCOM3Lib.dll" />
+    <Alias n="194" Id="(@75 @101 @155 Member=(Name=GetBars OverloadingParameters=[@178,(@193 @77 Type=StBarInterval),@166,@168]))" />
+    <Alias n="195" Id="(@67 @77 @119 Member=(Name=connect OverloadingParameters=[@178,(@164 @165 Type=UInt16),@178,@178]))" />
+    <Alias n="196" Id="(@75 @101 @155 Member=(Name=connect OverloadingParameters=[@178,(@164 @165 Type=UInt16),@178,@178]))" />
+    <Alias n="197" Id="(@75 @101 @155 Member=(Name=EmulateSetPortfolioArrival OverloadingParameters=[@178,@186,@186,@186,@186]))" />
+    <Alias n="198" Id="(@75 @101 @155 Member=(Name=EmulateTickArrival OverloadingParameters=[@178,@166,@186,@186,(@193 @77 Type=StOrder_Action)]))" />
+    <Alias n="199" Id="(@75 @101 @155 Member=(Name=EmulateBidAskArrival OverloadingParameters=[@178,@168,@168,@186,@186,@186,@186]))" />
+    <Alias n="200" Uri="Assembly=$(d79dfb3c-b753-42bd-9a56-0ad9616321cf.OutputPathUri)" />
+    <Alias n="201" Id="(@71 @93 @135 Member=(@171 OverloadingParameters=[(@200 Namespace=TRL.Message Type=IConnector),(@71 @87 Type=SmartComHandlersDatabase),(@73 Namespace=TRL.Common.Events Type=IBinder),(@73 @79 Type=ISubscriber),(@73 @79 Type=(Name=IGenericSingleton GenericParameterCount=1 GenericArguments=[@152])),@118,@168]))" />
+    <Alias n="202" Id="(@75 @101 @155 Member=(Name=EmulateTradeArrival OverloadingParameters=[@178,@178,@178,@186,@186,@166,@178]))" />
+    <Alias n="203" Id="(@75 @101 @155 Member=(Name=EmulateBarArrival OverloadingParameters=[@178,(@193 @77 Type=StBarInterval),@166,@186,@186,@186,@186,@186,@186]))" />
+    <Alias n="204" Id="(@67 @77 @119 Member=(Name=PlaceOrder OverloadingParameters=[@178,@178,@148,@150,@151,@186,@186,@186,@168]))" />
+    <Alias n="205" Id="(@75 @101 @155 Member=(Name=PlaceOrder OverloadingParameters=[@178,@178,(@193 @77 Type=StOrder_Action),(@193 @77 Type=StOrder_Type),(@193 @77 Type=StOrder_Validity),@186,@186,@186,@168]))" />
+    <Alias n="206" Id="(@75 @101 @155 Member=(Name=EmulateSymbolArrival OverloadingParameters=[@168,@168,@178,@178,@178,@178,@168,@168,@186,@186,@178,@178,@166,@186,@186]))" />
+    <Alias n="207" Id="(@75 @101 @155 Member=(Name=EmulateSymbolSettingsArrival OverloadingParameters=[@168,@168,@178,@178,@178,@178,@168,@168,@186,@186,@178,@178,@166,@186,@186]))" />
+    <Alias n="208" Id="(@75 @101 @155 Member=(Name=EmulateUpdateOrderArrival OverloadingParameters=[@178,@178,(@193 @77 Type=StOrder_State),(@193 @77 Type=StOrder_Action),(@193 @77 Type=StOrder_Type),(@193 @77 Type=StOrder_Validity),@186,@186,@186,@186,@166,@178,@178,@168,@168]))" />
+    <Alias n="209" Id="(@75 @101 @155 Member=(Name=EmulateUpdateQuoteArrival OverloadingParameters=[@178,@166,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@186,@168,@186,@186]))" />
+    <Alias n="210" Id="(@71 @93 @133 Member=.cctor)" />
+    <Alias n="211" Id="Member=.ctor" />
+    <Alias n="212" Id="(@73 @81 Type=FortsTradingSchedule @211)" />
+    <Alias n="213" Id="(@71 @93 @135 @211)" />
+    <Alias n="214" Id=
