@@ -1,8 +1,11 @@
-﻿«Аск» — цена, по которой продавец готов продать.
-«Бид» — цена, которую готов заплатить покупатель финансового инструмента.
 
-throw new NotImplementedException();
+﻿throw new NotImplementedException();
+
+#### Время
+
 this.Id = SerialIntegerFactory.Make();
+
+#### Время
 
 Millisecond
 Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff"));
@@ -11,22 +14,13 @@ Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ffffff"));
 Tick
 Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.fffffff"));
 Console.WriteLine(DateTime.Now.ToString("yyyy.MM.dd HH:mm:ss.fffffff"));
-//Console.WriteLine(DateTime.Now.ToString("yyyyMMddHHmmssfffffff"));
 
 var d1 = DateTime.Now;
 Console.WriteLine(d1.ToString("yyyy.MM.dd HH:mm:ss.fffffff"));
-d1 = d1.AddTicks(1);
-Console.WriteLine(d1.ToString("yyyy.MM.dd HH:mm:ss.fffffff"));
 2016.01.12 17:12:00.2385833
 
-//пример Parse даты
-var str = "2016.04.25 10:03:58.0000001";
-var date = DateTime.Parse(str);
-var strdate = date.ToString("yyyy.MM.dd HH:mm:ss.fffffff");
-strdate
-"2016.04.25 10:03:58.0000001"
+#### пример формата даты
 
-//пример формата даты
 DateTime DateTime = new DateTime(2015, 1, 8);
 System.Globalization.CultureInfo ci = System.Globalization.CultureInfo.InvariantCulture;
 string result;
@@ -39,23 +33,7 @@ Console.WriteLine(result);
 result = String.Format("{0}", DateTime);
 Console.WriteLine(result);
 
-/// <summary>
-/// 9 часов утра какой-то даты Date
-/// </summary>
-DateTime.Date.AddHours(9);
 
-var a = new List<double>(10) { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90 };
-var b = a.Where(x => x < 50).ToList();
-var c = a.Where(x => x < 50);
-public List<double> foo(List<double> c)
-{
-    c[0] = 1;
-    return c;
-}
-foo(a)
-a
-b
-c
 
 Microsoft выпустила предварительную версию Visual studio 2015 и .Net 4.6 для разработчиков. В новом C# 6.0 несколько новых возможностей, которые могут облегчить кодинг.
 
@@ -280,4 +258,3 @@ var country = new Dictionary<int, string>
 В C# 6.0 много синтаксических изменений и новых возможностей. Также Microsoft улучшает новый компилятор в плане производительности.
 
 P.S. Новые возможности описаны на текущую версию компилятора, к выходу финальной версии синтаксис может измениться. 
-
