@@ -484,4 +484,259 @@ namespace TRL.Charting
 
             // Create Chart Area
             //ChartArea chartArea1 = new ChartArea();
-            ChartArea c
+            ChartArea chartArea1 = new ChartArea("Default");
+            ChartArea chartArea2 = new ChartArea("Volume");
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea1);
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea2);
+
+
+            // First set the ChartArea.InnerPlotPosition property.
+            chart1.ChartAreas["Default"].InnerPlotPosition.Auto = true;
+            chart1.ChartAreas["Volume"].InnerPlotPosition.Auto = true;
+            
+            // Выравние ChartAreas
+            // Set the alignment properties so the "Volume" chart area will allign to "Default"
+            chart1.ChartAreas["Volume"].AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            chart1.ChartAreas["Volume"].AlignmentStyle = AreaAlignmentStyles.All;
+            chart1.ChartAreas["Volume"].AlignWithChartArea = "Default";
+
+            //Настройка Скролбара
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Size = 20;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.IsPositionedInside = true;
+            //chart1.ChartAreas["Default"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Enabled = true;
+
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Size = 20;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.IsPositionedInside = false;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Volume"].AxisX.ScrollBar.Enabled = false;
+
+            //Настройка Курсора
+            chartArea1.CursorX.IsUserEnabled = true;
+            chartArea1.CursorX.IsUserSelectionEnabled = true;
+            //chartArea1.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea1.CursorY.IsUserEnabled = true;
+
+            chartArea2.CursorX.IsUserEnabled = true;
+            chartArea2.CursorX.IsUserSelectionEnabled = true;
+            //chartArea2.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea2.CursorY.IsUserEnabled = true;
+            
+            // Create a data series
+            //Series series1 = new Series();
+            Series series1 = new Series("Channel 1");
+            Series series2 = new Series("Channel 2");
+            series2.ChartArea = "Volume";
+
+            // Add series to the chart
+            chart1.Series.Add(series1);
+            chart1.Series.Add(series2);
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.FastLine;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.FastLine;
+
+            chart1.Series["Channel 1"].ChartType = SeriesChartType.Line;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Line;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Column;
+            chart1.Series["Channel 2"].ChartType = SeriesChartType.Column;
+
+            // Set auto minimum and maximum values.
+            chart1.ChartAreas["Default"].AxisY.Minimum = Double.NaN;
+            chart1.ChartAreas["Default"].AxisY.Maximum = Double.NaN;
+
+            // Set primary x-axis properties
+            chart1.ChartAreas["Default"].AxisX.LabelStyle.Interval = Math.PI;
+            chart1.ChartAreas["Default"].AxisX.LabelStyle.Format = "##.##";
+            chart1.ChartAreas["Default"].AxisX.MajorGrid.Interval = Math.PI;
+            chart1.ChartAreas["Default"].AxisX.MinorGrid.Interval = Math.PI / 4;
+            chart1.ChartAreas["Default"].AxisX.MinorTickMark.Interval = Math.PI / 4;
+            chart1.ChartAreas["Default"].AxisX.MajorTickMark.Interval = Math.PI;
+            chart1.ChartAreas["Default"].AxisY.MinorGrid.Interval = 0.25;
+            chart1.ChartAreas["Default"].AxisY.MajorGrid.Interval = 0.5;
+            chart1.ChartAreas["Default"].AxisY.LabelStyle.Interval = 0.5;
+
+            // Add data points to the series that have the specified X and Y values
+            for (double t = 0; t <= (10 * Math.PI); t += Math.PI / 6)
+            {
+                double ch1 = Math.Sin(t);
+                double ch2 = Math.Sin(t - Math.PI / 2);
+                chart1.Series["Channel 1"].Points.AddXY(t, ch1);
+                chart1.Series["Channel 2"].Points.AddXY(t, ch2);
+            }
+        }
+
+        public void Test4()
+        {
+            var chart1 = Chart;
+
+            // Create Chart Area
+            //ChartArea chartArea1 = new ChartArea();
+            ChartArea chartArea1 = new ChartArea("Default");
+            ChartArea chartArea2 = new ChartArea("Volume");
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea1);
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea2);
+
+
+            // First set the ChartArea.InnerPlotPosition property.
+            chart1.ChartAreas["Default"].InnerPlotPosition.Auto = true;
+            chart1.ChartAreas["Volume"].InnerPlotPosition.Auto = true;
+
+            // Выравние ChartAreas
+            // Set the alignment properties so the "Volume" chart area will allign to "Default"
+            chart1.ChartAreas["Volume"].AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            chart1.ChartAreas["Volume"].AlignmentStyle = AreaAlignmentStyles.All;
+            chart1.ChartAreas["Volume"].AlignWithChartArea = "Default";
+
+            //Настройка Скролбара
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Size = 20;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.IsPositionedInside = true;
+            //chart1.ChartAreas["Default"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Enabled = true;
+
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Size = 20;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.IsPositionedInside = false;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Volume"].AxisX.ScrollBar.Enabled = false;
+
+            //Настройка Курсора
+            chartArea1.CursorX.IsUserEnabled = true;
+            chartArea1.CursorX.IsUserSelectionEnabled = true;
+            //chartArea1.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea1.CursorY.IsUserEnabled = true;
+
+            chartArea2.CursorX.IsUserEnabled = true;
+            chartArea2.CursorX.IsUserSelectionEnabled = true;
+            //chartArea2.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea2.CursorY.IsUserEnabled = true;
+
+            // Create a data series
+            //Series series1 = new Series();
+            Series series1 = new Series("Channel 1");
+            Series series2 = new Series("Volume");
+            series2.ChartArea = "Volume";
+            
+
+            // Add series to the chart
+            chart1.Series.Add(series1);
+            chart1.Series.Add(series2);
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.FastLine;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.FastLine;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Line;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Line;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Column;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Column;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Stock;
+            chart1.Series["Channel 1"].ChartType = SeriesChartType.Candlestick;
+            chart1.Series["Volume"].ChartType = SeriesChartType.Column;
+            // Set series point width   // Ширина колонок Объема            
+            chart1.Series["Volume"]["PointWidth"] = "0.2";
+
+            // Set auto minimum and maximum values.
+            //chart1.ChartAreas["Default"].AxisY.Minimum = Double.NaN;
+            //chart1.ChartAreas["Default"].AxisY.Maximum = Double.NaN;
+
+            RandomStockData(chart1.Series["Channel 1"], chart1.Series["Volume"]);
+        }
+
+        public void Test5()
+        {
+            var chart1 = Chart;
+
+            // Create Chart Area
+            //ChartArea chartArea1 = new ChartArea();
+            ChartArea chartArea1 = new ChartArea("Default");
+            ChartArea chartArea2 = new ChartArea("Volume");
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea1);
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea2);
+
+
+            // First set the ChartArea.InnerPlotPosition property.
+            chart1.ChartAreas["Default"].InnerPlotPosition.Auto = true;
+            chart1.ChartAreas["Volume"].InnerPlotPosition.Auto = true;
+
+            // Выравние ChartAreas
+            // Set the alignment properties so the "Volume" chart area will allign to "Default"
+            chart1.ChartAreas["Volume"].AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            chart1.ChartAreas["Volume"].AlignmentStyle = AreaAlignmentStyles.All;
+            chart1.ChartAreas["Volume"].AlignWithChartArea = "Default";
+
+            //Настройка Скролбара
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Size = 20;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.IsPositionedInside = true;
+            //chart1.ChartAreas["Default"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Default"].AxisX.ScrollBar.Enabled = true;
+
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Size = 20;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.IsPositionedInside = false;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chart1.ChartAreas["Volume"].AxisX.ScrollBar.Enabled = false;
+
+            //Настройка Курсора
+            chartArea1.CursorX.IsUserEnabled = true;
+            chartArea1.CursorX.IsUserSelectionEnabled = true;
+            //chartArea1.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea1.CursorY.IsUserEnabled = true;
+
+            chartArea2.CursorX.IsUserEnabled = true;
+            chartArea2.CursorX.IsUserSelectionEnabled = true;
+            //chartArea2.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea2.CursorY.IsUserEnabled = true;
+
+            // Create a data series
+            //Series series1 = new Series();
+            Series series1 = new Series("Channel 1");
+            Series series2 = new Series("Volume");
+            series2.ChartArea = "Volume";
+
+
+            // Add series to the chart
+            chart1.Series.Add(series1);
+            chart1.Series.Add(series2);
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.FastLine;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.FastLine;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Line;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Line;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Column;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Column;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Stock;
+            chart1.Series["Channel 1"].ChartType = SeriesChartType.Candlestick;
+            chart1.Series["Volume"].ChartType = SeriesChartType.Column;
+            // Set series point width   // Ширина колонок Объема            
+            chart1.Series["Volume"]["PointWidth"] = "0.2";
+
+            // Set auto minimum and maximum values.
+            //chart1.ChartAreas["Default"].AxisY.Minimum = Double.NaN;
+            //chart1.ChartAreas["Default"].AxisY.Maximum = Double.NaN;
+
+            RandomStockData(chart1.Series["Channel 1"], chart1.Series["Volume"]);
+        }
+
+
+        public string chartAreaDefault = "ChartAreaCandle";
+        public string chartAreaVolume = "ChartAreaVolume";
+        public string chartAreaSignal = "ChartAreaSignal";
+
+        public void CreateChart()
+        {
+            var chart1 = this.Chart;
+
+            // Create Chart Area
+            //ChartArea chartArea1 = new ChartArea();
+            ChartArea chartArea1 = new ChartArea(chartAreaDefault);
+            ChartArea chartArea2 = new ChartArea(chartAreaVolume);
+        
