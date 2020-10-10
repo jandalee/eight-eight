@@ -739,4 +739,280 @@ namespace TRL.Charting
             //ChartArea chartArea1 = new ChartArea();
             ChartArea chartArea1 = new ChartArea(chartAreaDefault);
             ChartArea chartArea2 = new ChartArea(chartAreaVolume);
-        
+            ChartArea chartArea3 = new ChartArea(chartAreaSignal);
+
+            //Настройка Скролбара
+            chartArea1.AxisX.ScrollBar.Size = 20;
+            chartArea1.AxisX.ScrollBar.IsPositionedInside = true;
+            //chart1.ChartAreas["Default"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            chartArea1.AxisX.ScrollBar.Enabled = true;
+
+            chartArea1.AxisY.ScrollBar.Size = 20;
+            chartArea1.AxisY.ScrollBar.IsPositionedInside = true;
+            chartArea1.AxisY.ScrollBar.Enabled = true;
+
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Size = 20;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.IsPositionedInside = false;
+            //chart1.ChartAreas["Volume"].AxisX.ScrollBar.Buttons = ScrollBarButtonStyle.SmallScroll;
+            //chart1.ChartAreas[chartAreaVolume].AxisX.ScrollBar.Enabled = false;
+
+            // Set automatic zooming
+            chartArea1.AxisX.ScaleView.Zoomable = true;
+            chartArea1.AxisY.ScaleView.Zoomable = true;
+            chartArea1.AxisY2.Enabled = AxisEnabled.Auto;
+
+            // Set automatic scrolling 
+            chartArea1.CursorX.AutoScroll = true;
+            chartArea1.CursorY.AutoScroll = true;
+
+            //Настройка Курсора
+            chartArea1.CursorX.IsUserEnabled = true;
+            chartArea1.CursorY.IsUserEnabled = true;
+
+            //chartArea1.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            chartArea1.CursorX.IsUserSelectionEnabled = true;
+            chartArea1.CursorY.IsUserSelectionEnabled = true;
+
+
+            //System.Windows.Forms.DataVisualization.Charting.Cursor cursorY = null;
+            // Set cursor object
+            // Set cursor properties 
+            chartArea1.CursorY.LineWidth = 2;
+            chartArea1.CursorY.LineDashStyle = ChartDashStyle.DashDot;
+            chartArea1.CursorY.LineColor = Color.Red;
+            chartArea1.CursorY.SelectionColor = Color.Yellow;
+
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea1);
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea2);
+            // Add Chart Area to the Chart
+            chart1.ChartAreas.Add(chartArea3);
+
+
+            chartArea2.CursorX.IsUserEnabled = true;
+            chartArea2.CursorX.IsUserSelectionEnabled = true;
+
+            chartArea3.CursorX.IsUserEnabled = true;
+            chartArea3.CursorX.IsUserSelectionEnabled = true;
+
+            //chartArea2.CursorX.SelectionColor = System.Drawing.Color.PaleGoldenrod;
+            //chartArea2.CursorY.IsUserEnabled = true;
+
+            // Create a data series
+            //Series series1 = new Series();
+            //Series series1 = new Series("Candle");
+            //Series series2 = new Series("Volume");
+            //series2.ChartArea = "Volume";
+            //series2.ChartArea = chartAreaVolume;
+
+
+            // Add series to the chart
+            //chart1.Series.Add(series1);
+            //chart1.Series.Add(series2);
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.FastLine;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.FastLine;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Line;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Line;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Column;
+            //chart1.Series["Channel 2"].ChartType = SeriesChartType.Column;
+
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Stock;
+            //chart1.Series["Candle"].ChartType = SeriesChartType.Candlestick;
+            //chart1.Series["Volume"].ChartType = SeriesChartType.Column;
+            // Set series point width   // Ширина колонок Объема            
+            //chart1.Series["Volume"]["PointWidth"] = "0.2";
+
+            // Set auto minimum and maximum values.
+            //chart1.ChartAreas["Default"].AxisY.Minimum = Double.NaN;
+            //chart1.ChartAreas["Default"].AxisY.Maximum = Double.NaN;
+
+
+            Series series1 = this.CreateChartSeriesCandle();
+            Series series2 = this.CreateChartSeriesVolume();
+            this.SetSeries(series1, series2);
+
+            Series series3 = new Series("Trade");
+            series3.ChartArea = chartAreaDefault;
+            series3.ChartType = SeriesChartType.Point;
+            series3.MarkerSize = 10;
+            series3.MarkerStyle = MarkerStyle.Circle;
+            series3.Color = Color.Blue;
+            chart1.Series.Add(series3);
+
+            Series series4 = new Series("TradeX");
+            series4.ChartArea = chartAreaDefault;
+            series4.ChartType = SeriesChartType.Point;
+            series4.MarkerSize = 10;
+            series4.MarkerStyle = MarkerStyle.Cross;
+            series4.Color = Color.Red;
+            chart1.Series.Add(series4);
+
+            Series series5 = new Series("Ma1");
+            series5.ChartArea = chartAreaDefault;
+            //series4.ChartType = SeriesChartType.Line;
+            //series4["PointWidth"] = "0.2";
+            series5.ChartType = SeriesChartType.FastLine;
+            chart1.Series.Add(series5);
+
+            Series series6 = new Series("Ma2");
+            //series6.ChartArea = chartAreaSignal;
+            series6.ChartArea = chartAreaDefault;
+            //series3.ChartType = SeriesChartType.Line;
+            //series3["PointWidth"] = "0.2";
+            series6.ChartType = SeriesChartType.FastLine;
+            chart1.Series.Add(series6);
+
+            Series series7 = new Series("Signal1");
+            series7.ChartArea = chartAreaSignal;
+            //series7.ChartArea = chartAreaDefault;
+            series7.ChartType = SeriesChartType.Point;
+            series7.MarkerSize = 10;
+            series7.MarkerStyle = MarkerStyle.Cross;
+            series7.Color = Color.Red;
+            ////series7.YAxisType = AxisType.Secondary;
+            chart1.Series.Add(series7);
+
+            //RandomStockData(chart1.Series["Channel 1"], chart1.Series["Volume"]);
+            //chart1.Invalidate();
+            chart1.Refresh();
+
+            // First set the ChartArea.InnerPlotPosition property.
+            //chart1.ChartAreas[chartAreaDefault].InnerPlotPosition.Auto = true;
+            //chart1.ChartAreas[chartAreaVolume].InnerPlotPosition.Auto = true;
+            chartArea1.InnerPlotPosition.Auto = true;
+            //chartArea1.InnerPlotPosition.Auto = true;
+
+            // Выравние ChartAreas
+            // Set the alignment properties so the "Volume" chart area will allign to "Default"
+            //chart1.ChartAreas[chartAreaVolume].AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            //chart1.ChartAreas[chartAreaVolume].AlignmentStyle = AreaAlignmentStyles.All;
+            //chart1.ChartAreas[chartAreaVolume].AlignWithChartArea = chartAreaDefault;            
+            chartArea2.AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            chartArea2.AlignmentStyle = AreaAlignmentStyles.All;
+            chartArea2.AlignWithChartArea = chartAreaDefault;
+
+            chartArea3.AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            chartArea3.AlignmentStyle = AreaAlignmentStyles.All;
+            chartArea3.AlignWithChartArea = chartAreaDefault;
+        }
+
+        private Series CreateChartSeriesCandle()
+        {
+            Series series1 = new Series("Candle");
+            //chart1.Series["Channel 1"].ChartType = SeriesChartType.Stock;
+            series1.ChartType = SeriesChartType.Candlestick;
+            series1.YValuesPerPoint = 4;
+            return series1;
+        }
+        private Series CreateChartSeriesVolume()
+        {
+            Series series2 = new Series("Volume");
+            series2.ChartArea = chartAreaVolume;
+            series2.ChartType = SeriesChartType.Column;
+            // Set series point width   // Ширина колонок Объема            
+            series2["PointWidth"] = "0.2";
+            return series2;
+        }
+
+        /// <summary>
+        /// подгружает серии данных на график
+        /// </summary>
+        /// <param name="series1"></param>
+        /// <param name="series2"></param>
+        public void SetSeries(Series candleSeries, Series volumeSeries)
+        {
+            var chart = this.Chart;
+
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<Series, Series>(SetSeries), candleSeries, volumeSeries);
+                return;
+            }
+
+            chart.Series.Clear(); // убираем с нашего графика все до этого созданные серии с данными
+
+            chart.Series.Add(candleSeries);
+            chart.Series.Add(volumeSeries);
+
+            //ChartArea candleArea = chart.ChartAreas.FindByName("ChartAreaCandle");
+            //if (candleArea != null && candleArea.AxisX.ScrollBar.IsVisible)
+            // если уже выбран какой-то диапазон
+            //{
+                // сдвигаем представление вправо
+            //    candleArea.AxisX.ScaleView.Scroll(chart.ChartAreas[0].AxisX.Maximum);
+            //}
+            //ChartResize();
+            //chart.Invalidate();
+            chart.Refresh();
+        }
+
+
+        public void LoadCandleOnChartFast(Bar[] _candleArray)
+        {
+            var chart1 = this.Chart;
+
+            // суть быстрой прогрузки в том, чтобы создать уже готовые серии данных и только потом
+            // подгружать их на график. 
+            /*
+            Series series1 = new Series("SeriesCandle")
+            {
+                ChartType = SeriesChartType.Candlestick,// назначаем этой коллекции тип "Свечи"
+                YAxisType = AxisType.Secondary,// назначаем ей правую линейку по шкале Y (просто для красоты)
+                ChartArea = "ChartAreaCandle",// помещаем нашу коллекцию на ранее созданную область
+                ShadowOffset = 2,  // наводим тень
+                YValuesPerPoint = 4 // насильно устанавливаем число У точек для серии
+            };
+            */
+
+            Series series1 = CreateChartSeriesCandle();
+
+            //Series series1 = chart1.Series["Candle"];
+            for (int i = 0; i < _candleArray.Length; i++)
+            {
+                // забиваем новую свечку
+                series1.Points.AddXY(i, _candleArray[i].Low, _candleArray[i].High, _candleArray[i].Open,
+                    _candleArray[i].Close);
+
+                // подписываем время
+                series1.Points[series1.Points.Count - 1].AxisLabel =
+                    _candleArray[i].DateTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                // разукрышиваем в привычные цвета
+                if (_candleArray[i].Close > _candleArray[i].Open)
+                {
+                    series1.Points[series1.Points.Count - 1].Color = System.Drawing.Color.Green;
+                }
+                else
+                {
+                    series1.Points[series1.Points.Count - 1].Color = System.Drawing.Color.Red;
+                }
+            }
+            /*
+            Series series2 = new Series("Volume")
+            {
+                ChartType = SeriesChartType.Column, // назначаем этой коллекции тип "Свечи"
+                YAxisType = AxisType.Secondary,// назначаем ей правую линейку по шкале Y (просто для красоты) Везде ж так
+                ChartArea = "ChartAreaVolume", // помещаем нашу коллекцию на ранее созданную область
+                ShadowOffset = 2 // наводим тень
+            };
+            */
+            //Series series2 = chart1.Series["Volume"];
+            Series series2 = CreateChartSeriesVolume();
+
+            for (int i = 0; i < _candleArray.Length; i++)
+            {
+                series2.Points.AddXY(i, _candleArray[i].Volume);
+                // разукрышиваем в привычные цвета
+                if (series2.Points.Count > 1)
+                {
+                    if (series2.Points[series2.Points.Count - 2].YValues[0] < (double)_candleArray[i].Volume)
+                    {
+                        series2.Points[series2.Points.Count - 1].Color = System.Drawing.Color.Green;
+                    }
+                    else
+     
