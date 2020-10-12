@@ -1015,4 +1015,277 @@ namespace TRL.Charting
                         series2.Points[series2.Points.Count - 1].Color = System.Drawing.Color.Green;
                     }
                     else
-     
+                    {
+                        series2.Points[series2.Points.Count - 1].Color = System.Drawing.Color.Red;
+                    }
+                }
+            }
+            this.SetSeries(series1, series2);
+        }
+
+        /// <summary>
+        /// добавить одну свечу на график
+        /// </summary>
+        /// <param name="newCandle"></param>
+        /// <param name="index"></param>
+        public void LoadNewCandle(Bar newCandle, int index)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<Bar, int>(LoadNewCandle), newCandle, index);
+                return;
+            }
+            var chart1 = this.Chart;
+
+            // свечи
+            Series candleSeries = chart1.Series.FindByName("Candle");
+            //Series candleSeries = CreateChartSeriesCandle();
+            //System.Windows.Forms.DataVisualization.Charting
+            int count = 0;
+            if (candleSeries != null)
+            {
+                //var enum1 = candleSeries.Points[0].;
+                //candleSeries.Points.Count;
+                count = candleSeries.Points.Count;
+                //обновляем
+                if (count > index)
+                {
+                    var val = candleSeries.Points.ElementAt(index);
+                    val.YValues = new double[] { (double)newCandle.Low, (double)newCandle.High, (double)newCandle.Open, (double)newCandle.Close };
+
+                    // разукрышиваем в привычные цвета
+                    if (newCandle.Close > newCandle.Open)
+                    {
+                        candleSeries.Points[index].Color = System.Drawing.Color.Green;
+                    }
+                    else
+                    {
+                        candleSeries.Points[index].Color = System.Drawing.Color.Red;
+                    }
+
+                }
+                //добавляем
+                else 
+                {
+                    // забиваем новую свечку
+                    candleSeries.Points.AddXY(index, newCandle.Low, newCandle.High, newCandle.Open, newCandle.Close);
+
+                    // подписываем время
+                    candleSeries.Points[candleSeries.Points.Count - 1].AxisLabel =
+                        newCandle.DateTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                    // разукрышиваем в привычные цвета
+                    if (newCandle.Close > newCandle.Open)
+                    {
+                        candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                    }
+                    else
+                    {
+                        candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                    }
+                }
+                
+
+                ChartArea candleArea = chart1.ChartAreas.FindByName(chartAreaDefault);
+                // если уже выбран какой-то диапазон
+                if (candleArea != null && candleArea.AxisX.ScrollBar.IsVisible) 
+                {
+                    // сдвигаем представление вправо
+                    candleArea.AxisX.ScaleView.Scroll(chart1.ChartAreas[0].AxisX.Maximum);
+                }
+            }
+            // объём
+            Series volumeSeries = chart1.Series.FindByName("Volume");
+            //Series volumeSeries = CreateChartSeriesVolume();
+
+            if (volumeSeries != null)
+            {
+                count = volumeSeries.Points.Count;
+                /*
+                //обновляем
+                if (count > index)
+                {
+                    var val = volumeSeries.Points.ElementAt(index);
+                    val.YValues = new double[] { newCandle.Volume };
+                    if (volumeSeries.Points.Count > 1)
+                    {
+                        // разукрышиваем в привычные цвета
+                        if (candleSeries.Points[index - 1].YValues[0] < newCandle.Volume)
+                        {
+                            volumeSeries.Points[index].Color = System.Drawing.Color.Green;
+                        }
+                        else
+                        {
+                            volumeSeries.Points[index].Color = System.Drawing.Color.Red;
+                        }
+                    }
+                }
+                //добавляем
+                else
+                 */
+                {
+                    volumeSeries.Points.AddXY(index, newCandle.Volume);
+                    // разукрышиваем в привычные цвета
+                    if (volumeSeries.Points.Count > 1)
+                    {
+                        if (volumeSeries.Points[volumeSeries.Points.Count - 2].YValues[0] < (double)newCandle.Volume)
+                        {
+                            volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                        }
+                        else
+                        {
+                            volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                        }
+                    }
+                    else 
+                    {
+                        volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Green;                    
+                    }
+                }
+            }
+            //ChartResize(); // Выводим нормальные рамки
+            chart1.Refresh();
+        }
+
+        /// <summary>
+        /// Random Stock Data Generator
+        /// </summary>
+        /// <param name="Series Price">HLOC</param>
+        /// <param name="Series Volume">Volume</param>
+        private void RandomStockData(Series Price, Series Volume)
+        {
+            //var chart1 = Chart;
+            int randSeed = 0;
+
+            Random rand;
+            // Use a number to calculate a starting value for 
+            // the pseudo-random number sequence
+            rand = new Random(randSeed);
+
+            // The number of days for stock data
+            int period = 500;
+
+            Price.Points.Clear();
+
+            // The first High value
+            double high = rand.NextDouble() * 40;
+
+            // The first Close value
+            double close = high - rand.NextDouble();
+
+            // The first Low value
+            double low = close - rand.NextDouble();
+
+            // The first Open value
+            double open = (high - low) * rand.NextDouble() + low;
+
+            // The first Volume value
+            double volume = 100 + 15 * rand.NextDouble();
+
+            // The first day X and Y values
+            Price.Points.AddXY(DateTime.Parse("1/2/2002"), high);
+            Volume.Points.AddXY(DateTime.Parse("1/2/2002"), volume);
+            Price.Points[0].YValues[1] = low;
+
+            // The Open value is not used.
+            Price.Points[0].YValues[2] = open;
+            Price.Points[0].YValues[3] = close;
+
+            // Days loop
+            for (int day = 1; day <= period; day++)
+            {
+
+                // Calculate High, Low and Close values
+                high = Price.Points[day - 1].YValues[2] + rand.NextDouble();
+                close = high - rand.NextDouble();
+                low = close - rand.NextDouble();
+                open = (high - low) * rand.NextDouble() + low;
+
+                // The Volume value
+                volume = 100 + 50 * rand.NextDouble();
+
+                // The low cannot be less than yesterday close value.
+                if (low > Price.Points[day - 1].YValues[2])
+                    low = Price.Points[day - 1].YValues[2];
+
+                // Set data points values
+                Price.Points.AddXY(day, high);
+                Price.Points[day].XValue = Price.Points[day - 1].XValue + 1;
+                Price.Points[day].YValues[1] = low;
+                Price.Points[day].YValues[2] = open;
+                Price.Points[day].YValues[3] = close;
+
+                Volume.Points.AddXY(Price.Points[day].XValue, volume);
+
+            }
+
+            Chart.Invalidate();
+        }
+
+        private Random random = new Random();
+        private int pointIndex = 0;
+        
+        private void timerRealTimeData_Tick(object sender, System.EventArgs e)
+        {
+            var chart1 = Chart;
+            // Define some variables
+            int numberOfPointsInChart = 100;
+            int numberOfPointsAfterRemoval = numberOfPointsInChart - 1;
+
+            // Simulate adding new data points
+            int numberOfPointsAddedMin = 5;
+            int numberOfPointsAddedMax = 10;
+            for (int pointNumber = 0; pointNumber <
+                random.Next(numberOfPointsAddedMin, numberOfPointsAddedMax); pointNumber++)
+            {
+                chart1.Series[0].Points.AddXY(pointIndex + 1, random.Next(1000, 5000));
+                ++pointIndex;
+            }
+
+            // Adjust Y & X axis scale
+            chart1.ResetAutoValues();
+            if (chart1.ChartAreas["Default"].AxisX.Maximum < pointIndex)
+            {
+                chart1.ChartAreas["Default"].AxisX.Maximum = pointIndex;
+            }
+
+            // Keep a constant number of points by removing them from the left
+            while (chart1.Series[0].Points.Count > numberOfPointsInChart)
+            {
+                // Remove data points on the left side
+                while (chart1.Series[0].Points.Count > numberOfPointsAfterRemoval)
+                {
+                    chart1.Series[0].Points.RemoveAt(0);
+                }
+
+                // Adjust X axis scale
+                chart1.ChartAreas["Default"].AxisX.Minimum = pointIndex - numberOfPointsAfterRemoval;
+                chart1.ChartAreas["Default"].AxisX.Maximum = chart1.ChartAreas["Default"].AxisX.Minimum + numberOfPointsInChart;
+            }
+
+            // Redraw chart
+            chart1.Invalidate();
+        }
+
+        //Добавить несколько осей Y ?????
+        //Добавить несколько осей X ?????
+
+        //реалтайм генерация данных
+
+        //Динамическое создание и удаление серий
+        //cf.ds.Adding
+
+        //Динамическое создание и удаление областей
+        //Мультичарт
+        //cf.ca.Multy
+
+        //Несколько осей
+        //ch.a.Multy
+
+        //Подписи индикаторов
+        //cf.le.sl
+        //График эквити 
+        //cf.le.lc
+    }
+}
