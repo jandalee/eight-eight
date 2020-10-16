@@ -148,3 +148,15 @@ namespace TRL.Common.Data
 
         public ObservableHashSet<T> Make<T>()
         {
+            PropertyInfo[] properties = this.GetType().GetProperties();
+
+            foreach (PropertyInfo item in properties)
+            {
+                if (item.PropertyType.FullName.Equals(typeof(ObservableHashSet<T>).FullName))
+                    return (ObservableHashSet<T>)item.GetValue(this, null);
+            }
+
+            return null;
+        }
+    }
+}
