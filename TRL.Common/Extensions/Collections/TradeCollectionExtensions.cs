@@ -34,4 +34,57 @@ namespace TRL.Common.Extensions.Collections
                 else
                 {
                     double wantage = amount - dstCollectionAmountSum;
-                    dstCollection.Add(CloneT
+                    dstCollection.Add(CloneTradeWithModifiedAmount(currentTrade, wantage));
+                    dstCollectionAmountSum += wantage;
+                }
+            }
+
+            return dstCollection;
+        }
+
+        private static Trade CloneTradeWithModifiedAmount(Trade trade, double amount)
+        {
+            double amountSign = (trade.Amount / Math.Abs(trade.Amount));
+
+            return new Trade(trade.Order, 
+                trade.Portfolio,
+                trade.Symbol,
+                trade.Price, 
+                amount * amountSign,
+                trade.DateTime);
+        }
+
+        public static void Combine(this ICollection<Trade> collection, Trade trade)
+        {
+            List<Trade> zeroAmountTrades = new List<Trade>();
+
+            foreach (Trade t in collection)
+            {
+                if (t.Action == trade.Action)
+                    continue;
+
+                if (trade.Amount == 0)
+                    break;
+
+                if (t.AbsoluteAmount > trade.AbsoluteAmount)
+                {
+                    t.Amount = t.Amount + trade.Amount;
+                    trade.Amount = 0;
+                }
+
+                if (t.AbsoluteAmount <= trade.AbsoluteAmount)
+                {
+                    trade.Amount = t.Amount + trade.Amount;
+                    t.Amount = 0;
+                }
+
+                if(t.Amount == 0)
+                    zeroAmountTrades.Add(t);
+            }
+
+            foreach (Trade t in zeroAmountTrades)
+                collection.Remove(t);
+
+        }
+    }
+}
