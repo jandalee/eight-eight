@@ -19,4 +19,14 @@ namespace TRL.Common.Handlers
         public CancelOrderOnCancellationRequest(IOrderManager manager, IDataContext tradingData, ILogger logger)
             :base(tradingData.Get<ObservableHashSet<OrderCancellationRequest>>())
         {
-            this.manager = manage
+            this.manager = manager;
+            this.logger = logger;
+        }
+
+        public override void OnItemAdded(OrderCancellationRequest item)
+        {
+            this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, отправляется запрос на отмену заявки {2}.", DateTime.Now, this.GetType().Name, item.Order.ToString()));
+            this.manager.CancelOrder(item.Order);
+        }
+    }
+}
