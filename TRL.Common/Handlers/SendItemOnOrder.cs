@@ -44,4 +44,29 @@ namespace TRL.Common.Handlers
         public void Update()
         {
             Order order = this.orderQueue.Dequeue();
-            OrderHand
+            OrderHandler.Invoke(order);
+
+            //if (OrderExists(order))
+            //    return;
+
+            //this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, отправка заявки {2}.", DateTime.Now, this.GetType().Name, order.ToString()));
+
+            //if (order.Signal != null)
+            //    CopyOrderAsCloseOrAsOpen(order);
+
+            //this.manager.PlaceOrder(order);
+
+            //this.tradingData.Get<ObservableHashSet<Order>>().Add(order);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddedItemHandler(ItemAddedNotification<Order> orderHandler)
+        {
+            //this.notifier.OnItemAdded += new ItemAddedNotification<Bar>(OnItemAdded);
+            //this.notifier.OnItemAdded += handler;
+            this.OrderHandler = orderHandler;
+        }
+    }
+}
