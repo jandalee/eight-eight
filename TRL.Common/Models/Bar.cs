@@ -312,4 +312,91 @@ namespace TRL.Common.Models
         //Millisecond
         //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff"));
         //Microseconds
-        //Consol
+        //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ffffff"));
+        //Tick
+        //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.fffffff"));
+        //Console.WriteLine(DateTime.Now.ToString("yyyy.MM.dd HH:mm:ss.fffffff"));
+        public string ToStringShort()
+        {   // Собственный формат
+            //"<TICKER>,<PER>,<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<DATEID>"
+            //"<TICKER>,<PER>,<DATETIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<DATEID>"            
+            //"<TICKER>,<PER>,<DATETIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<OI>,<DATEID>"
+            CultureInfo ci = CultureInfo.InvariantCulture;
+            return String.Format("{0},{1},{2:yyyyMMdd HHmmss fffffff},{3},{4},{5},{6},{7},{8},{9}",
+                this.Symbol, this.Interval, this.DateTime, this.Open.ToString("0.0000", ci), this.High.ToString("0.0000", ci), this.Low.ToString("0.0000", ci), this.Close.ToString("0.0000", ci), this.Volume.ToString("0.0000", ci), this.OpenInterest.ToString("0.0000", ci), this.DateID);
+        }
+
+        private string ToString(string format)
+        {
+            CultureInfo ci = CultureInfo.InvariantCulture;
+            //TODO 2. Заменил  this.DateTime.ToString(ci) на this.DateTime, протестировать
+            //return String.Format(format, this.Symbol, this.Interval, this.DateTime.ToString(ci), this.Open.ToString("0.0000", ci), this.High.ToString("0.0000", ci), this.Low.ToString("0.0000", ci), this.Close.ToString("0.0000", ci), this.Volume.ToString("0.0000", ci));
+            return String.Format(format, this.Symbol, this.Interval, this.DateTime, this.Open.ToString("0.0000", ci), this.High.ToString("0.0000", ci), this.Low.ToString("0.0000", ci), this.Close.ToString("0.0000", ci), this.Volume.ToString("0.0000", ci));
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Свеча, группируемая по ценовому диапазону
+    /// </summary>
+    public class RangeBar : Bar
+    {
+        /// <summary>
+        /// Дельта цены, в рамках которой свеча может содержать сделки
+        /// </summary>
+        public double Range { get; set; }
+
+        /// <summary>
+        /// Параметр свечи
+        /// </summary>
+        public override object Arg
+        {
+            get { return Range; }
+            set { Range = Convert.ToDouble(value); }
+        }
+        public RangeBar(string symbol, int interval, DateTime dateTime, double open, double high, double low, double close, double volume)
+        {
+            this.Symbol = symbol;
+            this.Interval = interval;
+            this.DateTime = dateTime;
+            this.Open = open;
+            this.High = high;
+            this.Low = low;
+            this.Close = close;
+            this.Volume = volume;
+        }
+    }
+
+    /// <summary>
+    /// Свеча, группируемая по количеству контрактов.
+    /// </summary>
+    public class VolumeBar : Bar
+    {
+        /// <summary>
+        /// Дельта цены, в рамках которой свеча может содержать сделки.
+        /// </summary>
+        public double VolumeLimit { get; set; }
+
+        /// <summary>
+        /// Параметр свечи
+        /// </summary>
+        public override object Arg
+        {
+            get { return VolumeLimit; }
+            set { VolumeLimit = Convert.ToDouble(value); }
+        }
+        public VolumeBar(string symbol, int interval, DateTime dateTime, double open, double high, double low, double close, double volume)
+        {
+            this.Symbol = symbol;
+            this.Interval = interval;
+            this.DateTime = dateTime;
+            this.Open = open;
+            this.High = high;
+            this.Low = low;
+            this.Close = close;
+            this.Volume = volume;
+        }
+    }
+
+}
