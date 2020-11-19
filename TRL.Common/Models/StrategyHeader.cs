@@ -21,4 +21,26 @@ namespace TRL.Common.Models
         {
             this.Id = id;
             this.Description = description;
-            this.Portfol
+            this.Portfolio = portfolio;
+            this.Symbol = symbol;
+            this.Amount = amount;
+        }
+
+        public override string ToString()
+        {
+            return ToString("Strategy Id: {0}, Description: {1}, Portfolio: {2}, Symbol: {3}, Amount: {4}");
+        }
+
+        public string ToImportString()
+        {
+            return ToString("{0},{1},{2},{3},{4}");
+        }
+
+        private string ToString(string format)
+        {
+            CultureInfo ci = CultureInfo.InvariantCulture;
+
+            return String.Format(format, this.Id, this.Description, this.Portfolio, this.Symbol, this.Amount.ToString("0.0000", ci));
+        }
+    }
+}
