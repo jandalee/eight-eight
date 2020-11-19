@@ -99,4 +99,18 @@ namespace TRL.Common.Statistics
         {
             CultureInfo ci = CultureInfo.InvariantCulture;
             return String.Format(format,
-                                this.Sym
+                                this.Symbol,
+                                this.TradeAction,
+                                this.OpenTrade.DateTime.ToString(),
+                                this.OpenTrade.Price.ToString("0.0000", ci),
+                                this.OpenTrade.Amount.ToString("0.0000", ci),
+                                this.CloseTrade.DateTime.ToString(),
+                                this.CloseTrade.Price.ToString("0.0000", ci),
+                                this.CloseTrade.Amount.ToString("0.0000", ci),
+                                this.PnL,
+                                this.CumulativePnL,
+                                this.InSeries,
+                                this.InSeriesMax);
+        }
+    }
+}
