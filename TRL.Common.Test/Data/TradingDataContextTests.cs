@@ -239,4 +239,22 @@ namespace TRL.Common.Test.Data
         }
 
         [TestMethod]
-        public void Tr
+        public void TradingData_contains_ArbitrageSettings_hashset_test()
+        {
+            Assert.IsInstanceOfType(this.context.Get<IEnumerable<ArbitrageSettings>>(), typeof(ObservableHashSet<ArbitrageSettings>));
+        }
+
+        [TestMethod]
+        public void TradingData_contains_BidAsk_collection_test()
+        {
+            Assert.IsInstanceOfType(this.context.Get<IEnumerable<BidAsk>>(), typeof(ObservableCollection<BidAsk>));
+        }
+
+        [TestMethod]
+        public void TradingData_contains_MoveOrder_collection_test()
+        {
+            Assert.IsInstanceOfType(this.context.Get<IEnumerable<MoveOrder>>(), typeof(ObservableHashSet<MoveOrder>));
+        }
+
+    }
+}
