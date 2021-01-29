@@ -58,4 +58,9 @@ namespace TRL.Common.Extensions.Data.Test
             Signal closeSignal = new Signal(this.strategy1, BrokerDateTime.Make(DateTime.Now), TradeAction.Sell, OrderType.Market, 151000, 0, 0);
             EmulateTradeFor(closeSignal);
             
-            Assert.AreEqual(1, this.tradingData.GetFilledOpenOrders(this.strategy1).C
+            Assert.AreEqual(1, this.tradingData.GetFilledOpenOrders(this.strategy1).Count());
+            Assert.AreEqual(TradeAction.Buy, this.tradingData.GetFilledOpenOrders(this.strategy1).First().TradeAction);
+        }
+
+    }
+}
