@@ -5,29 +5,25 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TRL.Common.Data;
 using TRL.Common.Models;
-using TRL.Common.Test.Mocks;
 using TRL.Common.TimeHelpers;
 using TRL.Common.Handlers;
 using TRL.Common.Collections;
-using TRL.Emulation;
 using TRL.Logging;
 
 namespace TRL.Common.Handlers.Test
 {
     [TestClass]
-    public class CancelOrderOnCancellationRequestTests
+    public class RejectOrderHandlerTests
     {
         private IDataContext tradingData;
         private StrategyHeader st1, st2, st3;
         private Signal s1, s2, s3;
-        private MockOrderManager manager;
 
         [TestInitialize]
         public void Handlers_Setup()
         {
             this.tradingData = new TradingDataContext();
-            this.manager = new MockOrderManager();
-            CancelOrderOnCancellationRequest handler = new CancelOrderOnCancellationRequest(this.manager, this.tradingData, new NullLogger());
+            RejectOrderOnOrderRejection handler = new RejectOrderOnOrderRejection(this.tradingData, new NullLogger());
 
             AddStrategies();
 
@@ -56,19 +52,34 @@ namespace TRL.Common.Handlers.Test
         }
 
         [TestMethod]
-        public void Handlers_CancelOrder_on_cancellation_request_arrival()
+        public void Handlers_RejectOrder_test()
         {
-            Signal signal = new Signal(this.st1, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 120000);
-            this.tradingData.Get<ICollection<Signal>>().Add(signal);
-
-            Order order = new Order(signal);
+            Order order = new Order(this.s3);
             this.tradingData.Get<ICollection<Order>>().Add(order);
+            Assert.IsFalse(order.IsRejected);
 
-            Assert.AreEqual(0, this.manager.CancelCounter);
-            OrderCancellationRequest request = new OrderCancellationRequest(order, "Internally expired");
-            this.tradingData.Get<ObservableHashSet<OrderCancellationRequest>>().Add(request);
+            OrderRejection rejection = new OrderRejection(order, BrokerDateTime.Make(DateTime.Now), "Rejected");
+            this.tradingData.Get<ObservableHashSet<OrderRejection>>().Add(rejection);
 
-            Assert.AreEqual(1, this.manager.CancelCounter);
+            Assert.IsTrue(order.IsRejected);
+            Assert.AreEqual(rejection.DateTime, order.RejectedDate);
+            Assert.AreEqual(rejection.Description, order.RejectReason);
+        }
+
+        [TestMethod]
+        public void Handlers_RejectOrder_test_ignore_nonexistent_order()
+        {
+            Order order = new Order(this.s3);
+            this.tradingData.Get<ICollection<Order>>().Add(order);
+            Assert.IsFalse(order.IsRejected);
+
+            Order ne = new Order(this.s1);
+            OrderRejection rejection = new OrderRejection(ne, BrokerDateTime.Make(DateTime.Now), "Rejected");
+            this.tradingData.Get<ObservableHashSet<OrderRejection>>().Add(rejection);
+
+            Assert.IsFalse(order.IsRejected);
+            Assert.AreEqual(DateTime.MinValue, order.RejectedDate);
+            Assert.IsNull(order.RejectReason);
         }
     }
 }
