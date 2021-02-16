@@ -105,4 +105,258 @@ namespace TRL.Common.Handlers.Test
             Signal signal2 = new Signal(this.str3, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 130000, 0, 0);
             this.signalQueue.Enqueue(signal2);
 
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Handlers_place_limit_order_when_unfilled_strategy_market_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 150000);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_limit_order_when_unfilled_strategy_stop_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Stop, 150000, 150000, 0);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 150000);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_market_order_when_no_any_unfilled_orders_exists()
+        {
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Count);
+
+            StrategyHeader strategyHeader = this.tradingData.Get<ICollection<StrategyHeader>>().Single(s => s.Id == 2);
+            Signal signal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 0, 0, 0);
+            this.signalQueue.Enqueue(signal);
+
+            Assert.AreEqual(1, this.orderQueue.Count);
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(strategyHeader.Portfolio, order.Portfolio);
+            Assert.AreEqual(strategyHeader.Symbol, order.Symbol);
+            Assert.AreEqual(strategyHeader.Amount, order.Amount);
+            Assert.AreEqual(signal.TradeAction, order.TradeAction);
+            Assert.AreEqual(signal.OrderType, order.OrderType);
+            Assert.AreEqual(signal.Limit, order.Price);
+            Assert.AreEqual(signal.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_market_order_when_unfilled_strategy_limit_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 150000);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_market_order_when_unfilled_strategy_stop_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Stop, 150000, 149500, 0);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_stop_order_when_unfilled_strategy_limit_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 149900);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Stop, 149000, 0, 0);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_stop_order_when_unfilled_strategy_market_order_exists()
+        {
+            Signal s1 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            this.tradingData.Get<ICollection<Signal>>().Add(s1);
+
+            Order o1 = new Order(s1);
+            this.tradingData.Get<ICollection<Order>>().Add(o1);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(0, this.orderQueue.Count);
+
+            Signal s2 = new Signal(this.str2, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Stop, 149000, 0, 0);
+            this.signalQueue.Enqueue(s2);
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(this.str2.Portfolio, order.Portfolio);
+            Assert.AreEqual(this.str2.Symbol, order.Symbol);
+            Assert.AreEqual(this.str2.Amount, order.Amount);
+            Assert.AreEqual(s2.TradeAction, order.TradeAction);
+            Assert.AreEqual(s2.OrderType, order.OrderType);
+            Assert.AreEqual(s2.Limit, order.Price);
+            Assert.AreEqual(s2.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_limit_order_when_no_any_unfilled_orders_exists()
+        {
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Count);
+
+            StrategyHeader strategyHeader = this.tradingData.Get<ICollection<StrategyHeader>>().Single(s => s.Id == 2);
+            Signal signal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 150100);
+            this.signalQueue.Enqueue(signal);
+
+            Assert.AreEqual(1, this.orderQueue.Count);
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(strategyHeader.Portfolio, order.Portfolio);
+            Assert.AreEqual(strategyHeader.Symbol, order.Symbol);
+            Assert.AreEqual(strategyHeader.Amount, order.Amount);
+            Assert.AreEqual(signal.TradeAction, order.TradeAction);
+            Assert.AreEqual(signal.OrderType, order.OrderType);
+            Assert.AreEqual(signal.Limit, order.Price);
+            Assert.AreEqual(signal.Stop, order.Stop);
+        }
+
+        [TestMethod]
+        public void Handlers_place_stop_order_when_no_any_unfilled_orders_exists()
+        {
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Count);
+
+            StrategyHeader strategyHeader = this.tradingData.Get<ICollection<StrategyHeader>>().Single(s => s.Id == 2);
+            Signal signal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Stop, 150000, 150100, 0);
+            this.signalQueue.Enqueue(signal);
+
+            Assert.AreEqual(1, this.orderQueue.Count);
