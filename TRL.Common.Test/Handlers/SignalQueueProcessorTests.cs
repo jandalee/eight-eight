@@ -360,3 +360,22 @@ namespace TRL.Common.Handlers.Test
             this.signalQueue.Enqueue(signal);
 
             Assert.AreEqual(1, this.orderQueue.Count);
+            Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.AreEqual(1, this.orderQueue.Count);
+
+            Order order = this.orderQueue.Dequeue();
+
+            Assert.IsTrue(order.Id > 0);
+            Assert.AreEqual(strategyHeader.Portfolio, order.Portfolio);
+            Assert.AreEqual(strategyHeader.Symbol, order.Symbol);
+            Assert.AreEqual(strategyHeader.Amount, order.Amount);
+            Assert.AreEqual(signal.TradeAction, order.TradeAction);
+            Assert.AreEqual(signal.OrderType, order.OrderType);
+            Assert.AreEqual(signal.Limit, order.Price);
+            Assert.AreEqual(signal.Stop, order.Stop);
+        }
+
+    }
+}
