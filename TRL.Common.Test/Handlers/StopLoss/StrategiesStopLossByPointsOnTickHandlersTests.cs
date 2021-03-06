@@ -1,3 +1,4 @@
+
 ﻿using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,13 +13,13 @@ using TRL.Logging;
 namespace TRL.Common.Handlers.Test.StopLoss
 {
     [TestClass]
-    public class StrategiesPlaceStopLossByPointsOnTradeHandlersTests
+    public class StrategiesStopLossByPointsOnTickHandlersTests
     {
         private IDataContext tradingData;
         private ObservableQueue<Signal> signalQueue;
         private int strategiesCounter, stopPointsSettingsCounter, stopLossOrderSettingsCounter;
 
-        private StrategiesPlaceStopLossByPointsOnTradeHandlers handlers;
+        private StrategiesStopLossByPointsOnTickHandlers handlers;
 
         [TestInitialize]
         public void Setup()
@@ -38,8 +39,7 @@ namespace TRL.Common.Handlers.Test.StopLoss
             MakeAndAddStopLossOrderSettingsToTradingDataContext(this.stopLossOrderSettingsCounter);
             Assert.AreEqual(this.stopLossOrderSettingsCounter, this.tradingData.Get<IEnumerable<StopLossOrderSettings>>().Count());
 
-            this.handlers = 
-                new StrategiesPlaceStopLossByPointsOnTradeHandlers(this.tradingData, this.signalQueue, new NullLogger());
+            this.handlers = new StrategiesStopLossByPointsOnTickHandlers(this.tradingData, this.signalQueue, new NullLogger());
         }
 
         private void MakeAndAddStrategiesToTradingDataContext(int count)
@@ -75,7 +75,7 @@ namespace TRL.Common.Handlers.Test.StopLoss
         [TestMethod]
         public void StrategiesStopLossOnTickHandlers_is_HashSet_test()
         {
-            Assert.IsInstanceOfType(this.handlers, typeof(HashSet<PlaceStrategyStopLossByPointsOnTrade>));
+            Assert.IsInstanceOfType(this.handlers, typeof(HashSet<StrategyStopLossByPointsOnTick>));
         }
 
         [TestMethod]
