@@ -43,4 +43,41 @@ namespace TRL.Common.Handlers.Test
             Signal oSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 150000, 0, 0);
             this.tradingData.AddSignalAndItsOrderAndTrade(oSignal);
 
-            Signal sSignal = new Signal(this.st
+            Signal sSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Sell, OrderType.Stop, 150010, 149910, 0);
+            this.tradingData.AddSignalAndItsOrder(sSignal);
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, DateTime.Now, 150020, 10, TradeAction.Sell));
+
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<MoveOrder>>().Count());
+        }
+
+        [TestMethod]
+        public void Handlers_do_not_trail_long_position_stop_when_tick_price_is_lower_than_stop_test()
+        {
+            Signal oSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            this.tradingData.AddSignalAndItsOrderAndTrade(oSignal);
+
+            Signal sSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Sell, OrderType.Stop, 150010, 149910, 0);
+            this.tradingData.AddSignalAndItsOrder(sSignal);
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, DateTime.Now, 150020, 10, TradeAction.Sell));
+
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<MoveOrder>>().Count());
+        }
+
+        [TestMethod]
+        public void Handlers_trail_short_position_stop_order_when_tick_price_move_down_test()
+        {
+            Signal oSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Sell, OrderType.Market, 150000, 0, 0);
+            this.tradingData.AddSignalAndItsOrderAndTrade(oSignal);
+
+            Signal sSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Stop, 150010, 150110, 0);
+            this.tradingData.AddSignalAndItsOrder(sSignal);
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, DateTime.Now, 150000, 10, TradeAction.Sell));
+
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<MoveOrder>>().Count());
+        }
+
+    }
+}
