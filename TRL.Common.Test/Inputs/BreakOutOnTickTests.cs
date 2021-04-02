@@ -228,4 +228,75 @@ namespace TRL.Extensions.Inputs.Test
             this.tradingData.AddSignalAndItsOrder(openSignal);
 
             this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, BrokerDateTime.Make(DateTime.Now), 20, 1));
-            Assert.AreEqual(0, 
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_when_there_is_no_any_bars_in_trading_context_test()
+        {
+            this.tradingData.Get<ICollection<Bar>>().Clear();
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, BrokerDateTime.Make(DateTime.Now), 20, 1));
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_when_there_is_no_enough_bars_in_trading_context_test()
+        {
+            Bar last = this.tradingData.Get<ICollection<Bar>>().Last();
+
+            this.tradingData.Get<ICollection<Bar>>().Remove(last);
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick(this.strategyHeader.Symbol, BrokerDateTime.Make(DateTime.Now), 20, 1));
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_on_break_to_high_when_partial_long_position_exists_for_strategy_test()
+        {
+            Signal openSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 0, 0, 0);
+            Trade trade = this.tradingData.AddSignalAndItsOrderAndTrade(openSignal, 151000, 3);
+            trade.Order.Cancel(BrokerDateTime.Make(DateTime.Now), "Order is cancelled by broker");
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick { Symbol = "RTS-9.13_FT", Price = 151000 });
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_on_break_to_high_when_partial_short_position_exists_for_strategy_test()
+        {
+            Signal openSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Sell, OrderType.Market, 0, 0, 0);
+            Trade trade = this.tradingData.AddSignalAndItsOrderAndTrade(openSignal, 151000, 5);
+            trade.Order.Cancel(BrokerDateTime.Make(DateTime.Now), "Order is cancelled by broker");
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick { Symbol = "RTS-9.13_FT", Price = 151000 });
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_on_break_to_low_when_partial_long_position_exists_for_strategy_test()
+        {
+            Signal openSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 0, 0, 0);
+            Trade trade = this.tradingData.AddSignalAndItsOrderAndTrade(openSignal, 150000, 6);
+            trade.Order.Cancel(BrokerDateTime.Make(DateTime.Now), "Order is cancelled by broker");
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick { Symbol = "RTS-9.13_FT", Price = -1 });
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+
+        [TestMethod]
+        public void Inputs_do_nothing_on_break_to_low_when_partial_short_position_exists_for_strategy_test()
+        {
+            Signal openSignal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Sell, OrderType.Market, 0, 0, 0);
+            Trade trade = this.tradingData.AddSignalAndItsOrderAndTrade(openSignal, 150000, 9);
+            trade.Order.Cancel(BrokerDateTime.Make(DateTime.Now), "Order is cancelled by broker");
+
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick { Symbol = "RTS-9.13_FT", Price = -1 });
+
+            Assert.AreEqual(0, this.signalQueue.Count);
+        }
+    }
+}
