@@ -41,4 +41,34 @@ namespace TRL.Common.Test.Models
         }
 
         [TestMethod]
-        public void Arbit
+        public void ArbitrageSettings_has_symbol_with_exising_symbol()
+        {
+            Assert.IsTrue(arbitrageSettings.HasSymbol("RTS-12.13_FT"));
+            Assert.IsTrue(arbitrageSettings.HasSymbol("Si-12.13_FT"));
+        }
+
+        [TestMethod]
+        public void ArbitrageSettings_has_symbol_with_non_exising_symbol()
+        {
+            Assert.IsFalse(arbitrageSettings.HasSymbol("SBRF-12.13_FT"));
+            Assert.IsFalse(arbitrageSettings.HasSymbol("GMNK-12.13_FT"));
+        }
+
+        [TestMethod]
+        public void ArbitrageSettings_default_constructor_test()
+        {
+            ArbitrageSettings arbitrageSettings = new ArbitrageSettings();
+
+            Assert.IsInstanceOfType(arbitrageSettings, typeof(IIdentified));
+            Assert.IsTrue(arbitrageSettings.Id > 0);
+            Assert.IsNotNull(arbitrageSettings.LeftLeg);
+            Assert.IsNotNull(arbitrageSettings.RightLeg);
+            Assert.AreEqual(0, arbitrageSettings.LeftLeg.Count());
+            Assert.AreEqual(0, arbitrageSettings.RightLeg.Count());
+            Assert.IsNotNull(arbitrageSettings.SpreadSettings);
+            Assert.AreEqual(0, arbitrageSettings.SpreadSettings.FairPrice);
+            Assert.AreEqual(0, arbitrageSettings.SpreadSettings.BuyBeforePrice);
+            Assert.AreEqual(0, arbitrageSettings.SpreadSettings.SellAfterPrice);
+        }
+    }
+}
