@@ -194,4 +194,21 @@ namespace TRL.Common.Models.Test
             result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 02), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
             result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 03), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
             result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 04), Price = 142100, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
-            re
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 05), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 06), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 07), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 08), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 09), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 10), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 11), Price = 138808, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 12), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 13), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 14), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 15), Price = 140000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+            result.Add(new Tick { Symbol = "RTS-12.12_FT", DateTime = new DateTime(2012, 12, 01, 10, 00, 15), Price = 141000, Volume = 1000, TradeAction = Common.Models.TradeAction.Buy });
+
+            return result;
+        }
+
+    }
+}
