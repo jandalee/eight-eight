@@ -19,4 +19,32 @@ namespace TRL.Common.Test.Models
 
             DateTime cancelDate = BrokerDateTime.Make(DateTime.Now);
 
-            OrderCancellationConfirmation co = new OrderCancellat
+            OrderCancellationConfirmation co = new OrderCancellationConfirmation(o, cancelDate, "Отменен пользователем");
+
+            Assert.IsTrue(co.Id > 0);
+            Assert.AreEqual(o.Id, co.OrderId);
+            Assert.AreEqual(o, co.Order);
+            Assert.AreEqual(cancelDate, co.DateTime);
+        }
+
+        [TestMethod]
+        public void OrderCancellationConfirmation_ToString_test()
+        {
+            DateTime date = DateTime.Now;
+
+            StrategyHeader strategyHeader = new StrategyHeader(1, "Description", "Portfolio", "Symbol", 10);
+            Signal signal = new Signal(strategyHeader, date, TradeAction.Buy, OrderType.Market, 150000, 0, 0);
+            Order order = new Order(signal);
+
+            OrderCancellationConfirmation co = new OrderCancellationConfirmation(order, date, "Отменен пользователем");
+
+            string result = String.Format("Подтверждение об отмене заявки {0}, {1}, {2}",
+                date.ToString(CultureInfo.InvariantCulture),
+                co.Description,
+                order.ToString());
+
+            Assert.AreEqual(result, co.ToString());
+                
+        }
+    }
+}
