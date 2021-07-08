@@ -99,4 +99,40 @@ namespace TRL.Common.Test.TraderBaseTests
             Assert.IsTrue(tpOrder.IsRejected);
 
             // Тик не дошел до цены закрытия, поэтому сигнал экстренного закрытия по тейк профиту не срабатывает
-            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick("RTS-9.13_FT", BrokerDateTime.
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick("RTS-9.13_FT", BrokerDateTime.Make(DateTime.Now), 150490, 100));
+            Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Order>>().Count());
+
+            // Тик дошел до цены закрытия, поэтому срабатывает сигнал экстренного закрытия по тейк профиту 
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick("RTS-9.13_FT", BrokerDateTime.Make(DateTime.Now), 150500, 150));
+            Assert.AreEqual(4, this.tradingData.Get<IEnumerable<Order>>().Count());
+
+            // Извлекаем копию отправленной брокеру заявки чтобы убедиться в том, что отправлена нужная нам заявка
+            Order etpOrder = this.tradingData.Get<IEnumerable<Order>>().Last();
+            Assert.AreEqual(TradeAction.Sell, etpOrder.TradeAction);
+            Assert.AreEqual(OrderType.Market, etpOrder.OrderType);
+            Assert.AreEqual(amount, etpOrder.Amount);
+
+            // Заявка экстренного закрытия исполняется одной сделкой
+            Trade outputTrade = this.tradingData.AddSignalAndItsOrderAndTrade(etpOrder.Signal);
+
+            // Приказ экстренного закрытия по тейк профиту исполнен
+            Assert.IsTrue(etpOrder.IsFilled);
+
+            // Стоп лосс приказ не исполнен 
+            Assert.IsFalse(slOrder.IsFilled);
+
+            // Система автоматически сгенерировала и отправила заявку на отмену стоп лосс приказа
+            Assert.AreEqual(1, this.tradingData.Get<ObservableHashSet<OrderCancellationRequest>>().Count);
+            OrderCancellationRequest slOrderCancel = this.tradingData.Get<ObservableHashSet<OrderCancellationRequest>>().Last();
+            Assert.AreEqual(slOrder.Id, slOrderCancel.OrderId);
+
+            // Брокер присылает подтверждение отмены стоп лосс приказа
+            this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Add(new OrderCancellationConfirmation(slOrder, BrokerDateTime.Make(DateTime.Now), "Отмена приказа подтверждена"));
+            Assert.IsTrue(slOrder.IsCanceled);
+
+            // Позиция закрыта
+            Assert.AreEqual(0, this.tradingData.GetAmount(strategyHeader));
+
+        }
+    }
+}
