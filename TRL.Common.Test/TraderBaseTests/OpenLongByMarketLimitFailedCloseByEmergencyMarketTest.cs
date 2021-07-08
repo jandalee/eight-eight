@@ -11,13 +11,14 @@ using TRL.Common.TimeHelpers;
 using TRL.Emulation;
 using TRL.Handlers.StopLoss;
 using TRL.Handlers.TakeProfit;
+using TRL.Common.Extensions.Data;
 using TRL.Logging;
 using TRL.Common.Handlers;
 
 namespace TRL.Common.Test.TraderBaseTests
 {
     [TestClass]
-    public class OpenLongByMarketCloseByStopTest
+    public class OpenLongByMarketLimitFailedCloseByEmergencyMarketTest
     {
         private IDataContext tradingData;
         private ObservableQueue<Signal> signalQueue;
@@ -32,12 +33,11 @@ namespace TRL.Common.Test.TraderBaseTests
             this.orderQueue = new ObservableQueue<Order>();
             this.orderManager = new MockOrderManager();
 
-            TraderBase traderBase = 
-                new TraderBase(this.tradingData, this.signalQueue, this.orderQueue, this.orderManager, new AlwaysTimeToTradeSchedule(), new NullLogger());
+            TraderBase traderBase = new TraderBase(this.tradingData, this.signalQueue, this.orderQueue, this.orderManager, new AlwaysTimeToTradeSchedule(), new NullLogger());
         }
 
         [TestMethod]
-        public void open_long_position_with_market_order_protect_it_with_stop_and_limit_and_close_with_stop()
+        public void open_long_position_with_market_order_protect_it_with_stop_limit_rejected_close_with_emergency_market()
         {
             // Настройки для торгуемой стратегии
             Symbol symbol = new Symbol("RTS-9.13_FT", 1, 8, 10, BrokerDateTime.Make(DateTime.Now));         
@@ -59,40 +59,26 @@ namespace TRL.Common.Test.TraderBaseTests
             this.tradingData.Get<ICollection<TakeProfitOrderSettings>>().Add(tpOrderSettings);
 
             StrategyStopLossByPointsOnTick stopLossHandler =
-                new StrategyStopLossByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger(), true);
+                new StrategyStopLossByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
             StrategyTakeProfitByPointsOnTick takeProfitHandler =
-                new StrategyTakeProfitByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger(), true);
+                new StrategyTakeProfitByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
 
             PlaceStrategyStopLossByPointsOnTrade placeStopOnTradeHandler =
-                new PlaceStrategyStopLossByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger(), true);
+                new PlaceStrategyStopLossByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
             PlaceStrategyTakeProfitByPointsOnTrade placeTakeProfitOnTradeHandler =
-                new PlaceStrategyTakeProfitByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger(), true);
+                new PlaceStrategyTakeProfitByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
 
 
             // Сигнал на открытие позиции
             Signal inputSignal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, 150000, 0, 0);
-            this.signalQueue.Enqueue(inputSignal);
 
-            // Сигнал успешно обработан и заявка отправлена брокеру
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Order>>().Count());
-
-            // Копия отправленной брокеру заявки на открытие позиции
-            Order inputOrder = this.tradingData.Get<IEnumerable<Order>>().Last();
-
-            // Брокер подтвердил получение заявки
-            this.tradingData.Get<ObservableHashSet<OrderDeliveryConfirmation>>().Add(new OrderDeliveryConfirmation(inputOrder, BrokerDateTime.Make(DateTime.Now)));
-            Assert.IsTrue(inputOrder.IsDelivered);
-
-            // Брокер исполнил заявку одной сделкой
-            Trade inputTrade = new Trade(inputOrder, inputOrder.Portfolio, inputOrder.Symbol, 150050, inputOrder.Amount, BrokerDateTime.Make(DateTime.Now));
-            this.tradingData.Get<ObservableHashSet<Trade>>().Add(inputTrade);
+            //// Брокер исполнил заявку одной сделкой
+            Trade inputTrade = this.tradingData.AddSignalAndItsOrderAndTrade(inputSignal);
 
             // Заявка исполнена, позиция открыта ровно на запрошенный в заявке объем
-            Assert.IsTrue(inputOrder.IsFilled);
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Position>>().Count());
-            Position position = this.tradingData.Get<IEnumerable<Position>>().Last();
-            Assert.AreEqual(10, position.Amount);
+            Assert.IsTrue(inputTrade.Order.IsFilled);
+            double amount = this.tradingData.GetAmount(strategyHeader);
+            Assert.AreEqual(amount, inputSignal.Amount);
 
             // Для позиции созданы и отправлены брокеру защитные стоп и тейк профит приказы
             Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Signal>>().Count());
@@ -104,31 +90,13 @@ namespace TRL.Common.Test.TraderBaseTests
             Assert.AreEqual(149700, slOrder.Stop);
             Assert.AreEqual(150500, tpOrder.Price);
 
-            // Брокер подтверждает получение защитных приказов
+            // Брокер подтверждает только получение стоп приказа и отклоняет тейк профит приказ
             this.tradingData.Get<ObservableHashSet<OrderDeliveryConfirmation>>().Add(new OrderDeliveryConfirmation(slOrder, BrokerDateTime.Make(DateTime.Now)));
             this.tradingData.Get<ObservableHashSet<OrderDeliveryConfirmation>>().Add(new OrderDeliveryConfirmation(tpOrder, BrokerDateTime.Make(DateTime.Now)));
+            this.tradingData.Get<ObservableHashSet<OrderRejection>>().Add(new OrderRejection(tpOrder, BrokerDateTime.Make(DateTime.Now), "заявка отклонена"));
             Assert.IsTrue(slOrder.IsDelivered);
             Assert.IsTrue(tpOrder.IsDelivered);
+            Assert.IsTrue(tpOrder.IsRejected);
 
-            // Через некоторое время цена на рынке падает, срабатывает защитный стоп приказ и исполняется одной сделкой
-            Trade outputTrade = new Trade(slOrder, slOrder.Portfolio, slOrder.Symbol, 149680, -slOrder.Amount, BrokerDateTime.Make(DateTime.Now));
-            tradingData.Get<ObservableHashSet<Trade>>().Add(outputTrade);
-
-            // Стоп приказ исполнен
-            Assert.IsTrue(slOrder.IsFilled);
-            Assert.IsFalse(tpOrder.IsFilled);
-            Assert.IsFalse(tpOrder.IsCanceled);
-
-            // Позиция закрыта
-            Assert.AreEqual(0, position.Amount);
-
-            // Брокеру отправлен запрос на отмену приказа take profit
-            Assert.AreEqual(1, this.tradingData.Get<ObservableHashSet<OrderCancellationRequest>>().Count);
-
-            // Брокер подтверждает получение заявки на отмену приказа
-            this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Add(new OrderCancellationConfirmation(tpOrder, BrokerDateTime.Make(DateTime.Now), "Заявка снята"));
-            Assert.IsTrue(tpOrder.IsCanceled);
-
-        }
-    }
-}
+            // Тик не дошел до цены закрытия, поэтому сигнал экстренного закрытия по тейк профиту не срабатывает
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(new Tick("RTS-9.13_FT", BrokerDateTime.
