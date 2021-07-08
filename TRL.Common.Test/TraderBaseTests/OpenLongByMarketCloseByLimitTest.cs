@@ -67,4 +67,33 @@ namespace TRL.Common.Test.TraderBaseTests
 
             // Для позиции созданы и отправлены брокеру защитные стоп и тейк профит приказы
             Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Signal>>().Count());
-            Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Order>>(
+            Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Signal slSignal = this.tradingData.Get<IEnumerable<Signal>>().Single(s => s.OrderType == OrderType.Stop && s.StrategyId == this.strategyHeader.Id);
+            Signal tpSignal = this.tradingData.Get<IEnumerable<Signal>>().Single(s => s.OrderType == OrderType.Limit && s.StrategyId == this.strategyHeader.Id);
+
+            // Цена защитных приказов установлена соответственно настройкам
+            Assert.AreEqual(149750, slSignal.Stop);
+            Assert.AreEqual(150550, tpSignal.Limit);
+
+            // Через некоторое время цена на рынке вырастает, срабатывает take profit приказ и исполняется одной сделкой
+            EmulateTradeFor(tpSignal, 145500);
+
+            Order slOrder = 
+                this.tradingData.Get<IEnumerable<Order>>().Single(o => o.SignalId == slSignal.Id);
+            Order tpOrder = 
+                this.tradingData.Get<IEnumerable<Order>>().Single(o => o.SignalId == tpSignal.Id);
+
+            Assert.IsTrue(tpOrder.IsFilled);
+            Assert.IsFalse(slOrder.IsFilled);
+            Assert.IsFalse(slOrder.IsCanceled);
+
+            // Позиция закрыта
+            Assert.AreEqual(0, this.tradingData.GetAmount(this.strategyHeader));
+            
+            // Брокеру отправлен запрос на отмену stop loss приказа
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<OrderCancellationRequest>>().Count());            
+            OrderCancellationRequest slRequest = this.tradingData.Get<IEnumerable<OrderCancellationRequest>>().Single(r => r.OrderId == slOrder.Id);
+            Assert.IsNotNull(slRequest);
+        }
+    }
+}
