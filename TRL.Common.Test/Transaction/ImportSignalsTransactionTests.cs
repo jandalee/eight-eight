@@ -52,4 +52,11 @@ namespace TRL.Transaction.Test
             Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Signal>>().Count());
 
             string ef = String.Concat(ProjectRootFolderNameFactory.Make(), "\\TestData\\signals.txt");
-            ITransaction import = new ImportSignalsTrans
+            ITransaction import = new ImportSignalsTransaction(this.tradingData, ef);
+
+            import.Execute();
+
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
+        }
+    }
+}
