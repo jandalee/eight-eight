@@ -1,3 +1,4 @@
+
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
@@ -17,7 +18,7 @@ using TRL.Common.Handlers;
 namespace TRL.Common.Test.TraderBaseTests
 {
     [TestClass]
-    public class OpenShortByMarketCloseByStopMultipleTradesTest
+    public class OpenShortByMarketCloseByStopTest
     {
         private IDataContext tradingData;
         private ObservableQueue<Signal> signalQueue;
@@ -36,7 +37,7 @@ namespace TRL.Common.Test.TraderBaseTests
         }
 
         [TestMethod]
-        public void open_short_position_with_market_order_protect_it_with_stop_and_limit_and_close_with_stop_multiple_trades()
+        public void open_short_position_with_market_order_protect_it_with_stop_and_limit_and_close_with_stop()
         {
             // Настройки для торгуемой стратегии
             Symbol symbol = new Symbol("RTS-9.13_FT", 1, 8, 10, BrokerDateTime.Make(DateTime.Now));         
@@ -83,41 +84,14 @@ namespace TRL.Common.Test.TraderBaseTests
             this.tradingData.Get<ObservableHashSet<OrderDeliveryConfirmation>>().Add(new OrderDeliveryConfirmation(inputOrder, BrokerDateTime.Make(DateTime.Now)));
             Assert.IsTrue(inputOrder.IsDelivered);
 
-            // Брокер исполнил заявку несколькими сделками
-            Trade inputTrade = new Trade(inputOrder, inputOrder.Portfolio, inputOrder.Symbol, 149900, -7, BrokerDateTime.Make(DateTime.Now));
+            // Брокер исполнил заявку одной сделкой
+            Trade inputTrade = new Trade(inputOrder, inputOrder.Portfolio, inputOrder.Symbol, 149990, -inputOrder.Amount, BrokerDateTime.Make(DateTime.Now));
             this.tradingData.Get<ObservableHashSet<Trade>>().Add(inputTrade);
 
-            // Часть заявки исполнена, позиция открыта ровно на исполненный сделкой объем
-            Assert.IsFalse(inputOrder.IsFilled);
-            Assert.IsTrue(inputOrder.IsFilledPartially);
+            // Заявка исполнена, позиция открыта ровно на запрошенный в заявке объем
+            Assert.IsTrue(inputOrder.IsFilled);
             Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Position>>().Count());
             Position position = this.tradingData.Get<IEnumerable<Position>>().Last();
-            Assert.AreEqual(-7, position.Amount);
-
-            // Заявки на приказы stop loss и take profit не генерируются, поскольку рыночная заявка не исполнена
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Order>>().Count());
-
-            // Следующая сделка
-            Trade t2 = new Trade(inputOrder, inputOrder.Portfolio, inputOrder.Symbol, 149920, -1, BrokerDateTime.Make(DateTime.Now));
-            this.tradingData.Get<ObservableHashSet<Trade>>().Add(t2);
-
-            // Часть заявки исполнена, позиция увеличилась ровно на исполненный сделкой объем
-            Assert.IsFalse(inputOrder.IsFilled);
-            Assert.IsTrue(inputOrder.IsFilledPartially);
-            Assert.AreEqual(-8, position.Amount);
-
-            // Заявки на приказы stop loss и take profit не генерируются, поскольку рыночная заявка не исполнена
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Order>>().Count());
-
-            // Следующая сделка
-            Trade t3 = new Trade(inputOrder, inputOrder.Portfolio, inputOrder.Symbol, 149950, -2, BrokerDateTime.Make(DateTime.Now));
-            this.tradingData.Get<ObservableHashSet<Trade>>().Add(t3);
-
-            // Заявка полностью исполнена, позиция увеличилась ровно на исполненный сделкой объем
-            Assert.IsTrue(inputOrder.IsFilled);
-            Assert.IsFalse(inputOrder.IsFilledPartially);
             Assert.AreEqual(-10, position.Amount);
 
             // Для позиции созданы и отправлены брокеру защитные стоп и тейк профит приказы
@@ -136,29 +110,9 @@ namespace TRL.Common.Test.TraderBaseTests
             Assert.IsTrue(slOrder.IsDelivered);
             Assert.IsTrue(tpOrder.IsDelivered);
 
-            // Через некоторое время цена на рынке вырастает, срабатывает защитный стоп приказ и исполняется первая сделка
-            Trade outputTrade = new Trade(slOrder, slOrder.Portfolio, slOrder.Symbol, 150310, 3, BrokerDateTime.Make(DateTime.Now));
+            // Через некоторое время цена на рынке вырастает, срабатывает защитный стоп приказ и исполняется одной сделкой
+            Trade outputTrade = new Trade(slOrder, slOrder.Portfolio, slOrder.Symbol, 150300, slOrder.Amount, BrokerDateTime.Make(DateTime.Now));
             tradingData.Get<ObservableHashSet<Trade>>().Add(outputTrade);
-
-            // Стоп приказ исполнен лишь частично. Позиция не закрыта. Take profit приказ не отменен
-            Assert.IsFalse(slOrder.IsFilled);
-            Assert.IsTrue(slOrder.IsFilledPartially);
-            Assert.AreEqual(-7, position.Amount);
-            Assert.IsFalse(tpOrder.IsCanceled);
-
-            // Исполняется вторая сделка
-            Trade ot2 = new Trade(slOrder, slOrder.Portfolio, slOrder.Symbol, 150320, 4, BrokerDateTime.Make(DateTime.Now));
-            tradingData.Get<ObservableHashSet<Trade>>().Add(ot2);
-
-            // Стоп приказ исполнен лишь частично. Позиция не закрыта. Take profit приказ не отменен
-            Assert.IsFalse(slOrder.IsFilled);
-            Assert.IsTrue(slOrder.IsFilledPartially);
-            Assert.AreEqual(-3, position.Amount);
-            Assert.IsFalse(tpOrder.IsCanceled);
-
-            // Исполняется третья сделка
-            Trade ot3 = new Trade(slOrder, slOrder.Portfolio, slOrder.Symbol, 150330, 3, BrokerDateTime.Make(DateTime.Now));
-            tradingData.Get<ObservableHashSet<Trade>>().Add(ot3);
 
             // Стоп приказ исполнен
             Assert.IsTrue(slOrder.IsFilled);
@@ -169,12 +123,11 @@ namespace TRL.Common.Test.TraderBaseTests
             Assert.AreEqual(0, position.Amount);
 
             // Брокеру отправлен запрос на отмену приказа take profit
-            Assert.AreEqual(1, this.tradingData.Get<ObservableHashSet<OrderCancellationRequest>>().Count);
+            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<OrderCancellationRequest>>().Count());
 
             // Брокер подтверждает получение заявки на отмену приказа
             this.tradingData.Get<ObservableHashSet<OrderCancellationConfirmation>>().Add(new OrderCancellationConfirmation(tpOrder, BrokerDateTime.Make(DateTime.Now), "Заявка снята"));
             Assert.IsTrue(tpOrder.IsCanceled);
-
         }
     }
 }
