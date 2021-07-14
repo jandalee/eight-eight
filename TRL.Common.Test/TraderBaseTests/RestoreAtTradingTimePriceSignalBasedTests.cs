@@ -9,6 +9,8 @@ using TRL.Common.Models;
 using TRL.Common.Collections;
 using TRL.Common.TimeHelpers;
 using TRL.Emulation;
+using TRL.Handlers.StopLoss;
+using TRL.Handlers.TakeProfit;
 using TRL.Transaction;
 using TRL.Logging;
 using TRL.Common.Handlers;
@@ -16,7 +18,7 @@ using TRL.Common.Handlers;
 namespace TRL.Common.Test.TraderBaseTests
 {
     [TestClass]
-    public class RestoreAtNotTradingTimePriceTradeBasedTests
+    public class RestoreAtTradingTimePriceSignalBasedTests
     {
         private IDataContext tradingData;
         private ObservableQueue<Signal> signalQueue;
@@ -35,7 +37,7 @@ namespace TRL.Common.Test.TraderBaseTests
                 this.signalQueue,
                 this.orderQueue,
                 this.orderManager,
-                new NeverTimeToTradeSchedule(),
+                new AlwaysTimeToTradeSchedule(),
                 new NullLogger());
 
             StrategyHeader strategyHeader = new StrategyHeader(1, "Strategy Description", "BP12345-RF-01", "RTS-9.13_FT", 10);
@@ -53,6 +55,17 @@ namespace TRL.Common.Test.TraderBaseTests
             TakeProfitOrderSettings tpoSettings = new TakeProfitOrderSettings(strategyHeader, 100);
             this.tradingData.Get<ICollection<TakeProfitOrderSettings>>().Add(tpoSettings);
 
+            StrategyStopLossByPointsOnTick stopLossHandler =
+                new StrategyStopLossByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
+            StrategyTakeProfitByPointsOnTick takeProfitHandler =
+                new StrategyTakeProfitByPointsOnTick(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
+
+            PlaceStrategyStopLossByPointsOnTrade placeStopOnTradeHandler =
+                new PlaceStrategyStopLossByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
+            PlaceStrategyTakeProfitByPointsOnTrade placeTakeProfitOnTradeHandler =
+                new PlaceStrategyTakeProfitByPointsOnTrade(strategyHeader, this.tradingData, this.signalQueue, new NullLogger());
+
+
             Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Signal>>().Count());
             Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Order>>().Count());
             Assert.AreEqual(0, this.tradingData.Get<IEnumerable<Trade>>().Count());
@@ -62,7 +75,7 @@ namespace TRL.Common.Test.TraderBaseTests
         }
 
         [TestMethod]
-        public void ignore_signals_when_backup_loaded_at_not_trading_time()
+        public void make_signals_when_backup_loaded_at_trading_time()
         {
             ITransaction importSignals = new ImportSignalsTransaction(this.tradingData, ProjectRootFolderNameFactory.Make() + "\\TestData\\signals-backup.txt");
             ITransaction importOrders = new ImportOrdersTransaction((IObservableHashSetFactory)this.tradingData, ProjectRootFolderNameFactory.Make() + "\\TestData\\orders-backup.txt");
@@ -72,13 +85,13 @@ namespace TRL.Common.Test.TraderBaseTests
             importOrders.Execute();
             importTrades.Execute();
 
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Signal>>().Count());
-            Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Order>>().Count());
+            Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Signal>>().Count());
+            Assert.AreEqual(3, this.tradingData.Get<IEnumerable<Order>>().Count());
             Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Trade>>().Count());
             Assert.AreEqual(1, this.tradingData.Get<IEnumerable<Position>>().Count());
             Assert.AreEqual(0, this.signalQueue.Count);
             Assert.AreEqual(0, this.orderQueue.Count);
-            Assert.AreEqual(0, ((MockOrderManager)this.orderManager).PlaceCounter);
+            Assert.AreEqual(2, ((MockOrderManager)this.orderManager).PlaceCounter);
         }
     }
 }
