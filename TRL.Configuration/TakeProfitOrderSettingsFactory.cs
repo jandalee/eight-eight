@@ -16,4 +16,20 @@ namespace TRL.Configuration
         public TakeProfitOrderSettingsFactory(StrategyHeader strategyHeader, string prefix)
         {
             this.strategyHeader = strategyHeader;
-            thi
+            this.prefix = prefix;
+        }
+
+        public TakeProfitOrderSettings Make()
+        {
+            try
+            {
+                return new TakeProfitOrderSettings(this.strategyHeader,
+                    AppSettings.GetValue<int>(String.Concat(this.prefix, "_TakeProfitOrderSettings_TimeToLive")));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+}
