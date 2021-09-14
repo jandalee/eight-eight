@@ -26,4 +26,9 @@ namespace TRL.Connect.Smartcom.Data
         }
 
         private DateTime lastNotification;
-        public DateTime Date
+        public DateTime DateTime
+        {
+            get { return this.lastNotification; }
+        }
+    }
+}
