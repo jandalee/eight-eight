@@ -64,4 +64,35 @@ namespace TRL.Connect.Smartcom.Events
         {
             foreach (T item in this.handlers.GetData<T>())
             {
- 
+                this.stServer.Bind<T>(item);
+                this.bindedHandlersCounter++;
+                WriteLogMessage<T>("подключение");
+            }
+        }
+
+        public void Unbind()
+        {
+            if (this.bindedHandlersCounter == 0)
+                return;
+
+            foreach (Type t in SmartComEventsTypes.Collection)
+            {
+                MethodInfo mi = this.GetType().GetMethod("UnbindAllHandlersOfType").MakeGenericMethod(t);
+                mi.Invoke(this, null);
+            }
+        }
+
+        public void Bind()
+        {
+            if (this.bindedHandlersCounter == this.handlers.HandlerCounter)
+                return;
+
+            foreach (Type t in SmartComEventsTypes.Collection)
+            {
+                MethodInfo mi = this.GetType().GetMethod("BindAllHandlersOfType").MakeGenericMethod(t);
+                mi.Invoke(this, null);
+            }
+        }
+
+    }
+}
