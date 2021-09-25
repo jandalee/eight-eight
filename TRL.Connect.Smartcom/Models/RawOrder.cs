@@ -57,3 +57,23 @@ namespace TRL.Connect.Smartcom.Models
         {
             if (this.Action.Equals(StOrder_Action.StOrder_Action_Cover))
                 return true;
+
+            if (this.Action.Equals(StOrder_Action.StOrder_Action_Sell))
+                return true;
+
+            return false;
+        }
+
+        public int Id { get; set; }
+
+        public bool IsExpired
+        {
+            get { return DateTime.Now > this.ExpirationDate; }
+        }
+
+        public bool IsFilled
+        {
+            get { return false; }
+        }
+    }
+}
