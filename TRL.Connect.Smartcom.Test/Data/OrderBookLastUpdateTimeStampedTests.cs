@@ -11,4 +11,27 @@ using TRL.Connect.Smartcom.Data;
 namespace TRL.Connect.Smartcom.Test.Data
 {
     [TestClass]
-    public class OrderBookLastUpdateTimeStamp
+    public class OrderBookLastUpdateTimeStampedTests
+    {
+        private IQuoteProvider orderBook;
+        private IDateTime lastOrderBookUpdate;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            this.orderBook = new OrderBookContext();
+
+            this.lastOrderBookUpdate =
+                new OrderBookLastUpdateTimeStamped(this.orderBook);
+
+            Assert.IsTrue(this.lastOrderBookUpdate.DateTime == DateTime.MinValue);
+        }
+
+        [TestMethod]
+        public void notify_DateTime_of_last_OrderBook_update_test()
+        {
+            this.orderBook.Update(1, "RTS-9.14", 135000, 32, 135010, 11);
+            Assert.AreNotEqual(DateTime.MinValue, this.lastOrderBookUpdate.DateTime);
+        }
+    }
+}
