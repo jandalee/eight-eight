@@ -61,4 +61,298 @@ namespace TRL.Connect.Smartcom.Test.Handlers
                     this.order.Symbol,
                     StOrder_State.StOrder_State_Cancel,
                     StOrder_Action.StOrder_Action_Buy,
-                    StOrder_Type.
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    1,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_Cancel", this.order.CancellationReason);
+        }
+
+        [TestMethod]
+        public void cancel_order_on_state_cancel_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Cancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    this.order.Amount,
+                    this.cancellationDate,
+                    this.orderNo,
+                    "0",
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_Cancel", this.order.CancellationReason);
+        }
+
+
+        [TestMethod]
+        public void cancel_partially_filled_order_on_state_system_cancel_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_SystemCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    1,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_SystemCancel", this.order.CancellationReason);
+        }
+
+        [TestMethod]
+        public void cancel_order_on_state_system_cancel_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_SystemCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    this.order.Amount,
+                    this.cancellationDate,
+                    this.orderNo,
+                    "100",
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_SystemCancel", this.order.CancellationReason);
+        }
+
+        [TestMethod]
+        public void cancel_partially_filled_order_on_state_contragent_cancel_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_ContragentCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    1,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_ContragentCancel", this.order.CancellationReason);
+        }
+
+        [TestMethod]
+        public void cancel_order_on_state_contragent_cancel_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_ContragentCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    this.order.Amount,
+                    this.cancellationDate,
+                    this.orderNo,
+                    "100",
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(this.order.IsCanceled);
+            Assert.AreEqual(this.cancellationDate, this.order.CancellationDate);
+            Assert.AreEqual("StOrder_State_ContragentCancel", this.order.CancellationReason);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_pending_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Pending,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_open_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Open,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_expired_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Expired,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_filled_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Filled,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_partial_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_Partial,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_state_system_reject_test()
+        {
+            UpdateOrder update =
+                new UpdateOrder(this.order.Portfolio,
+                    this.order.Symbol,
+                    StOrder_State.StOrder_State_SystemReject,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    this.order.Amount,
+                    0,
+                    0,
+                    this.cancellationDate,
+                    "100",
+                    this.orderNo,
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(this.order.IsCanceled);
+        }
+
+    }
+}
