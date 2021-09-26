@@ -58,4 +58,40 @@ namespace TRL.Connect.Smartcom
             }
             catch
             {
-                this.lo
+                this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, ошибка при отключении",
+                    BrokerDateTime.Make(DateTime.Now),
+                    this.GetType().Name));
+            }    
+        }
+
+        public bool IsConnected
+        {
+            get { return this.stServer.IsConnected(); }
+        }
+
+        private void ConnectionSucceed()
+        {
+            this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, соединение установлено", 
+                BrokerDateTime.Make(DateTime.Now), 
+                this.GetType().Name));           
+        }
+
+        private void ConnectorDisconnected(string reason)
+        {
+            if (reason.ToLower().Contains("disconnected by user"))
+            {
+                this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, выполнено отключение {2}", 
+                    BrokerDateTime.Make(DateTime.Now), 
+                    this.GetType().Name, 
+                    reason));
+                return;
+            }
+
+            this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, соединение неожиданно разорвано {2}", 
+                BrokerDateTime.Make(DateTime.Now), 
+                this.GetType().Name, 
+                reason));
+        }
+
+    }
+}
