@@ -57,4 +57,358 @@ namespace TRL.Connect.Smartcom.Test.Handlers
                     StOrder_State.StOrder_State_ContragentReject, 
                     StOrder_Action.StOrder_Action_Buy, 
                     StOrder_Type.StOrder_Type_Limit, 
-                    
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, 
+                    this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(order.IsRejected);
+            Assert.AreEqual(this.rejectedDate, order.RejectedDate);
+        }
+
+        [TestMethod]
+        public void reject_Order_on_SystemReject_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update = 
+                new UpdateOrder(order.Portfolio, 
+                    order.Symbol, 
+                    StOrder_State.StOrder_State_SystemReject, 
+                    StOrder_Action.StOrder_Action_Buy, 
+                    StOrder_Type.StOrder_Type_Limit, 
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, 
+                    this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsTrue(order.IsRejected);
+            Assert.AreEqual(this.rejectedDate, order.RejectedDate);
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_wrong_Cookie_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_SystemReject,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    0);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_SystemCancel_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update = 
+                new UpdateOrder(order.Portfolio, 
+                    order.Symbol, 
+                    StOrder_State.StOrder_State_SystemCancel, 
+                    StOrder_Action.StOrder_Action_Buy, 
+                    StOrder_Type.StOrder_Type_Limit, 
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, 
+                    this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_ContragentCancel_update_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update = 
+                new UpdateOrder(order.Portfolio, 
+                    order.Symbol, 
+                    StOrder_State.StOrder_State_ContragentCancel, 
+                    StOrder_Action.StOrder_Action_Buy, 
+                    StOrder_Type.StOrder_Type_Limit, 
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Pending_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update = 
+                new UpdateOrder(order.Portfolio, 
+                    order.Symbol, 
+                    StOrder_State.StOrder_State_Pending, 
+                    StOrder_Action.StOrder_Action_Buy, 
+                    StOrder_Type.StOrder_Type_Limit, 
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, 
+                    this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Open_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_Open,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Expired_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_Expired,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Cancel_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_Cancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Filled_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_Filled,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_Partial_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_Partial,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_ContragentCancel_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_ContragentCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void ignore_SystemCancel_state_test()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update =
+                new UpdateOrder(order.Portfolio,
+                    order.Symbol,
+                    StOrder_State.StOrder_State_SystemCancel,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Limit,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150000,
+                    order.Amount,
+                    0,
+                    0,
+                    this.rejectedDate,
+                    "100",
+                    "200",
+                    1,
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+
+            Assert.IsFalse(order.IsRejected);
+        }
+
+        [TestMethod]
+        public void RejectOrderOnUpdateOrder_Ignore_Duplicate_Updates()
+        {
+            Order order = this.tradingData.AddSignalAndItsOrder(this.signal);
+
+            UpdateOrder update = 
+                new UpdateOrder(order.Portfolio, 
+                    order.Symbol, 
+                    StOrder_State.StOrder_State_ContragentReject, 
+                    StOrder_Action.StOrder_Action_Buy, 
+                    StOrder_Type.StOrder_Type_Limit, 
+                    StOrder_Validity.StOrder_Validity_Day, 
+                    150000, 
+                    order.Amount, 
+                    0, 
+                    0, 
+                    this.rejectedDate, 
+                    "100", 
+                    "200", 
+                    1, 
+                    order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+            Assert.IsTrue(order.IsRejected);
+            Assert.AreEqual(this.rejectedDate, order.RejectedDate);
+
+            DateTime duplicateDate = BrokerDateTime.Make(DateTime.Now).AddSeconds(1);
+ 
