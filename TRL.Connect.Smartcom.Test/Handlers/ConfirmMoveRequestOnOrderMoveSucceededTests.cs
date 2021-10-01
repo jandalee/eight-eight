@@ -44,4 +44,43 @@ namespace TRL.Connect.Smartcom.Test.Handlers
             Order order = new Order(signal);
             this.tradingData.Get<ICollection<Order>>().Add(order);
 
-            OrderMoveRequest request = new OrderMoveRequest(order, 151000, 
+            OrderMoveRequest request = new OrderMoveRequest(order, 151000, 0, "Move order");
+            this.tradingData.Get<ICollection<OrderMoveRequest>>().Add(request);
+
+            Assert.IsFalse(request.IsDelivered);
+
+            OrderMoveSucceeded confirmation = new OrderMoveSucceeded(request.OrderId, "588");
+            this.rawData.GetData<OrderMoveSucceeded>().Add(confirmation);
+
+            Assert.IsTrue(request.IsDelivered);
+        }
+
+        [TestMethod]
+        public void ignore_OrderMoveSucceeded_if_request_already_confirmed_test()
+        {
+            Signal signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, 150000, 0, 150000);
+            this.tradingData.Get<ICollection<Signal>>().Add(signal);
+
+            Order order = new Order(signal);
+            this.tradingData.Get<ICollection<Order>>().Add(order);
+
+            OrderMoveRequest request = new OrderMoveRequest(order, 151000, 0, "Move order");
+            this.tradingData.Get<ICollection<OrderMoveRequest>>().Add(request);
+
+            Assert.IsFalse(request.IsDelivered);
+
+            OrderMoveSucceeded confirmation = new OrderMoveSucceeded(request.OrderId, "588");
+            this.rawData.GetData<OrderMoveSucceeded>().Add(confirmation);
+
+            Assert.IsTrue(request.IsDelivered);
+
+            OrderMoveSucceeded duplicate = new OrderMoveSucceeded(request.OrderId, "588");
+            duplicate.DateTime = duplicate.DateTime.AddMilliseconds(1);
+            this.rawData.GetData<OrderMoveSucceeded>().Add(duplicate);
+
+            Assert.AreNotEqual(request.DeliveryDate, duplicate.DateTime);
+            Assert.AreEqual(request.DeliveryDate, confirmation.DateTime);
+
+        }
+    }
+}
