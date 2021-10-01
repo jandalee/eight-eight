@@ -256,4 +256,65 @@ namespace TRL.Connect.Smartcom.Test.Handlers
                     StOrder_Validity.StOrder_Validity_Day,
                     150,
                     10,
-       
+                    0,
+                    8,
+                    DateTime.Now,
+                    "0",
+                    "0",
+                    0,
+                    this.cookie);
+
+            this.rawData.GetData<UpdateOrder>().Add(this.partialUpdate);
+            Assert.AreEqual(0, this.rawData.GetData<CookieToOrderNoAssociation>().Count());
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_zero_with_SystemReject_state_test()
+        {
+            this.partialUpdate =
+                new UpdateOrder("BP12354-RF-01",
+                    "RTS-9.14_FT",
+                    StOrder_State.StOrder_State_SystemReject,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Market,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150,
+                    10,
+                    0,
+                    8,
+                    DateTime.Now,
+                    "0",
+                    this.orderNo,
+                    0,
+                    this.cookie);
+
+            this.rawData.GetData<UpdateOrder>().Add(this.partialUpdate);
+            Assert.AreEqual(0, this.rawData.GetData<CookieToOrderNoAssociation>().Count());
+        }
+
+        [TestMethod]
+        public void ignore_UpdateOrder_with_zero_with_ContragentReject_state_test()
+        {
+            this.partialUpdate =
+                new UpdateOrder("BP12354-RF-01",
+                    "RTS-9.14_FT",
+                    StOrder_State.StOrder_State_ContragentReject,
+                    StOrder_Action.StOrder_Action_Buy,
+                    StOrder_Type.StOrder_Type_Market,
+                    StOrder_Validity.StOrder_Validity_Day,
+                    150,
+                    10,
+                    0,
+                    8,
+                    DateTime.Now,
+                    "0",
+                    this.orderNo,
+                    0,
+                    this.cookie);
+
+            this.rawData.GetData<UpdateOrder>().Add(this.partialUpdate);
+            Assert.AreEqual(0, this.rawData.GetData<CookieToOrderNoAssociation>().Count());
+        }
+
+    }
+}
