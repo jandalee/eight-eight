@@ -54,3 +54,8 @@ namespace TRL.Connect.Smartcom.Test.Models
                 expectedUpdateOrder.Price,
                 expectedUpdateOrder.Amount,
                 expectedUpdateOrder.DateTime,
+                expectedUpdateOrder.TradeNo);
+            Assert.AreEqual(expected, expectedUpdateOrder.ToString());
+        }
+    }
+}
