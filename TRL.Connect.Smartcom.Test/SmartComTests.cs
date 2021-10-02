@@ -35,4 +35,25 @@ namespace TRL.Connect.Smartcom.Test
         [TestMethod]
         public void SmartCom_GetClientLogFilePathConfigurationString_test()
         {
-            Assert.AreEqual("logFilePath=C:\\Logs\\", SmartCom.G
+            Assert.AreEqual("logFilePath=C:\\Logs\\", SmartCom.GetClientLogFilePathConfigurationString());
+        }
+
+        [TestMethod]
+        public void SmartCom_GetClientLogLevelConfigurationString_test()
+        {
+            Assert.AreEqual("logLevel=2", SmartCom.GetClientLogLevelConfigurationString());
+        }
+
+        [TestMethod]
+        public void SmartCom_GetClientConfigurationString_test()
+        {
+            Assert.AreEqual("logFilePath=C:\\Logs\\;logLevel=2", SmartCom.GetClientConfigurationString());
+        }
+
+        [TestMethod]
+        public void SmartCom_GetServerConfigurationString_test()
+        {
+            Assert.AreEqual("logFilePath=C:\\Logs\\;logLevel=3", SmartCom.GetServerConfigurationString());
+        }
+    }
+}
