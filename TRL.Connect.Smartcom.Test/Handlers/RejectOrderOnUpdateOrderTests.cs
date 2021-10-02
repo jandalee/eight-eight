@@ -411,4 +411,25 @@ namespace TRL.Connect.Smartcom.Test.Handlers
             Assert.AreEqual(this.rejectedDate, order.RejectedDate);
 
             DateTime duplicateDate = BrokerDateTime.Make(DateTime.Now).AddSeconds(1);
- 
+            update = new UpdateOrder(order.Portfolio,
+                        order.Symbol,
+                        StOrder_State.StOrder_State_ContragentReject,
+                        StOrder_Action.StOrder_Action_Buy,
+                        StOrder_Type.StOrder_Type_Limit,
+                        StOrder_Validity.StOrder_Validity_Day,
+                        150000,
+                        order.Amount,
+                        0,
+                        0, 
+                        duplicateDate,
+                        "100",
+                        "200",
+                        1,
+                        order.Id);
+            this.rawData.GetData<UpdateOrder>().Add(update);
+            
+            Assert.AreEqual(this.rejectedDate, order.RejectedDate);
+            Assert.AreNotEqual(duplicateDate, order.RejectedDate);
+        }
+    }
+}
