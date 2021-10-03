@@ -37,4 +37,26 @@ namespace TRL.Emulation
                     order.Symbol,
                     lastBar.Close,
                     order.TradeAction == TradeAction.Buy? order.Amount:-order.Amount,
-      
+                    lastBar.DateTime);
+
+            order.Signal.DateTime = order.DateTime = trade.DateTime;
+
+            string logMessage = String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, исполнена сделка {2}",
+                DateTime.Now,
+                this.GetType().Name,
+                trade.ToString());
+
+            this.logger.Log(logMessage);
+
+            this.tradingData.Get<ObservableHashSet<Trade>>().Add(trade);
+        }
+
+        public void MoveOrder(Order order, double price)
+        {
+        }
+
+        public void CancelOrder(Order order)
+        {
+        }
+    }
+}
