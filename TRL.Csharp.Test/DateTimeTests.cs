@@ -41,4 +41,34 @@ namespace TRL.Csharp.Test
 
             Assert.AreEqual(10, DateTime.Hour);
             Assert.AreEqual(5, DateTime.Minute);
-            Ass
+            Assert.AreEqual(35, DateTime.Second);
+        }
+
+        [TestMethod]
+        public void DateTime_subtraction_test()
+        {
+            DateTime first = new DateTime(2014, 7, 31, 10, 5, 35);
+            DateTime last = new DateTime(2014, 7, 31, 10, 5, 50);
+
+            TimeSpan result = last - first;
+
+            Assert.AreEqual(15, result.Seconds);
+            Assert.AreEqual(0, result.Minutes);
+            Assert.AreEqual(0, result.Hours);
+            Assert.AreEqual(0, result.Days);
+        }
+
+        [TestMethod]
+        public void TimeSpan_Total_fields_test()
+        {
+            DateTime first = new DateTime(2014, 7, 30, 10, 0, 0);
+            DateTime last = new DateTime(2014, 7, 31, 10, 0, 0);
+
+            TimeSpan result = last - first;
+
+            Assert.AreEqual(86400, result.TotalSeconds);
+            Assert.AreEqual(86400000, result.TotalMilliseconds);
+
+        }
+    }
+}
