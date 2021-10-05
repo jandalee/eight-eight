@@ -59,4 +59,44 @@ namespace TRL.Handlers.Spreads
         {
             StrategyVolumeChangeStep strategyVolumeChangeStep = GetStrategyVolumeChangeStep(this.strategyHeader);
 
-            Signal signal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), action, OrderType.Market, arbitrageSetings.SpreadSettings.FairP
+            Signal signal = new Signal(strategyHeader, BrokerDateTime.Make(DateTime.Now), action, OrderType.Market, arbitrageSetings.SpreadSettings.FairPrice, 0, 0);
+
+            if (strategyVolumeChangeStep != null)
+                signal.Amount = GetAmount(strategyVolumeChangeStep.Amount);
+
+            return signal;
+        }
+
+        private TradeAction? GetAction(SpreadValue item)
+        {
+            if (this.tradingData.HasShortPosition(this.strategyHeader))
+            {
+                if (arbitrageSetings.SpreadSettings.FairPrice >= item.SellAfterPrice)
+                    return TradeAction.Buy;
+            }
+
+            if (this.tradingData.HasLongPosition(this.strategyHeader))
+            {
+                if (arbitrageSetings.SpreadSettings.FairPrice <= item.BuyBeforePrice)
+                    return TradeAction.Sell;
+            }
+
+            return null;
+        }
+
+        private double GetAmount(double step)
+        {
+            double positionAmount = Math.Abs(tradingData.GetAmount(strategyHeader));
+
+            if (positionAmount < step)
+                return positionAmount;
+            else
+                return step;
+        }
+
+        private StrategyVolumeChangeStep GetStrategyVolumeChangeStep(StrategyHeader strategyHeader)
+        {
+            return this.tradingData.Get<IEnumerable<StrategyVolumeChangeStep>>().FirstOrDefault(s => s.StrategyId == strategyHeader.Id);
+        }
+    }
+}
