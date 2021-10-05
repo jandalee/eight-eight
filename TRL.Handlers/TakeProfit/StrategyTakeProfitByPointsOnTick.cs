@@ -11,25 +11,25 @@ using TRL.Logging;
 using TRL.Common;
 using TRL.Common.TimeHelpers;
 
-namespace TRL.Handlers.StopLoss
+namespace TRL.Handlers.TakeProfit
 {
-    public class StrategyStopLossByPointsOnTick:StrategyStopLossOnItemAddedBase<Tick>
+    public class StrategyTakeProfitByPointsOnTick:StrategyTakeProfitOnItemAddedBase<Tick>
     {
         private double openPrice;
         private Trade openTrade;
 
-        public StrategyStopLossByPointsOnTick(StrategyHeader strategyHeader, bool measureFromSignalPrice = false)
-            : this(strategyHeader,
+        public StrategyTakeProfitByPointsOnTick(StrategyHeader strategyHeader)
+            :this(strategyHeader, 
             TradingData.Instance,
             SignalQueue.Instance,
-            DefaultLogger.Instance, measureFromSignalPrice) { }
+            DefaultLogger.Instance) { }
 
-        public StrategyStopLossByPointsOnTick(StrategyHeader strategyHeader,
+        public StrategyTakeProfitByPointsOnTick(StrategyHeader strategyHeader,
             IDataContext tradingData,
             ObservableQueue<Signal> signalQueue,
             ILogger logger,
             bool measureFromSignalPrice = false)
-            : base(strategyHeader, tradingData, signalQueue, logger, measureFromSignalPrice) { }
+            :base(strategyHeader, tradingData,signalQueue,logger,measureFromSignalPrice) { }
 
         private void UpdateOpenPrice(Trade item)
         {
@@ -65,12 +65,12 @@ namespace TRL.Handlers.StopLoss
         {
             this.signal =
                 new Signal(this.strategyHeader,
-                    BrokerDateTime.Make(DateTime.Now),
-                    TradeAction.Sell,
-                    OrderType.Market,
-                    price,
-                    0,
-                    0);
+                BrokerDateTime.Make(DateTime.Now),
+                TradeAction.Sell,
+                OrderType.Market,
+                price,
+                0,
+                0);
         }
 
         public override void MakeSignal(Tick item, double positionAmount)
@@ -82,12 +82,12 @@ namespace TRL.Handlers.StopLoss
 
             UpdateOpenPrice(this.openTrade);
 
-            if (positionAmount > 0 && this.openPrice - this.spSettings.Points >= item.Price)
+            if (positionAmount > 0 && this.openPrice + this.ppSettings.Points <= item.Price)
                 MakeSignalToSellWith(item.Price);
-            else if (positionAmount < 0 && this.openPrice + this.spSettings.Points <= item.Price)
+            else if (positionAmount < 0 && this.openPrice - this.ppSettings.Points >= item.Price)
                 MakeSignalToBuyWith(item.Price);
 
-            if(this.signal != null)
+            if (this.signal != null)
                 UpdateCloseSignalAmountWith(positionAmount);
         }
     }
