@@ -36,4 +36,12 @@
       <Project>{5882134e-de9b-4e9e-9074-617b5ee31af0}</Project>
     </ProjectReference>
     <ProjectReference Include="..\TRL.Connect.Smartcom\TRL.Connect.Smartcom.csproj">
-      <Name>TR
+      <Name>TRL.Connect.Smartcom</Name>
+      <Project>{5ce1582e-32b5-466f-91fc-465c9d4b3d5b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\TRL.csharp\TRL.Csharp.csproj">
+      <Name>TRL.csharp</Name>
+      <Project>{c7958b80-3b95-46d3-8cb8-5e573234ef39}</Project>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
