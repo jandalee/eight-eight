@@ -1,3 +1,4 @@
+
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,14 +9,14 @@ using TRL.Common.Models;
 
 namespace TRL.Transaction
 {
-    public class ImportPositionsTransaction:ITransaction
+    public class ImportSignalsTransaction:ITransaction
     {
-        private IObservableHashSetFactory tradingData;
+        private IDataContext tradingData;
         private string importFileName;
 
-        private ImportPositionsTransaction() { }
+        private ImportSignalsTransaction() { }
 
-        public ImportPositionsTransaction(IObservableHashSetFactory tradingData, string importFileName)
+        public ImportSignalsTransaction(IDataContext tradingData, string importFileName)
         {
             this.tradingData = tradingData;
             this.importFileName = importFileName;
@@ -37,9 +38,15 @@ namespace TRL.Transaction
                 {
                     try
                     {
-                        Position position = Position.Parse(line);
-                        this.tradingData.Make<Position>().Add(position);
+                        Signal signal = Signal.Parse(line);
 
+                        StrategyHeader strategyHeader = GetStrategy(signal.StrategyId);
+
+                        if (strategyHeader != null)
+                        {
+                            signal.Strategy = strategyHeader;
+                            this.tradingData.Get<ICollection<Signal>>().Add(signal);
+                        }
                     }
                     catch (Exception)
                     {
@@ -59,7 +66,7 @@ namespace TRL.Transaction
         {
             try
             {
-                return this.tradingData.Make<StrategyHeader>().Single(s => s.Id == id);
+                return this.tradingData.Get<IEnumerable<StrategyHeader>>().Single(s => s.Id == id);
             }
             catch
             {

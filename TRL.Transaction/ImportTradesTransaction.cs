@@ -8,25 +8,25 @@ using TRL.Common.Models;
 
 namespace TRL.Transaction
 {
-    public class ImportPositionsTransaction:ITransaction
+    public class ImportTradesTransaction:ITransaction
     {
         private IObservableHashSetFactory tradingData;
-        private string importFileName;
+        private string path;
 
-        private ImportPositionsTransaction() { }
+        private ImportTradesTransaction() { }
 
-        public ImportPositionsTransaction(IObservableHashSetFactory tradingData, string importFileName)
+        public ImportTradesTransaction(IObservableHashSetFactory tradingData, string path)
         {
             this.tradingData = tradingData;
-            this.importFileName = importFileName;
+            this.path = path;
         }
 
         public void Execute()
         {
-            if (!File.Exists(this.importFileName))
+            if (!File.Exists(this.path))
                 return;
 
-            StreamReader streamReader = new StreamReader(this.importFileName);
+            StreamReader streamReader = new StreamReader(this.path);
             StringReader stringReader = new StringReader(streamReader.ReadToEnd());
 
             while (true)
@@ -37,9 +37,15 @@ namespace TRL.Transaction
                 {
                     try
                     {
-                        Position position = Position.Parse(line);
-                        this.tradingData.Make<Position>().Add(position);
+                        Trade trade = Trade.Parse(line);
 
+                        Order order = GetOrder(trade.OrderId);
+
+                        if (order != null)
+                        {
+                            trade.Order = order;
+                            this.tradingData.Make<Trade>().Add(trade);
+                        }
                     }
                     catch (Exception)
                     {
@@ -55,11 +61,11 @@ namespace TRL.Transaction
             streamReader.Dispose();
         }
 
-        private StrategyHeader GetStrategy(int id)
+        private Order GetOrder(int id)
         {
             try
             {
-                return this.tradingData.Make<StrategyHeader>().Single(s => s.Id == id);
+                return this.tradingData.Make<Order>().Single(s => s.Id == id);
             }
             catch
             {
