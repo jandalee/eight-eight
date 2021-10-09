@@ -147,4 +147,53 @@ namespace TRL.Trader.TradeConsole
         /// <param name="e"></param>
         public static void sendOrder(Order item)
         {
-            var con
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addOrder(item);
+            Console.WriteLine(item.ToString());
+        }
+
+        /// <summary>
+        /// Отправить сигнал
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public static void sendOrder(Signal item)
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addSignal(item);
+            Console.WriteLine(item.ToString());
+        }
+
+        /// <summary>
+        /// Отправить трейд
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public static void sendTrade(Trade item)
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addTrade(item);
+            Console.WriteLine(item.ToString());
+        }
+
+        public static void clearChart()
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addCommand("clearChart");
+        }
+
+        internal static void sendIndicator1(double item)
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addIndicator1(item);
+            Console.WriteLine(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал Indicator1", DateTime.Now, item));
+        }
+
+        internal static void sendIndicator2(double item)
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<TradeHub>();
+            context.Clients.All.addIndicator2(item);
+            Console.WriteLine(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал Indicator2", DateTime.Now, item));
+        }
+    }
+}
