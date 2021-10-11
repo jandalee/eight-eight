@@ -72,4 +72,8 @@ namespace TRx.Trader.BackTest.Test
             this.orderBook.Update(5, this.symbol, 135, 10, 136, 15);
 
             Assert.AreEqual(0, this.handler.PreviousBidPrice);
-     
+            Assert.AreEqual(0, this.handler.PreviousOfferPrice);
+            Assert.AreEqual(0, this.handler.LoggedRowsCounter);
+        }
+    }
+}
