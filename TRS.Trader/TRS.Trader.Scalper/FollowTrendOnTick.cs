@@ -58,4 +58,28 @@ namespace TRx.Trader.Scalper
             IEnumerable<Tick> ticks = 
                 this.tradingData.
                 Get<IEnumerable<Tick>>().
-                L
+                Last(item.Symbol, new TimeSpan(0, 0, this.seconds));
+
+            if (ticks.Max(t => t.Price) - ticks.Min(t => t.Price) < this.priceSpan)
+                return;
+
+            double price = 0;
+            Signal signal = null;
+
+            if (ticks.Last().Price > ticks.First().Price)
+            {
+                price = this.orderBook.GetOfferPrice(this.strategyHeader.Symbol, 0);
+                signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Limit, price, 0, price);
+            }
+            else if (ticks.Last().Price < ticks.First().Price)
+            {
+                price = this.orderBook.GetBidPrice(this.strategyHeader.Symbol, 0);
+                signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Sell, OrderType.Limit, price, 0, price);
+            }
+
+            this.logger.Log(String.Format("Сгенерирован новый сигнал {0}", signal.ToString()));
+            this.signalQueue.Enqueue(signal);
+
+        }
+    }
+}
