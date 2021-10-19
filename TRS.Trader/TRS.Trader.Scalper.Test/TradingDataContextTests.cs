@@ -38,4 +38,26 @@ namespace TRx.Trader.Scalper.Test
         [TestMethod]
         public void Request_customers_collection_returns_null_test()
         {
-            Assert.IsNull(this.tradingData.Get<IEnu
+            Assert.IsNull(this.tradingData.Get<IEnumerable<Customer>>());
+        }
+
+        [TestMethod]
+        public void Link_handler_to_Tick_collection_test()
+        {
+            TickCounterHandler handler = new TickCounterHandler(this.tradingData);
+
+            Assert.AreEqual(0, handler.TickCounter);
+
+            Tick tick = new Tick("RTS-3.14_FT", DateTime.Now, 145000, 10);
+            this.tradingData.Get<ObservableCollection<Tick>>().Add(tick);
+
+            Assert.AreEqual(1, handler.TickCounter);
+
+            Tick oneMoreTick = new Tick("Si-3.14_FT", DateTime.Now, 33500, 10, TradeAction.Sell);
+            this.tradingData.Get<ICollection<Tick>>().Add(oneMoreTick);
+
+            Assert.AreEqual(2, this.tradingData.Get<IEnumerable<Tick>>().Count());
+            Assert.AreEqual(1, handler.TickCounter);
+        }
+    }
+}
