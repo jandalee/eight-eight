@@ -7489,4 +7489,427 @@ function ajaxHandleResponses( s, jqXHR, responses ) {
 	if ( ct ) {
 		for ( type in contents ) {
 			if ( contents[ type ] && contents[ type ].test( ct ) ) {
-				dat
+				dataTypes.unshift( type );
+				break;
+			}
+		}
+	}
+
+	// Check to see if we have a response for the expected dataType
+	if ( dataTypes[ 0 ] in responses ) {
+		finalDataType = dataTypes[ 0 ];
+	} else {
+		// Try convertible dataTypes
+		for ( type in responses ) {
+			if ( !dataTypes[ 0 ] || s.converters[ type + " " + dataTypes[0] ] ) {
+				finalDataType = type;
+				break;
+			}
+			if ( !firstDataType ) {
+				firstDataType = type;
+			}
+		}
+		// Or just use first one
+		finalDataType = finalDataType || firstDataType;
+	}
+
+	// If we found a dataType
+	// We add the dataType to the list if needed
+	// and return the corresponding response
+	if ( finalDataType ) {
+		if ( finalDataType !== dataTypes[ 0 ] ) {
+			dataTypes.unshift( finalDataType );
+		}
+		return responses[ finalDataType ];
+	}
+}
+
+/* Chain conversions given the request and the original response
+ * Also sets the responseXXX fields on the jqXHR instance
+ */
+function ajaxConvert( s, response, jqXHR, isSuccess ) {
+	var conv2, current, conv, tmp, prev,
+		converters = {},
+		// Work with a copy of dataTypes in case we need to modify it for conversion
+		dataTypes = s.dataTypes.slice();
+
+	// Create converters map with lowercased keys
+	if ( dataTypes[ 1 ] ) {
+		for ( conv in s.converters ) {
+			converters[ conv.toLowerCase() ] = s.converters[ conv ];
+		}
+	}
+
+	current = dataTypes.shift();
+
+	// Convert to each sequential dataType
+	while ( current ) {
+
+		if ( s.responseFields[ current ] ) {
+			jqXHR[ s.responseFields[ current ] ] = response;
+		}
+
+		// Apply the dataFilter if provided
+		if ( !prev && isSuccess && s.dataFilter ) {
+			response = s.dataFilter( response, s.dataType );
+		}
+
+		prev = current;
+		current = dataTypes.shift();
+
+		if ( current ) {
+
+		// There's only work to do if current dataType is non-auto
+			if ( current === "*" ) {
+
+				current = prev;
+
+			// Convert response if prev dataType is non-auto and differs from current
+			} else if ( prev !== "*" && prev !== current ) {
+
+				// Seek a direct converter
+				conv = converters[ prev + " " + current ] || converters[ "* " + current ];
+
+				// If none found, seek a pair
+				if ( !conv ) {
+					for ( conv2 in converters ) {
+
+						// If conv2 outputs current
+						tmp = conv2.split( " " );
+						if ( tmp[ 1 ] === current ) {
+
+							// If prev can be converted to accepted input
+							conv = converters[ prev + " " + tmp[ 0 ] ] ||
+								converters[ "* " + tmp[ 0 ] ];
+							if ( conv ) {
+								// Condense equivalence converters
+								if ( conv === true ) {
+									conv = converters[ conv2 ];
+
+								// Otherwise, insert the intermediate dataType
+								} else if ( converters[ conv2 ] !== true ) {
+									current = tmp[ 0 ];
+									dataTypes.unshift( tmp[ 1 ] );
+								}
+								break;
+							}
+						}
+					}
+				}
+
+				// Apply converter (if not an equivalence)
+				if ( conv !== true ) {
+
+					// Unless errors are allowed to bubble, catch and return them
+					if ( conv && s[ "throws" ] ) {
+						response = conv( response );
+					} else {
+						try {
+							response = conv( response );
+						} catch ( e ) {
+							return { state: "parsererror", error: conv ? e : "No conversion from " + prev + " to " + current };
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return { state: "success", data: response };
+}
+// Install script dataType
+jQuery.ajaxSetup({
+	accepts: {
+		script: "text/javascript, application/javascript, application/ecmascript, application/x-ecmascript"
+	},
+	contents: {
+		script: /(?:java|ecma)script/
+	},
+	converters: {
+		"text script": function( text ) {
+			jQuery.globalEval( text );
+			return text;
+		}
+	}
+});
+
+// Handle cache's special case and crossDomain
+jQuery.ajaxPrefilter( "script", function( s ) {
+	if ( s.cache === undefined ) {
+		s.cache = false;
+	}
+	if ( s.crossDomain ) {
+		s.type = "GET";
+	}
+});
+
+// Bind script tag hack transport
+jQuery.ajaxTransport( "script", function( s ) {
+	// This transport only deals with cross domain requests
+	if ( s.crossDomain ) {
+		var script, callback;
+		return {
+			send: function( _, complete ) {
+				script = jQuery("<script>").prop({
+					async: true,
+					charset: s.scriptCharset,
+					src: s.url
+				}).on(
+					"load error",
+					callback = function( evt ) {
+						script.remove();
+						callback = null;
+						if ( evt ) {
+							complete( evt.type === "error" ? 404 : 200, evt.type );
+						}
+					}
+				);
+				document.head.appendChild( script[ 0 ] );
+			},
+			abort: function() {
+				if ( callback ) {
+					callback();
+				}
+			}
+		};
+	}
+});
+var oldCallbacks = [],
+	rjsonp = /(=)\?(?=&|$)|\?\?/;
+
+// Default jsonp settings
+jQuery.ajaxSetup({
+	jsonp: "callback",
+	jsonpCallback: function() {
+		var callback = oldCallbacks.pop() || ( jQuery.expando + "_" + ( ajax_nonce++ ) );
+		this[ callback ] = true;
+		return callback;
+	}
+});
+
+// Detect, normalize options and install callbacks for jsonp requests
+jQuery.ajaxPrefilter( "json jsonp", function( s, originalSettings, jqXHR ) {
+
+	var callbackName, overwritten, responseContainer,
+		jsonProp = s.jsonp !== false && ( rjsonp.test( s.url ) ?
+			"url" :
+			typeof s.data === "string" && !( s.contentType || "" ).indexOf("application/x-www-form-urlencoded") && rjsonp.test( s.data ) && "data"
+		);
+
+	// Handle iff the expected data type is "jsonp" or we have a parameter to set
+	if ( jsonProp || s.dataTypes[ 0 ] === "jsonp" ) {
+
+		// Get callback name, remembering preexisting value associated with it
+		callbackName = s.jsonpCallback = jQuery.isFunction( s.jsonpCallback ) ?
+			s.jsonpCallback() :
+			s.jsonpCallback;
+
+		// Insert callback into url or form data
+		if ( jsonProp ) {
+			s[ jsonProp ] = s[ jsonProp ].replace( rjsonp, "$1" + callbackName );
+		} else if ( s.jsonp !== false ) {
+			s.url += ( ajax_rquery.test( s.url ) ? "&" : "?" ) + s.jsonp + "=" + callbackName;
+		}
+
+		// Use data converter to retrieve json after script execution
+		s.converters["script json"] = function() {
+			if ( !responseContainer ) {
+				jQuery.error( callbackName + " was not called" );
+			}
+			return responseContainer[ 0 ];
+		};
+
+		// force json dataType
+		s.dataTypes[ 0 ] = "json";
+
+		// Install callback
+		overwritten = window[ callbackName ];
+		window[ callbackName ] = function() {
+			responseContainer = arguments;
+		};
+
+		// Clean-up function (fires after converters)
+		jqXHR.always(function() {
+			// Restore preexisting value
+			window[ callbackName ] = overwritten;
+
+			// Save back as free
+			if ( s[ callbackName ] ) {
+				// make sure that re-using the options doesn't screw things around
+				s.jsonpCallback = originalSettings.jsonpCallback;
+
+				// save the callback name for future use
+				oldCallbacks.push( callbackName );
+			}
+
+			// Call if it was a function and we have a response
+			if ( responseContainer && jQuery.isFunction( overwritten ) ) {
+				overwritten( responseContainer[ 0 ] );
+			}
+
+			responseContainer = overwritten = undefined;
+		});
+
+		// Delegate to script
+		return "script";
+	}
+});
+jQuery.ajaxSettings.xhr = function() {
+	try {
+		return new XMLHttpRequest();
+	} catch( e ) {}
+};
+
+var xhrSupported = jQuery.ajaxSettings.xhr(),
+	xhrSuccessStatus = {
+		// file protocol always yields status code 0, assume 200
+		0: 200,
+		// Support: IE9
+		// #1450: sometimes IE returns 1223 when it should be 204
+		1223: 204
+	},
+	// Support: IE9
+	// We need to keep track of outbound xhr and abort them manually
+	// because IE is not smart enough to do it all by itself
+	xhrId = 0,
+	xhrCallbacks = {};
+
+if ( window.ActiveXObject ) {
+	jQuery( window ).on( "unload", function() {
+		for( var key in xhrCallbacks ) {
+			xhrCallbacks[ key ]();
+		}
+		xhrCallbacks = undefined;
+	});
+}
+
+jQuery.support.cors = !!xhrSupported && ( "withCredentials" in xhrSupported );
+jQuery.support.ajax = xhrSupported = !!xhrSupported;
+
+jQuery.ajaxTransport(function( options ) {
+	var callback;
+	// Cross domain only allowed if supported through XMLHttpRequest
+	if ( jQuery.support.cors || xhrSupported && !options.crossDomain ) {
+		return {
+			send: function( headers, complete ) {
+				var i, id,
+					xhr = options.xhr();
+				xhr.open( options.type, options.url, options.async, options.username, options.password );
+				// Apply custom fields if provided
+				if ( options.xhrFields ) {
+					for ( i in options.xhrFields ) {
+						xhr[ i ] = options.xhrFields[ i ];
+					}
+				}
+				// Override mime type if needed
+				if ( options.mimeType && xhr.overrideMimeType ) {
+					xhr.overrideMimeType( options.mimeType );
+				}
+				// X-Requested-With header
+				// For cross-domain requests, seeing as conditions for a preflight are
+				// akin to a jigsaw puzzle, we simply never set it to be sure.
+				// (it can always be set on a per-request basis or even using ajaxSetup)
+				// For same-domain requests, won't change header if already provided.
+				if ( !options.crossDomain && !headers["X-Requested-With"] ) {
+					headers["X-Requested-With"] = "XMLHttpRequest";
+				}
+				// Set headers
+				for ( i in headers ) {
+					xhr.setRequestHeader( i, headers[ i ] );
+				}
+				// Callback
+				callback = function( type ) {
+					return function() {
+						if ( callback ) {
+							delete xhrCallbacks[ id ];
+							callback = xhr.onload = xhr.onerror = null;
+							if ( type === "abort" ) {
+								xhr.abort();
+							} else if ( type === "error" ) {
+								complete(
+									// file protocol always yields status 0, assume 404
+									xhr.status || 404,
+									xhr.statusText
+								);
+							} else {
+								complete(
+									xhrSuccessStatus[ xhr.status ] || xhr.status,
+									xhr.statusText,
+									// Support: IE9
+									// #11426: When requesting binary data, IE9 will throw an exception
+									// on any attempt to access responseText
+									typeof xhr.responseText === "string" ? {
+										text: xhr.responseText
+									} : undefined,
+									xhr.getAllResponseHeaders()
+								);
+							}
+						}
+					};
+				};
+				// Listen to events
+				xhr.onload = callback();
+				xhr.onerror = callback("error");
+				// Create the abort callback
+				callback = xhrCallbacks[( id = xhrId++ )] = callback("abort");
+				// Do send the request
+				// This may raise an exception which is actually
+				// handled in jQuery.ajax (so no try/catch here)
+				xhr.send( options.hasContent && options.data || null );
+			},
+			abort: function() {
+				if ( callback ) {
+					callback();
+				}
+			}
+		};
+	}
+});
+var fxNow, timerId,
+	rfxtypes = /^(?:toggle|show|hide)$/,
+	rfxnum = new RegExp( "^(?:([+-])=|)(" + core_pnum + ")([a-z%]*)$", "i" ),
+	rrun = /queueHooks$/,
+	animationPrefilters = [ defaultPrefilter ],
+	tweeners = {
+		"*": [function( prop, value ) {
+			var tween = this.createTween( prop, value ),
+				target = tween.cur(),
+				parts = rfxnum.exec( value ),
+				unit = parts && parts[ 3 ] || ( jQuery.cssNumber[ prop ] ? "" : "px" ),
+
+				// Starting value computation is required for potential unit mismatches
+				start = ( jQuery.cssNumber[ prop ] || unit !== "px" && +target ) &&
+					rfxnum.exec( jQuery.css( tween.elem, prop ) ),
+				scale = 1,
+				maxIterations = 20;
+
+			if ( start && start[ 3 ] !== unit ) {
+				// Trust units reported by jQuery.css
+				unit = unit || start[ 3 ];
+
+				// Make sure we update the tween properties later on
+				parts = parts || [];
+
+				// Iteratively approximate from a nonzero starting point
+				start = +target || 1;
+
+				do {
+					// If previous iteration zeroed out, double until we get *something*
+					// Use a string for doubling factor so we don't accidentally see scale as unchanged below
+					scale = scale || ".5";
+
+					// Adjust and apply
+					start = start / scale;
+					jQuery.style( tween.elem, prop, start + unit );
+
+				// Update scale, tolerating zero or NaN from tween.cur()
+				// And breaking the loop if scale is unchanged or perfect, or if we've just had enough
+				} while ( scale !== (scale = tween.cur() / target) && scale !== 1 && --maxIterations );
+			}
+
+			// Update tween properties
+			if ( parts ) {
+				start = tween.start = +start || +target || 0;
+				tween.unit = unit;
+				// If a +=/-= token was provided, we're doing a relative animation
+				tween.end = parts[ 1 ] 
