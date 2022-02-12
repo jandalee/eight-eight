@@ -336,4 +336,202 @@
 				/*jslint eqeq: false*/
 					columns[col][row] = floatVal;
 					
-					// If the number is greater than m
+					// If the number is greater than milliseconds in a year, assume datetime
+					if (floatVal > 365 * 24 * 3600 * 1000) {
+						columns[col].isDatetime = true;
+					} else {
+						columns[col].isNumeric = true;
+					}					
+				
+				} else { // string, continue to determine if it is a date string or really a string
+					dateVal = this.parseDate(val);
+					
+					if (col === 0 && typeof dateVal === 'number' && !isNaN(dateVal)) { // is date
+						columns[col][row] = dateVal;
+						columns[col].isDatetime = true;
+					
+					} else { // string
+						columns[col][row] = trimVal === '' ? null : trimVal;
+					}
+				}
+				
+			}
+		}
+	},
+	//*
+	dateFormats: {
+		'YYYY-mm-dd': {
+			regex: '^([0-9]{4})-([0-9]{2})-([0-9]{2})$',
+			parser: function (match) {
+				return Date.UTC(+match[1], match[2] - 1, +match[3]);
+			}
+		}
+	},
+	// */
+	/**
+	 * Parse a date and return it as a number. Overridable through options.parseDate.
+	 */
+	parseDate: function (val) {
+		var parseDate = this.options.parseDate,
+			ret,
+			key,
+			format,
+			match;
+
+		if (parseDate) {
+			ret = parseDate(val);
+		}
+			
+		if (typeof val === 'string') {
+			for (key in this.dateFormats) {
+				format = this.dateFormats[key];
+				match = val.match(format.regex);
+				if (match) {
+					ret = format.parser(match);
+				}
+			}
+		}
+		return ret;
+	},
+	
+	/**
+	 * Reorganize rows into columns
+	 */
+	rowsToColumns: function (rows) {
+		var row,
+			rowsLength,
+			col,
+			colsLength,
+			columns;
+
+		if (rows) {
+			columns = [];
+			rowsLength = rows.length;
+			for (row = 0; row < rowsLength; row++) {
+				colsLength = rows[row].length;
+				for (col = 0; col < colsLength; col++) {
+					if (!columns[col]) {
+						columns[col] = [];
+					}
+					columns[col][row] = rows[row][col];
+				}
+			}
+		}
+		return columns;
+	},
+	
+	/**
+	 * A hook for working directly on the parsed columns
+	 */
+	parsed: function () {
+		if (this.options.parsed) {
+			this.options.parsed.call(this, this.columns);
+		}
+	},
+	
+	/**
+	 * If a complete callback function is provided in the options, interpret the 
+	 * columns into a Highcharts options object.
+	 */
+	complete: function () {
+		
+		var columns = this.columns,
+			hasXData,
+			categories,
+			firstCol,
+			type,
+			options = this.options,
+			series,
+			data,
+			name,
+			i,
+			j;
+			
+		
+		if (options.complete) {
+			
+			// Use first column for X data or categories?
+			if (columns.length > 1) {
+				firstCol = columns.shift();
+				if (this.headerRow === 0) {
+					firstCol.shift(); // remove the first cell
+				}
+				
+				// Use the first column for categories or X values
+				hasXData = firstCol.isNumeric || firstCol.isDatetime;
+				if (!hasXData) { // means type is neither datetime nor linear
+					categories = firstCol;
+				}
+				
+				if (firstCol.isDatetime) {
+					type = 'datetime';
+				}
+			}
+			
+			// Use the next columns for series
+			series = [];
+			for (i = 0; i < columns.length; i++) {
+				if (this.headerRow === 0) {
+					name = columns[i].shift();
+				}
+				data = [];
+				for (j = 0; j < columns[i].length; j++) {
+					data[j] = columns[i][j] !== undefined ?
+						(hasXData ?
+							[firstCol[j], columns[i][j]] :
+							columns[i][j]
+						) :
+						null;
+				}
+				series[i] = {
+					name: name,
+					data: data
+				};
+			}
+			
+			// Do the callback
+			options.complete({
+				xAxis: {
+					categories: categories,
+					type: type
+				},
+				series: series
+			});
+		}
+	}
+	});
+	
+	// Register the Data prototype and data function on Highcharts
+	Highcharts.Data = Data;
+	Highcharts.data = function (options) {
+		return new Data(options);
+	};
+
+	// Extend Chart.init so that the Chart constructor accepts a new configuration
+	// option group, data.
+	Highcharts.wrap(Highcharts.Chart.prototype, 'init', function (proceed, userOptions, callback) {
+		var chart = this;
+
+		if (userOptions && userOptions.data) {
+			Highcharts.data(Highcharts.extend(userOptions.data, {
+				complete: function (dataOptions) {
+					
+					// Merge series configs
+					if (userOptions.series) {
+						each(userOptions.series, function (series, i) {
+							userOptions.series[i] = Highcharts.merge(series, dataOptions.series[i]);
+						});
+					}
+
+					// Do the merge
+					userOptions = Highcharts.merge(dataOptions, userOptions);
+
+					proceed.call(chart, userOptions, callback);
+				}
+			}));
+		} else {
+			proceed.call(chart, userOptions, callback);
+		}
+	});
+
+}(Highcharts));
