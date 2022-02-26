@@ -518,4 +518,190 @@ extend(Chart.prototype, {
 		} else {
 			menuStyle.left = (x - menuPadding) + PX;
 		}
-	
+		// if outside bottom, bottom align it
+		if (y + height + chart.exportMenuHeight > chartHeight) {
+			menuStyle.bottom = (chartHeight - y - menuPadding)  + PX;
+		} else {
+			menuStyle.top = (y + height - menuPadding) + PX;
+		}
+
+		css(menu, menuStyle);
+		chart.openMenu = true;
+	},
+
+	/**
+	 * Add the export button to the chart
+	 */
+	addButton: function (options) {
+		var chart = this,
+			renderer = chart.renderer,
+			btnOptions = merge(chart.options.navigation.buttonOptions, options),
+			onclick = btnOptions.onclick,
+			menuItems = btnOptions.menuItems,
+			symbol,
+			button,
+			symbolAttr = {
+				stroke: btnOptions.symbolStroke,
+				fill: btnOptions.symbolFill
+			},
+			symbolSize = btnOptions.symbolSize || 12,
+			menuKey;
+
+		if (!chart.btnCount) {
+			chart.btnCount = 0;
+		}
+		menuKey = chart.btnCount++;
+
+		// Keeps references to the button elements
+		if (!chart.exportDivElements) {
+			chart.exportDivElements = [];
+			chart.exportSVGElements = [];
+		}
+
+		if (btnOptions.enabled === false) {
+			return;
+		}
+
+
+		var attr = btnOptions.theme,
+			states = attr.states,
+			hover = states && states.hover,
+			select = states && states.select,
+			callback;
+
+		delete attr.states;
+
+		if (onclick) {
+			callback = function () {
+				onclick.apply(chart, arguments);
+			};
+
+		} else if (menuItems) {
+			callback = function () {
+				chart.contextMenu(
+					'contextmenu', 
+					menuItems, 
+					button.translateX, 
+					button.translateY, 
+					button.width, 
+					button.height,
+					button
+				);
+				button.setState(2);
+			};
+		}
+
+
+		if (btnOptions.text && btnOptions.symbol) {
+			attr.paddingLeft = Highcharts.pick(attr.paddingLeft, 25);
+		
+		} else if (!btnOptions.text) {
+			extend(attr, {
+				width: btnOptions.width,
+				height: btnOptions.height,
+				padding: 0
+			});
+		}
+
+		button = renderer.button(btnOptions.text, 0, 0, callback, attr, hover, select)
+			.attr({
+				title: chart.options.lang[btnOptions._titleKey],
+				'stroke-linecap': 'round'
+			});
+
+		if (btnOptions.symbol) {
+			symbol = renderer.symbol(
+					btnOptions.symbol,
+					btnOptions.symbolX - (symbolSize / 2),
+					btnOptions.symbolY - (symbolSize / 2),
+					symbolSize,				
+					symbolSize
+				)
+				.attr(extend(symbolAttr, {
+					'stroke-width': btnOptions.symbolStrokeWidth || 1,
+					zIndex: 1
+				})).add(button);
+		}
+
+		button.add()
+			.align(extend(btnOptions, {
+				width: button.width,
+				x: Highcharts.pick(btnOptions.x, buttonOffset) // #1654
+			}), true, 'spacingBox');
+
+		buttonOffset += (button.width + btnOptions.buttonSpacing) * (btnOptions.align === 'right' ? -1 : 1);
+
+		chart.exportSVGElements.push(button, symbol);
+
+	},
+
+	/**
+	 * Destroy the buttons.
+	 */
+	destroyExport: function (e) {
+		var chart = e.target,
+			i,
+			elem;
+
+		// Destroy the extra buttons added
+		for (i = 0; i < chart.exportSVGElements.length; i++) {
+			elem = chart.exportSVGElements[i];
+			
+			// Destroy and null the svg/vml elements
+			if (elem) { // #1822
+				elem.onclick = elem.ontouchstart = null;
+				chart.exportSVGElements[i] = elem.destroy();
+			}
+		}
+
+		// Destroy the divs for the menu
+		for (i = 0; i < chart.exportDivElements.length; i++) {
+			elem = chart.exportDivElements[i];
+
+			// Remove the event handler
+			removeEvent(elem, 'mouseleave');
+
+			// Remove inline events
+			chart.exportDivElements[i] = elem.onmouseout = elem.onmouseover = elem.ontouchstart = elem.onclick = null;
+
+			// Destroy the div by moving to garbage bin
+			discardElement(elem);
+		}
+	}
+});
+
+
+symbols.menu = function (x, y, width, height) {
+	var arr = [
+		M, x, y + 2.5,
+		L, x + width, y + 2.5,
+		M, x, y + height / 2 + 0.5,
+		L, x + width, y + height / 2 + 0.5,
+		M, x, y + height - 1.5,
+		L, x + width, y + height - 1.5
+	];
+	return arr;
+};
+
+// Add the buttons on chart load
+Chart.prototype.callbacks.push(function (chart) {
+	var n,
+		exportingOptions = chart.options.exporting,
+		buttons = exportingOptions.buttons;
+
+	buttonOffset = 0;
+
+	if (exportingOptions.enabled !== false) {
+
+		for (n in buttons) {
+			chart.addButton(buttons[n]);
+		}
+
+		// Destroy the export elements at chart destroy
+		addEvent(chart, 'destroy', chart.destroyExport);
+	}
+
+});
+
+
+}(Highcharts));
