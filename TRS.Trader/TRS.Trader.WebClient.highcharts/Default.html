@@ -264,4 +264,171 @@
             },
             xAxis: {
                 type: 'datetime'
-                //,tickPixelIn
+                //,tickPixelInterval: 150
+                //,maxZoom: 20 * 1000
+            },
+            //yAxis: {
+            //    //minPadding: 0.2,
+            //    //maxPadding: 0.2,
+            //    title: {
+            //        text: 'Value'
+            //        //,margin: 80
+            //    }
+            //},
+            yAxis: [{ // Primary yAxis
+                labels: {
+                    format: '{value}',
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                title: {
+                    text: 'Value',
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                }
+            }, { // Secondary yAxis
+                title: {
+                    text: 'Volume',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                labels: {
+                    format: '{value}',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                opposite: true
+            }],
+            series: [{
+                name: 'O',
+                data: []
+            }, {
+                name: 'H',
+                data: []
+            }, {
+                name: 'L',
+                data: []
+            }, {
+                name: 'C',
+                data: []
+            }, {
+                name: 'V',
+                type: 'column',
+                yAxis: 1,
+                data: []
+            }]
+        });
+    });
+    </script>
+
+    <script type="text/javascript">
+    var chart2; // global
+    $(document).ready(function () {
+        chart2 = new Highcharts.Chart({
+            chart: {
+                renderTo: 'container2',
+                defaultSeriesType: 'line',
+                zoomType: 'x'
+            },
+            title: {
+                text: 'Live  data'
+            },
+            xAxis: {
+                //type: 'datetime'
+                tickInterval: 1
+                //,tickPixelInterval: 150
+                //,maxZoom: 20 * 1000
+            },
+            yAxis: [{ // Primary yAxis
+                labels: {
+                    format: '{value}',
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                title: {
+                    text: 'Value',
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                }
+            }, { // Secondary yAxis
+                title: {
+                    text: 'Volume',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                labels: {
+                    format: '{value}',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                opposite: true
+            }
+            ,{ // Secondary yAxis
+                type: 'datetime',
+                title: {
+                    text: 'Time',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                labels: {
+                    format: '{value}',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                opposite: true
+            }],
+            series: [{
+                name: 'O',
+                data: []
+            }, {
+                name: 'H',
+                data: []
+            }, {
+                name: 'L',
+                data: []
+            }, {
+                name: 'C',
+                data: []
+            }, {
+                name: 'V',
+                type: 'column',
+                yAxis: 1,
+                data: []
+            }, {
+                name: 'T',
+                yAxis: 2,
+                data: []
+            }]
+        });
+    });
+    </script>
+
+    <script type="text/javascript">
+    </script>
+
+    <p><strong>highcharts: Spline updating each second</strong></p>
+    <div id="random" style="min-width: 400px; height: 400px; margin: 0 auto"></div>
+    <div id="container1" style="min-width: 400px; height: 400px; margin: 0 auto"></div>
+    <div id="container2" style="min-width: 800px; height: 800px; margin: 0 auto"></div>
+    <div id="container" style="min-width: 800px; height: 800px; margin: 0 auto"></div>
+
+    <p><strong>To connect the web client, reload this page after a server is started</strong></p>
+    <div class="container">
+        <input type="text" id="message" />
+        <input type="button" id="sendmessage" value="Send" />
+        <input type="hidden" id="displayname" />
+        <ul id="discussion"></ul>
+    </div>
+
+</body>
+</html>
