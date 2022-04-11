@@ -3880,4 +3880,411 @@ jQuery.prototype.die = function( types, data, fn, origSelector /* Internal Use O
 			return this;
 		}
 
-		if ( name === "di
+		if ( name === "die" && !types &&
+					origSelector && origSelector.charAt(0) === "." ) {
+
+			context.unbind( origSelector );
+
+			return this;
+		}
+
+		if ( data === false || jQuery.isFunction( data ) ) {
+			fn = data || returnFalse;
+			data = undefined;
+		}
+
+		types = (types || "").split(" ");
+
+		while ( (type = types[ i++ ]) != null ) {
+			match = rnamespaces.exec( type );
+			namespaces = "";
+
+			if ( match )  {
+				namespaces = match[0];
+				type = type.replace( rnamespaces, "" );
+			}
+
+			if ( type === "hover" ) {
+				types.push( "mouseenter" + namespaces, "mouseleave" + namespaces );
+				continue;
+			}
+
+			preType = type;
+
+			if ( liveMap[ type ] ) {
+				types.push( liveMap[ type ] + namespaces );
+				type = type + namespaces;
+
+			} else {
+				type = (liveMap[ type ] || type) + namespaces;
+			}
+
+			if ( name === "live" ) {
+				// bind live handler
+				for ( var j = 0, l = context.length; j < l; j++ ) {
+					jQuery.event.add( context[j], "live." + liveConvert( type, selector ),
+						{ data: data, selector: selector, handler: fn, origType: type, origHandler: fn, preType: preType } );
+				}
+
+			} else {
+				// unbind live handler
+				context.unbind( "live." + liveConvert( type, selector ), fn );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.domManip = function( args, table, callback ) {
+
+		var results, first, fragment, parent,
+			value = args[0],
+			scripts = [];
+
+		// We can't cloneNode fragments that contain checked, in WebKit
+		if ( !jQuery.support.checkClone && arguments.length === 3 && typeof value === "string" && rchecked.test( value ) ) {
+			return this.each(function() {
+				jQuery(this).domManip( args, table, callback, true );
+			});
+		}
+
+		if ( jQuery.isFunction(value) ) {
+			return this.each(function(i) {
+				var self = jQuery(this);
+				args[0] = value.call(this, i, table ? self.html() : undefined);
+				self.domManip( args, table, callback );
+			});
+		}
+
+		if ( this[0] ) {
+			parent = value && value.parentNode;
+
+			// If we're in a fragment, just use that instead of building a new one
+			if ( jQuery.support.parentNode && parent && parent.nodeType === 11 && parent.childNodes.length === this.length ) {
+				results = { fragment: parent };
+
+			} else {
+				results = jQuery.buildFragment( args, this, scripts );
+			}
+
+			fragment = results.fragment;
+
+			if ( fragment.childNodes.length === 1 ) {
+				first = fragment = fragment.firstChild;
+			} else {
+				first = fragment.firstChild;
+			}
+
+			if ( first ) {
+				table = table && jQuery.nodeName( first, "tr" );
+
+				for ( var i = 0, l = this.length, lastIndex = l - 1; i < l; i++ ) {
+					callback.call(
+						table ?
+							root(this[i], first) :
+							this[i],
+						// Make sure that we do not leak memory by inadvertently discarding
+						// the original fragment (which might have attached data) instead of
+						// using it; in addition, use the original fragment object for the last
+						// item instead of first because it can end up being emptied incorrectly
+						// in certain situations (Bug #8070).
+						// Fragments from the fragment cache must always be cloned and never used
+						// in place.
+						results.cacheable || (l > 1 && i < lastIndex) ?
+							jQuery.clone( fragment, true, true ) :
+							fragment
+					);
+				}
+			}
+
+			if ( scripts.length ) {
+				jQuery.each( scripts, evalScript );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.each = function( callback, args ) {
+/// <summary>
+///     Iterate over a jQuery object, executing a function for each matched element.
+/// </summary>
+/// <param name="callback" type="Function">
+///     A function to execute for each matched element.
+/// </param>
+/// <returns type="jQuery" />
+
+		return jQuery.each( this, callback, args );
+	};
+jQuery.prototype.empty = function() {
+/// <summary>
+///     Remove all child nodes of the set of matched elements from the DOM.
+/// </summary>
+/// <returns type="jQuery" />
+
+		for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
+			// Remove element nodes and prevent memory leaks
+			if ( elem.nodeType === 1 ) {
+				jQuery.cleanData( elem.getElementsByTagName("*") );
+			}
+
+			// Remove any remaining nodes
+			while ( elem.firstChild ) {
+				elem.removeChild( elem.firstChild );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.end = function() {
+/// <summary>
+///     End the most recent filtering operation in the current chain and return the set of matched elements to its previous state.
+/// </summary>
+/// <returns type="jQuery" />
+
+		return this.prevObject || this.constructor(null);
+	};
+jQuery.prototype.eq = function( i ) {
+/// <summary>
+///     Reduce the set of matched elements to the one at the specified index.
+///     <para>1 - eq(index) </para>
+///     <para>2 - eq(-index)</para>
+/// </summary>
+/// <param name="i" type="Number">
+///     An integer indicating the 0-based position of the element.
+/// </param>
+/// <returns type="jQuery" />
+
+		return i === -1 ?
+			this.slice( i ) :
+			this.slice( i, +i + 1 );
+	};
+jQuery.prototype.error = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "error" JavaScript event.
+///     <para>1 - error(handler(eventObject)) </para>
+///     <para>2 - error(eventData, handler(eventObject))</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.extend = function() {
+
+	var options, name, src, copy, copyIsArray, clone,
+		target = arguments[0] || {},
+		i = 1,
+		length = arguments.length,
+		deep = false;
+
+	// Handle a deep copy situation
+	if ( typeof target === "boolean" ) {
+		deep = target;
+		target = arguments[1] || {};
+		// skip the boolean and the target
+		i = 2;
+	}
+
+	// Handle case when target is a string or something (possible in deep copy)
+	if ( typeof target !== "object" && !jQuery.isFunction(target) ) {
+		target = {};
+	}
+
+	// extend jQuery itself if only one argument is passed
+	if ( length === i ) {
+		target = this;
+		--i;
+	}
+
+	for ( ; i < length; i++ ) {
+		// Only deal with non-null/undefined values
+		if ( (options = arguments[ i ]) != null ) {
+			// Extend the base object
+			for ( name in options ) {
+				src = target[ name ];
+				copy = options[ name ];
+
+				// Prevent never-ending loop
+				if ( target === copy ) {
+					continue;
+				}
+
+				// Recurse if we're merging plain objects or arrays
+				if ( deep && copy && ( jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)) ) ) {
+					if ( copyIsArray ) {
+						copyIsArray = false;
+						clone = src && jQuery.isArray(src) ? src : [];
+
+					} else {
+						clone = src && jQuery.isPlainObject(src) ? src : {};
+					}
+
+					// Never move original objects, clone them
+					target[ name ] = jQuery.extend( deep, clone, copy );
+
+				// Don't bring in undefined values
+				} else if ( copy !== undefined ) {
+					target[ name ] = copy;
+				}
+			}
+		}
+	}
+
+	// Return the modified object
+	return target;
+};
+jQuery.prototype.fadeIn = function( speed, easing, callback ) {
+/// <summary>
+///     Display the matched elements by fading them to opaque.
+///     <para>1 - fadeIn(duration, callback) </para>
+///     <para>2 - fadeIn(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.fadeOut = function( speed, easing, callback ) {
+/// <summary>
+///     Hide the matched elements by fading them to transparent.
+///     <para>1 - fadeOut(duration, callback) </para>
+///     <para>2 - fadeOut(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.fadeTo = function( speed, to, easing, callback ) {
+/// <summary>
+///     Adjust the opacity of the matched elements.
+///     <para>1 - fadeTo(duration, opacity, callback) </para>
+///     <para>2 - fadeTo(duration, opacity, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="to" type="Number">
+///     A number between 0 and 1 denoting the target opacity.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.filter(":hidden").css("opacity", 0).show().end()
+					.animate({opacity: to}, speed, easing, callback);
+	};
+jQuery.prototype.fadeToggle = function( speed, easing, callback ) {
+/// <summary>
+///     Display or hide the matched elements by animating their opacity.
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.filter = function( selector ) {
+/// <summary>
+///     Reduce the set of matched elements to those that match the selector or pass the function's test.
+///     <para>1 - filter(selector) </para>
+///     <para>2 - filter(function(index)) </para>
+///     <para>3 - filter(element) </para>
+///     <para>4 - filter(jQuery object)</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match the current set of elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.pushStack( winnow(this, selector, true), "filter", selector );
+	};
+jQuery.prototype.find = function( selector ) {
+/// <summary>
+///     Get the descendants of each element in the current set of matched elements, filtered by a selector, jQuery object, or element.
+///     <para>1 - find(selector) </para>
+///     <para>2 - find(jQuery object) </para>
+///     <para>3 - find(element)</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var self = this,
+			i, l;
+
+		if ( typeof selector !== "string" ) {
+			return jQuery( selector ).filter(function() {
+				for ( i = 0, l = self.length; i < l; i++ ) {
+					if ( jQuery.contains( self[ i ], this ) ) {
+						return true;
+					}
+				}
+			});
+		}
+
+		var ret = this.pushStack( "", "find", selector ),
+			length, n, r;
+
+		for ( i = 0, l = this.length; i < l; i++ ) {
+			length = ret.length;
+			jQuery.find( selector, this[i], ret );
+
+			if ( i > 0 ) {
+				// Make sure that the results are unique
+				for ( n = length; n < ret.length; n++ ) {
+					for ( r = 0; r < length; r++ ) {
+						if ( ret[r] === ret[n] ) {
+							ret.splice(n--, 1);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return ret;
+	};
+jQuery.prototype.first = function() {
+/// <summary>
+///     Reduce the set of matched elements to the first in the set.
+/// </s
