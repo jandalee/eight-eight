@@ -3521,4 +3521,363 @@ jQuery.prototype.click = function( data, fn ) {
 		}
 
 		return arguments.length > 0 ?
-			th
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.clone = function( dataAndEvents, deepDataAndEvents ) {
+/// <summary>
+///     Create a deep copy of the set of matched elements.
+///     <para>1 - clone(withDataAndEvents) </para>
+///     <para>2 - clone(withDataAndEvents, deepWithDataAndEvents)</para>
+/// </summary>
+/// <param name="dataAndEvents" type="Boolean">
+///     A Boolean indicating whether event handlers and data should be copied along with the elements. The default value is false. *In jQuery 1.5.0 the default value was incorrectly true; it was changed back to false in 1.5.1 and up.
+/// </param>
+/// <param name="deepDataAndEvents" type="Boolean">
+///     A Boolean indicating whether event handlers and data for all children of the cloned element should be copied. By default its value matches the first argument's value (which defaults to false).
+/// </param>
+/// <returns type="jQuery" />
+
+		dataAndEvents = dataAndEvents == null ? false : dataAndEvents;
+		deepDataAndEvents = deepDataAndEvents == null ? dataAndEvents : deepDataAndEvents;
+
+		return this.map( function () {
+			return jQuery.clone( this, dataAndEvents, deepDataAndEvents );
+		});
+	};
+jQuery.prototype.closest = function( selectors, context ) {
+/// <summary>
+///     1: Get the first ancestor element that matches the selector, beginning at the current element and progressing up through the DOM tree.
+///     <para>    1.1 - closest(selector) </para>
+///     <para>    1.2 - closest(selector, context) </para>
+///     <para>    1.3 - closest(jQuery object) </para>
+///     <para>    1.4 - closest(element)</para>
+///     <para>2: Gets an array of all the elements and selectors matched against the current element up through the DOM tree.</para>
+///     <para>    2.1 - closest(selectors, context)</para>
+/// </summary>
+/// <param name="selectors" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <param name="context" domElement="true">
+///     A DOM element within which a matching element may be found. If no context is passed in then the context of the jQuery set will be used instead.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = [], i, l, cur = this[0];
+		
+		// Array
+		if ( jQuery.isArray( selectors ) ) {
+			var match, selector,
+				matches = {},
+				level = 1;
+
+			if ( cur && selectors.length ) {
+				for ( i = 0, l = selectors.length; i < l; i++ ) {
+					selector = selectors[i];
+
+					if ( !matches[ selector ] ) {
+						matches[ selector ] = POS.test( selector ) ?
+							jQuery( selector, context || this.context ) :
+							selector;
+					}
+				}
+
+				while ( cur && cur.ownerDocument && cur !== context ) {
+					for ( selector in matches ) {
+						match = matches[ selector ];
+
+						if ( match.jquery ? match.index( cur ) > -1 : jQuery( cur ).is( match ) ) {
+							ret.push({ selector: selector, elem: cur, level: level });
+						}
+					}
+
+					cur = cur.parentNode;
+					level++;
+				}
+			}
+
+			return ret;
+		}
+
+		// String
+		var pos = POS.test( selectors ) || typeof selectors !== "string" ?
+				jQuery( selectors, context || this.context ) :
+				0;
+
+		for ( i = 0, l = this.length; i < l; i++ ) {
+			cur = this[i];
+
+			while ( cur ) {
+				if ( pos ? pos.index(cur) > -1 : jQuery.find.matchesSelector(cur, selectors) ) {
+					ret.push( cur );
+					break;
+
+				} else {
+					cur = cur.parentNode;
+					if ( !cur || !cur.ownerDocument || cur === context || cur.nodeType === 11 ) {
+						break;
+					}
+				}
+			}
+		}
+
+		ret = ret.length > 1 ? jQuery.unique( ret ) : ret;
+
+		return this.pushStack( ret, "closest", selectors );
+	};
+jQuery.prototype.constructor = function( selector, context ) {
+
+		// The jQuery object is actually just the init constructor 'enhanced'
+		return new jQuery.fn.init( selector, context, rootjQuery );
+	};
+jQuery.prototype.contents = function( until, selector ) {
+/// <summary>
+///     Get the children of each element in the set of matched elements, including text and comment nodes.
+/// </summary>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.css = function( name, value ) {
+/// <summary>
+///     1: Get the value of a style property for the first element in the set of matched elements.
+///     <para>    1.1 - css(propertyName)</para>
+///     <para>2: Set one or more CSS properties for the  set of matched elements.</para>
+///     <para>    2.1 - css(propertyName, value) </para>
+///     <para>    2.2 - css(propertyName, function(index, value)) </para>
+///     <para>    2.3 - css(map)</para>
+/// </summary>
+/// <param name="name" type="String">
+///     A CSS property name.
+/// </param>
+/// <param name="value" type="Number">
+///     A value to set for the property.
+/// </param>
+/// <returns type="jQuery" />
+
+	// Setting 'undefined' is a no-op
+	if ( arguments.length === 2 && value === undefined ) {
+		return this;
+	}
+
+	return jQuery.access( this, name, value, true, function( elem, name, value ) {
+		return value !== undefined ?
+			jQuery.style( elem, name, value ) :
+			jQuery.css( elem, name );
+	});
+};
+jQuery.prototype.data = function( key, value ) {
+/// <summary>
+///     1: Store arbitrary data associated with the matched elements.
+///     <para>    1.1 - data(key, value) </para>
+///     <para>    1.2 - data(obj)</para>
+///     <para>2: Returns value at named data store for the first element in the jQuery collection, as set by data(name, value).</para>
+///     <para>    2.1 - data(key) </para>
+///     <para>    2.2 - data()</para>
+/// </summary>
+/// <param name="key" type="String">
+///     A string naming the piece of data to set.
+/// </param>
+/// <param name="value" type="Object">
+///     The new data value; it can be any Javascript type including Array or Object.
+/// </param>
+/// <returns type="jQuery" />
+
+		var data = null;
+
+		if ( typeof key === "undefined" ) {
+			if ( this.length ) {
+				data = jQuery.data( this[0] );
+
+				if ( this[0].nodeType === 1 ) {
+			    var attr = this[0].attributes, name;
+					for ( var i = 0, l = attr.length; i < l; i++ ) {
+						name = attr[i].name;
+
+						if ( name.indexOf( "data-" ) === 0 ) {
+							name = jQuery.camelCase( name.substring(5) );
+
+							dataAttr( this[0], name, data[ name ] );
+						}
+					}
+				}
+			}
+
+			return data;
+
+		} else if ( typeof key === "object" ) {
+			return this.each(function() {
+				jQuery.data( this, key );
+			});
+		}
+
+		var parts = key.split(".");
+		parts[1] = parts[1] ? "." + parts[1] : "";
+
+		if ( value === undefined ) {
+			data = this.triggerHandler("getData" + parts[1] + "!", [parts[0]]);
+
+			// Try to fetch any internally stored data first
+			if ( data === undefined && this.length ) {
+				data = jQuery.data( this[0], key );
+				data = dataAttr( this[0], key, data );
+			}
+
+			return data === undefined && parts[1] ?
+				this.data( parts[0] ) :
+				data;
+
+		} else {
+			return this.each(function() {
+				var $this = jQuery( this ),
+					args = [ parts[0], value ];
+
+				$this.triggerHandler( "setData" + parts[1] + "!", args );
+				jQuery.data( this, key, value );
+				$this.triggerHandler( "changeData" + parts[1] + "!", args );
+			});
+		}
+	};
+jQuery.prototype.dblclick = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "dblclick" JavaScript event, or trigger that event on an element.
+///     <para>1 - dblclick(handler(eventObject)) </para>
+///     <para>2 - dblclick(eventData, handler(eventObject)) </para>
+///     <para>3 - dblclick()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.delay = function( time, type ) {
+/// <summary>
+///     Set a timer to delay execution of subsequent items in the queue.
+/// </summary>
+/// <param name="time" type="Number">
+///     An integer indicating the number of milliseconds to delay execution of the next item in the queue.
+/// </param>
+/// <param name="type" type="String">
+///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+/// </param>
+/// <returns type="jQuery" />
+
+		time = jQuery.fx ? jQuery.fx.speeds[time] || time : time;
+		type = type || "fx";
+
+		return this.queue( type, function() {
+			var elem = this;
+			setTimeout(function() {
+				jQuery.dequeue( elem, type );
+			}, time );
+		});
+	};
+jQuery.prototype.delegate = function( selector, types, data, fn ) {
+/// <summary>
+///     Attach a handler to one or more events for all elements that match the selector, now or in the future, based on a specific set of root elements.
+///     <para>1 - delegate(selector, eventType, handler) </para>
+///     <para>2 - delegate(selector, eventType, eventData, handler) </para>
+///     <para>3 - delegate(selector, events)</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A selector to filter the elements that trigger the event.
+/// </param>
+/// <param name="types" type="String">
+///     A string containing one or more space-separated JavaScript event types, such as "click" or "keydown," or custom event names.
+/// </param>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute at the time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.live( types, data, fn, selector );
+	};
+jQuery.prototype.dequeue = function( type ) {
+/// <summary>
+///     Execute the next function on the queue for the matched elements.
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.each(function() {
+			jQuery.dequeue( this, type );
+		});
+	};
+jQuery.prototype.detach = function( selector ) {
+/// <summary>
+///     Remove the set of matched elements from the DOM.
+/// </summary>
+/// <param name="selector" type="String">
+///     A selector expression that filters the set of matched elements to be removed.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.remove( selector, true );
+	};
+jQuery.prototype.die = function( types, data, fn, origSelector /* Internal Use Only */ ) {
+/// <summary>
+///     1: Remove all event handlers previously attached using .live() from the elements.
+///     <para>    1.1 - die()</para>
+///     <para>2: Remove an event handler previously attached using .live() from the elements.</para>
+///     <para>    2.1 - die(eventType, handler) </para>
+///     <para>    2.2 - die(eventTypes)</para>
+/// </summary>
+/// <param name="types" type="String">
+///     A string containing a JavaScript event type, such as click or keydown.
+/// </param>
+/// <param name="data" type="String">
+///     The function that is no longer to be executed.
+/// </param>
+/// <returns type="jQuery" />
+
+		var type, i = 0, match, namespaces, preType,
+			selector = origSelector || this.selector,
+			context = origSelector ? this : jQuery( this.context );
+
+		if ( typeof types === "object" && !types.preventDefault ) {
+			for ( var key in types ) {
+				context[ name ]( key, data, types[key], selector );
+			}
+
+			return this;
+		}
+
+		if ( name === "di
