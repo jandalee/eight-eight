@@ -4287,4 +4287,378 @@ jQuery.prototype.find = function( selector ) {
 jQuery.prototype.first = function() {
 /// <summary>
 ///     Reduce the set of matched elements to the first in the set.
-/// </s
+/// </summary>
+/// <returns type="jQuery" />
+
+		return this.eq( 0 );
+	};
+jQuery.prototype.focus = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "focus" JavaScript event, or trigger that event on an element.
+///     <para>1 - focus(handler(eventObject)) </para>
+///     <para>2 - focus(eventData, handler(eventObject)) </para>
+///     <para>3 - focus()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.focusin = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "focusin" JavaScript event.
+///     <para>1 - focusin(handler(eventObject)) </para>
+///     <para>2 - focusin(eventData, handler(eventObject))</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.focusout = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "focusout" JavaScript event.
+///     <para>1 - focusout(handler(eventObject)) </para>
+///     <para>2 - focusout(eventData, handler(eventObject))</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.get = function( num ) {
+/// <summary>
+///     Retrieve the DOM elements matched by the jQuery object.
+/// </summary>
+/// <param name="num" type="Number">
+///     A zero-based integer indicating which element to retrieve.
+/// </param>
+/// <returns type="Array" />
+
+		return num == null ?
+
+			// Return a 'clean' array
+			this.toArray() :
+
+			// Return just the object
+			( num < 0 ? this[ this.length + num ] : this[ num ] );
+	};
+jQuery.prototype.has = function( target ) {
+/// <summary>
+///     Reduce the set of matched elements to those that have a descendant that matches the selector or DOM element.
+///     <para>1 - has(selector) </para>
+///     <para>2 - has(contained)</para>
+/// </summary>
+/// <param name="target" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var targets = jQuery( target );
+		return this.filter(function() {
+			for ( var i = 0, l = targets.length; i < l; i++ ) {
+				if ( jQuery.contains( this, targets[i] ) ) {
+					return true;
+				}
+			}
+		});
+	};
+jQuery.prototype.hasClass = function( selector ) {
+/// <summary>
+///     Determine whether any of the matched elements are assigned the given class.
+/// </summary>
+/// <param name="selector" type="String">
+///     The class name to search for.
+/// </param>
+/// <returns type="Boolean" />
+
+		var className = " " + selector + " ";
+		for ( var i = 0, l = this.length; i < l; i++ ) {
+			if ( this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) > -1 ) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+jQuery.prototype.height = function( size ) {
+/// <summary>
+///     1: Get the current computed height for the first element in the set of matched elements.
+///     <para>    1.1 - height()</para>
+///     <para>2: Set the CSS height of every matched element.</para>
+///     <para>    2.1 - height(value) </para>
+///     <para>    2.2 - height(function(index, height))</para>
+/// </summary>
+/// <param name="size" type="Number">
+///     An integer representing the number of pixels, or an integer with an optional unit of measure appended (as a string).
+/// </param>
+/// <returns type="jQuery" />
+
+		// Get window width or height
+		var elem = this[0];
+		if ( !elem ) {
+			return size == null ? null : this;
+		}
+
+		if ( jQuery.isFunction( size ) ) {
+			return this.each(function( i ) {
+				var self = jQuery( this );
+				self[ type ]( size.call( this, i, self[ type ]() ) );
+			});
+		}
+
+		if ( jQuery.isWindow( elem ) ) {
+			// Everyone else use document.documentElement or document.body depending on Quirks vs Standards mode
+			// 3rd condition allows Nokia support, as it supports the docElem prop but not CSS1Compat
+			var docElemProp = elem.document.documentElement[ "client" + name ],
+				body = elem.document.body;
+			return elem.document.compatMode === "CSS1Compat" && docElemProp ||
+				body && body[ "client" + name ] || docElemProp;
+
+		// Get document width or height
+		} else if ( elem.nodeType === 9 ) {
+			// Either scroll[Width/Height] or offset[Width/Height], whichever is greater
+			return Math.max(
+				elem.documentElement["client" + name],
+				elem.body["scroll" + name], elem.documentElement["scroll" + name],
+				elem.body["offset" + name], elem.documentElement["offset" + name]
+			);
+
+		// Get or set width or height on the element
+		} else if ( size === undefined ) {
+			var orig = jQuery.css( elem, type ),
+				ret = parseFloat( orig );
+
+			return jQuery.isNaN( ret ) ? orig : ret;
+
+		// Set the width or height on the element (default to pixels if value is unitless)
+		} else {
+			return this.css( type, typeof size === "string" ? size : size + "px" );
+		}
+	};
+jQuery.prototype.hide = function( speed, easing, callback ) {
+/// <summary>
+///     Hide the matched elements.
+///     <para>1 - hide() </para>
+///     <para>2 - hide(duration, callback) </para>
+///     <para>3 - hide(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( speed || speed === 0 ) {
+			return this.animate( genFx("hide", 3), speed, easing, callback);
+
+		} else {
+			for ( var i = 0, j = this.length; i < j; i++ ) {
+				if ( this[i].style ) {
+					var display = jQuery.css( this[i], "display" );
+
+					if ( display !== "none" && !jQuery._data( this[i], "olddisplay" ) ) {
+						jQuery._data( this[i], "olddisplay", display );
+					}
+				}
+			}
+
+			// Set the display of the elements in a second loop
+			// to avoid the constant reflow
+			for ( i = 0; i < j; i++ ) {
+				if ( this[i].style ) {
+					this[i].style.display = "none";
+				}
+			}
+
+			return this;
+		}
+	};
+jQuery.prototype.hover = function( fnOver, fnOut ) {
+/// <summary>
+///     1: Bind two handlers to the matched elements, to be executed when the mouse pointer enters and leaves the elements.
+///     <para>    1.1 - hover(handlerIn(eventObject), handlerOut(eventObject))</para>
+///     <para>2: Bind a single handler to the matched elements, to be executed when the mouse pointer enters or leaves the elements.</para>
+///     <para>    2.1 - hover(handlerInOut(eventObject))</para>
+/// </summary>
+/// <param name="fnOver" type="Function">
+///     A function to execute when the mouse pointer enters the element.
+/// </param>
+/// <param name="fnOut" type="Function">
+///     A function to execute when the mouse pointer leaves the element.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.mouseenter( fnOver ).mouseleave( fnOut || fnOver );
+	};
+jQuery.prototype.html = function( value ) {
+/// <summary>
+///     1: Get the HTML contents of the first element in the set of matched elements.
+///     <para>    1.1 - html()</para>
+///     <para>2: Set the HTML contents of each element in the set of matched elements.</para>
+///     <para>    2.1 - html(htmlString) </para>
+///     <para>    2.2 - html(function(index, oldhtml))</para>
+/// </summary>
+/// <param name="value" type="String">
+///     A string of HTML to set as the content of each matched element.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( value === undefined ) {
+			return this[0] && this[0].nodeType === 1 ?
+				this[0].innerHTML.replace(rinlinejQuery, "") :
+				null;
+
+		// See if we can take a shortcut and just use innerHTML
+		} else if ( typeof value === "string" && !rnocache.test( value ) &&
+			(jQuery.support.leadingWhitespace || !rleadingWhitespace.test( value )) &&
+			!wrapMap[ (rtagName.exec( value ) || ["", ""])[1].toLowerCase() ] ) {
+
+			value = value.replace(rxhtmlTag, "<$1></$2>");
+
+			try {
+				for ( var i = 0, l = this.length; i < l; i++ ) {
+					// Remove element nodes and prevent memory leaks
+					if ( this[i].nodeType === 1 ) {
+						jQuery.cleanData( this[i].getElementsByTagName("*") );
+						this[i].innerHTML = value;
+					}
+				}
+
+			// If using innerHTML throws an exception, use the fallback method
+			} catch(e) {
+				this.empty().append( value );
+			}
+
+		} else if ( jQuery.isFunction( value ) ) {
+			this.each(function(i){
+				var self = jQuery( this );
+
+				self.html( value.call(this, i, self.html()) );
+			});
+
+		} else {
+			this.empty().append( value );
+		}
+
+		return this;
+	};
+jQuery.prototype.index = function( elem ) {
+/// <summary>
+///     Search for a given element from among the matched elements.
+///     <para>1 - index() </para>
+///     <para>2 - index(selector) </para>
+///     <para>3 - index(element)</para>
+/// </summary>
+/// <param name="elem" type="String">
+///     A selector representing a jQuery collection in which to look for an element.
+/// </param>
+/// <returns type="Number" />
+
+
+		// No argument, return index in parent
+		if ( !elem ) {
+			return ( this[0] && this[0].parentNode ) ? this.prevAll().length : -1;
+		}
+
+		// index in selector
+		if ( typeof elem === "string" ) {
+			return jQuery.inArray( this[0], jQuery( elem ) );
+		}
+
+		// Locate the position of the desired element
+		return jQuery.inArray(
+			// If it receives a jQuery object, the first element is used
+			elem.jquery ? elem[0] : elem, this );
+	};
+jQuery.prototype.init = function( selector, context, rootjQuery ) {
+
+		var match, elem, ret, doc;
+
+		// Handle $(""), $(null), or $(undefined)
+		if ( !selector ) {
+			return this;
+		}
+
+		// Handle $(DOMElement)
+		if ( selector.nodeType ) {
+			this.context = this[0] = selector;
+			this.length = 1;
+			return this;
+		}
+
+		// The body element only exists once, optimize finding it
+		if ( selector === "body" && !context && document.body ) {
+			this.context = document;
+			this[0] = document.body;
+			this.selector = selector;
+			this.length = 1;
+			return this;
+		}
+
+		// Handle HTML strings
+		if ( typeof selector === "string" ) {
+			// Are we dealing with HTML string or an ID?
+			if ( selector.charAt(0) === "<" && selector.charAt( selector.length - 1 ) === ">" && selector.length >= 3 ) {
+				// Assume that strings that start and end with <> are HTML and skip the regex check
+				match = [ null, selector, null ];
+
+			} else {
+				match = quickExpr.exec( selector );
+			}
+
+			// Verify a match, and that no context was specified for #id
+			if ( match && (match[1] || !context) ) {
+
+				// HANDLE: $(html) -> $(array)
+				if ( match[1] ) {
+					context = context instanceof jQuery ? context[0] : context;
+					doc = (context ? context.ownerDocument || context : document);
+
+					// If a single string is passed in and it's a single tag
+					// just do a createElement and skip the rest
+					ret = rsingleTag.exec( selector );
+
+					if ( ret ) {
+						if ( jQuery.isPlainObjec
