@@ -6911,4 +6911,114 @@ jQuery.prototype.width = function( size ) {
 
 		if ( jQuery.isWindow( elem ) ) {
 			// Everyone else use document.documentElement or document.body depending on Quirks vs Standards mode
-			// 3rd condition allow
+			// 3rd condition allows Nokia support, as it supports the docElem prop but not CSS1Compat
+			var docElemProp = elem.document.documentElement[ "client" + name ],
+				body = elem.document.body;
+			return elem.document.compatMode === "CSS1Compat" && docElemProp ||
+				body && body[ "client" + name ] || docElemProp;
+
+		// Get document width or height
+		} else if ( elem.nodeType === 9 ) {
+			// Either scroll[Width/Height] or offset[Width/Height], whichever is greater
+			return Math.max(
+				elem.documentElement["client" + name],
+				elem.body["scroll" + name], elem.documentElement["scroll" + name],
+				elem.body["offset" + name], elem.documentElement["offset" + name]
+			);
+
+		// Get or set width or height on the element
+		} else if ( size === undefined ) {
+			var orig = jQuery.css( elem, type ),
+				ret = parseFloat( orig );
+
+			return jQuery.isNaN( ret ) ? orig : ret;
+
+		// Set the width or height on the element (default to pixels if value is unitless)
+		} else {
+			return this.css( type, typeof size === "string" ? size : size + "px" );
+		}
+	};
+jQuery.prototype.wrap = function( html ) {
+/// <summary>
+///     Wrap an HTML structure around each element in the set of matched elements.
+///     <para>1 - wrap(wrappingElement) </para>
+///     <para>2 - wrap(function(index))</para>
+/// </summary>
+/// <param name="html" type="jQuery">
+///     An HTML snippet, selector expression, jQuery object, or DOM element specifying the structure to wrap around the matched elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.each(function() {
+			jQuery( this ).wrapAll( html );
+		});
+	};
+jQuery.prototype.wrapAll = function( html ) {
+/// <summary>
+///     Wrap an HTML structure around all elements in the set of matched elements.
+/// </summary>
+/// <param name="html" type="jQuery">
+///     An HTML snippet, selector expression, jQuery object, or DOM element specifying the structure to wrap around the matched elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( jQuery.isFunction( html ) ) {
+			return this.each(function(i) {
+				jQuery(this).wrapAll( html.call(this, i) );
+			});
+		}
+
+		if ( this[0] ) {
+			// The elements to wrap the target around
+			var wrap = jQuery( html, this[0].ownerDocument ).eq(0).clone(true);
+
+			if ( this[0].parentNode ) {
+				wrap.insertBefore( this[0] );
+			}
+
+			wrap.map(function() {
+				var elem = this;
+
+				while ( elem.firstChild && elem.firstChild.nodeType === 1 ) {
+					elem = elem.firstChild;
+				}
+
+				return elem;
+			}).append( this );
+		}
+
+		return this;
+	};
+jQuery.prototype.wrapInner = function( html ) {
+/// <summary>
+///     Wrap an HTML structure around the content of each element in the set of matched elements.
+///     <para>1 - wrapInner(wrappingElement) </para>
+///     <para>2 - wrapInner(function(index))</para>
+/// </summary>
+/// <param name="html" type="String">
+///     An HTML snippet, selector expression, jQuery object, or DOM element specifying the structure to wrap around the content of the matched elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( jQuery.isFunction( html ) ) {
+			return this.each(function(i) {
+				jQuery(this).wrapInner( html.call(this, i) );
+			});
+		}
+
+		return this.each(function() {
+			var self = jQuery( this ),
+				contents = self.contents();
+
+			if ( contents.length ) {
+				contents.wrapAll( html );
+
+			} else {
+				self.append( html );
+			}
+		});
+	};
+jQuery.fn = jQuery.prototype;
+jQuery.fn.init.prototype = jQuery.fn;
+window.jQuery = window.$ = jQuery;
+})(window);
