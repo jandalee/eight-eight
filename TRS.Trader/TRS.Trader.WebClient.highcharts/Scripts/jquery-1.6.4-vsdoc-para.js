@@ -5763,4 +5763,391 @@ jQuery.prototype.prevAll = function( until, selector ) {
 	};
 jQuery.prototype.prevUntil = function( until, selector ) {
 /// <summary>
-///     Get all pr
+///     Get all preceding siblings of each element up to but not including the element matched by the selector, DOM node, or jQuery object.
+///     <para>1 - prevUntil(selector, filter) </para>
+///     <para>2 - prevUntil(element, filter)</para>
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to indicate where to stop matching preceding sibling elements.
+/// </param>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.promise = function( type, object ) {
+/// <summary>
+///     Return a Promise object to observe when all actions of a certain type bound to the collection, queued or not, have finished.
+/// </summary>
+/// <param name="type" type="String">
+///     The type of queue that needs to be observed.
+/// </param>
+/// <param name="object" type="Object">
+///     Object onto which the promise methods have to be attached
+/// </param>
+/// <returns type="Promise" />
+
+		if ( typeof type !== "string" ) {
+			object = type;
+			type = undefined;
+		}
+		type = type || "fx";
+		var defer = jQuery.Deferred(),
+			elements = this,
+			i = elements.length,
+			count = 1,
+			deferDataKey = type + "defer",
+			queueDataKey = type + "queue",
+			markDataKey = type + "mark",
+			tmp;
+		function resolve() {
+			if ( !( --count ) ) {
+				defer.resolveWith( elements, [ elements ] );
+			}
+		}
+		while( i-- ) {
+			if (( tmp = jQuery.data( elements[ i ], deferDataKey, undefined, true ) ||
+					( jQuery.data( elements[ i ], queueDataKey, undefined, true ) ||
+						jQuery.data( elements[ i ], markDataKey, undefined, true ) ) &&
+					jQuery.data( elements[ i ], deferDataKey, jQuery._Deferred(), true ) )) {
+				count++;
+				tmp.done( resolve );
+			}
+		}
+		resolve();
+		return defer.promise();
+	};
+jQuery.prototype.prop = function( name, value ) {
+/// <summary>
+///     1: Get the value of a property for the first element in the set of matched elements.
+///     <para>    1.1 - prop(propertyName)</para>
+///     <para>2: Set one or more properties for the set of matched elements.</para>
+///     <para>    2.1 - prop(propertyName, value) </para>
+///     <para>    2.2 - prop(map) </para>
+///     <para>    2.3 - prop(propertyName, function(index, oldPropertyValue))</para>
+/// </summary>
+/// <param name="name" type="String">
+///     The name of the property to set.
+/// </param>
+/// <param name="value" type="Boolean">
+///     A value to set for the property.
+/// </param>
+/// <returns type="jQuery" />
+
+		return jQuery.access( this, name, value, true, jQuery.prop );
+	};
+jQuery.prototype.pushStack = function( elems, name, selector ) {
+/// <summary>
+///     Add a collection of DOM elements onto the jQuery stack.
+///     <para>1 - pushStack(elements) </para>
+///     <para>2 - pushStack(elements, name, arguments)</para>
+/// </summary>
+/// <param name="elems" type="Array">
+///     An array of elements to push onto the stack and make into a new jQuery object.
+/// </param>
+/// <param name="name" type="String">
+///     The name of a jQuery method that generated the array of elements.
+/// </param>
+/// <param name="selector" type="Array">
+///     The arguments that were passed in to the jQuery method (for serialization).
+/// </param>
+/// <returns type="jQuery" />
+
+		// Build a new jQuery matched element set
+		var ret = this.constructor();
+
+		if ( jQuery.isArray( elems ) ) {
+			push.apply( ret, elems );
+
+		} else {
+			jQuery.merge( ret, elems );
+		}
+
+		// Add the old object onto the stack (as a reference)
+		ret.prevObject = this;
+
+		ret.context = this.context;
+
+		if ( name === "find" ) {
+			ret.selector = this.selector + (this.selector ? " " : "") + selector;
+		} else if ( name ) {
+			ret.selector = this.selector + "." + name + "(" + selector + ")";
+		}
+
+		// Return the newly-formed element set
+		return ret;
+	};
+jQuery.prototype.queue = function( type, data ) {
+/// <summary>
+///     1: Show the queue of functions to be executed on the matched elements.
+///     <para>    1.1 - queue(queueName)</para>
+///     <para>2: Manipulate the queue of functions to be executed on the matched elements.</para>
+///     <para>    2.1 - queue(queueName, newQueue) </para>
+///     <para>    2.2 - queue(queueName, callback( next ))</para>
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+/// </param>
+/// <param name="data" type="Array">
+///     An array of functions to replace the current queue contents.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( typeof type !== "string" ) {
+			data = type;
+			type = "fx";
+		}
+
+		if ( data === undefined ) {
+			return jQuery.queue( this[0], type );
+		}
+		return this.each(function() {
+			var queue = jQuery.queue( this, type, data );
+
+			if ( type === "fx" && queue[0] !== "inprogress" ) {
+				jQuery.dequeue( this, type );
+			}
+		});
+	};
+jQuery.prototype.ready = function( fn ) {
+/// <summary>
+///     Specify a function to execute when the DOM is fully loaded.
+/// </summary>
+/// <param name="fn" type="Function">
+///     A function to execute after the DOM is ready.
+/// </param>
+/// <returns type="jQuery" />
+
+		// Attach the listeners
+		jQuery.bindReady();
+
+		// Add the callback
+		readyList.done( fn );
+
+		return this;
+	};
+jQuery.prototype.remove = function( selector, keepData ) {
+/// <summary>
+///     Remove the set of matched elements from the DOM.
+/// </summary>
+/// <param name="selector" type="String">
+///     A selector expression that filters the set of matched elements to be removed.
+/// </param>
+/// <returns type="jQuery" />
+
+		for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
+			if ( !selector || jQuery.filter( selector, [ elem ] ).length ) {
+				if ( !keepData && elem.nodeType === 1 ) {
+					jQuery.cleanData( elem.getElementsByTagName("*") );
+					jQuery.cleanData( [ elem ] );
+				}
+
+				if ( elem.parentNode ) {
+					elem.parentNode.removeChild( elem );
+				}
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.removeAttr = function( name ) {
+/// <summary>
+///     Remove an attribute from each element in the set of matched elements.
+/// </summary>
+/// <param name="name" type="String">
+///     An attribute to remove.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.each(function() {
+			jQuery.removeAttr( this, name );
+		});
+	};
+jQuery.prototype.removeClass = function( value ) {
+/// <summary>
+///     Remove a single class, multiple classes, or all classes from each element in the set of matched elements.
+///     <para>1 - removeClass(className) </para>
+///     <para>2 - removeClass(function(index, class))</para>
+/// </summary>
+/// <param name="value" type="String">
+///     One or more space-separated classes to be removed from the class attribute of each matched element.
+/// </param>
+/// <returns type="jQuery" />
+
+		var classNames, i, l, elem, className, c, cl;
+
+		if ( jQuery.isFunction( value ) ) {
+			return this.each(function( j ) {
+				jQuery( this ).removeClass( value.call(this, j, this.className) );
+			});
+		}
+
+		if ( (value && typeof value === "string") || value === undefined ) {
+			classNames = (value || "").split( rspace );
+
+			for ( i = 0, l = this.length; i < l; i++ ) {
+				elem = this[ i ];
+
+				if ( elem.nodeType === 1 && elem.className ) {
+					if ( value ) {
+						className = (" " + elem.className + " ").replace( rclass, " " );
+						for ( c = 0, cl = classNames.length; c < cl; c++ ) {
+							className = className.replace(" " + classNames[ c ] + " ", " ");
+						}
+						elem.className = jQuery.trim( className );
+
+					} else {
+						elem.className = "";
+					}
+				}
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.removeData = function( key ) {
+/// <summary>
+///     Remove a previously-stored piece of data.
+/// </summary>
+/// <param name="key" type="String">
+///     A string naming the piece of data to delete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.each(function() {
+			jQuery.removeData( this, key );
+		});
+	};
+jQuery.prototype.removeProp = function( name ) {
+/// <summary>
+///     Remove a property for the set of matched elements.
+/// </summary>
+/// <param name="name" type="String">
+///     The name of the property to set.
+/// </param>
+/// <returns type="jQuery" />
+
+		name = jQuery.propFix[ name ] || name;
+		return this.each(function() {
+			// try/catch handles cases where IE balks (such as removing a property on window)
+			try {
+				this[ name ] = undefined;
+				delete this[ name ];
+			} catch( e ) {}
+		});
+	};
+jQuery.prototype.replaceAll = function( selector ) {
+/// <summary>
+///     Replace each target element with the set of matched elements.
+/// </summary>
+/// <param name="selector" type="String">
+///     A selector expression indicating which element(s) to replace.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = [],
+			insert = jQuery( selector ),
+			parent = this.length === 1 && this[0].parentNode;
+
+		if ( parent && parent.nodeType === 11 && parent.childNodes.length === 1 && insert.length === 1 ) {
+			insert[ original ]( this[0] );
+			return this;
+
+		} else {
+			for ( var i = 0, l = insert.length; i < l; i++ ) {
+				var elems = (i > 0 ? this.clone(true) : this).get();
+				jQuery( insert[i] )[ original ]( elems );
+				ret = ret.concat( elems );
+			}
+
+			return this.pushStack( ret, name, insert.selector );
+		}
+	};
+jQuery.prototype.replaceWith = function( value ) {
+/// <summary>
+///     Replace each element in the set of matched elements with the provided new content.
+///     <para>1 - replaceWith(newContent) </para>
+///     <para>2 - replaceWith(function)</para>
+/// </summary>
+/// <param name="value" type="jQuery">
+///     The content to insert. May be an HTML string, DOM element, or jQuery object.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( this[0] && this[0].parentNode ) {
+			// Make sure that the elements are removed from the DOM before they are inserted
+			// this can help fix replacing a parent with child elements
+			if ( jQuery.isFunction( value ) ) {
+				return this.each(function(i) {
+					var self = jQuery(this), old = self.html();
+					self.replaceWith( value.call( this, i, old ) );
+				});
+			}
+
+			if ( typeof value !== "string" ) {
+				value = jQuery( value ).detach();
+			}
+
+			return this.each(function() {
+				var next = this.nextSibling,
+					parent = this.parentNode;
+
+				jQuery( this ).remove();
+
+				if ( next ) {
+					jQuery(next).before( value );
+				} else {
+					jQuery(parent).append( value );
+				}
+			});
+		} else {
+			return this.length ?
+				this.pushStack( jQuery(jQuery.isFunction(value) ? value() : value), "replaceWith", value ) :
+				this;
+		}
+	};
+jQuery.prototype.resize = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "resize" JavaScript event, or trigger that event on an element.
+///     <para>1 - resize(handler(eventObject)) </para>
+///     <para>2 - resize(eventData, handler(eventObject)) </para>
+///     <para>3 - resize()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bin
