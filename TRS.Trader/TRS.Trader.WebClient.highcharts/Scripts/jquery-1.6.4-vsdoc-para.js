@@ -6150,4 +6150,397 @@ jQuery.prototype.resize = function( data, fn ) {
 		}
 
 		return arguments.length > 0 ?
-			this.bin
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.scroll = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "scroll" JavaScript event, or trigger that event on an element.
+///     <para>1 - scroll(handler(eventObject)) </para>
+///     <para>2 - scroll(eventData, handler(eventObject)) </para>
+///     <para>3 - scroll()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.scrollLeft = function( val ) {
+/// <summary>
+///     1: Get the current horizontal position of the scroll bar for the first element in the set of matched elements.
+///     <para>    1.1 - scrollLeft()</para>
+///     <para>2: Set the current horizontal position of the scroll bar for each of the set of matched elements.</para>
+///     <para>    2.1 - scrollLeft(value)</para>
+/// </summary>
+/// <param name="val" type="Number">
+///     An integer indicating the new position to set the scroll bar to.
+/// </param>
+/// <returns type="jQuery" />
+
+		var elem, win;
+
+		if ( val === undefined ) {
+			elem = this[ 0 ];
+
+			if ( !elem ) {
+				return null;
+			}
+
+			win = getWindow( elem );
+
+			// Return the scroll offset
+			return win ? ("pageXOffset" in win) ? win[ i ? "pageYOffset" : "pageXOffset" ] :
+				jQuery.support.boxModel && win.document.documentElement[ method ] ||
+					win.document.body[ method ] :
+				elem[ method ];
+		}
+
+		// Set the scroll offset
+		return this.each(function() {
+			win = getWindow( this );
+
+			if ( win ) {
+				win.scrollTo(
+					!i ? val : jQuery( win ).scrollLeft(),
+					 i ? val : jQuery( win ).scrollTop()
+				);
+
+			} else {
+				this[ method ] = val;
+			}
+		});
+	};
+jQuery.prototype.scrollTop = function( val ) {
+/// <summary>
+///     1: Get the current vertical position of the scroll bar for the first element in the set of matched elements.
+///     <para>    1.1 - scrollTop()</para>
+///     <para>2: Set the current vertical position of the scroll bar for each of the set of matched elements.</para>
+///     <para>    2.1 - scrollTop(value)</para>
+/// </summary>
+/// <param name="val" type="Number">
+///     An integer indicating the new position to set the scroll bar to.
+/// </param>
+/// <returns type="jQuery" />
+
+		var elem, win;
+
+		if ( val === undefined ) {
+			elem = this[ 0 ];
+
+			if ( !elem ) {
+				return null;
+			}
+
+			win = getWindow( elem );
+
+			// Return the scroll offset
+			return win ? ("pageXOffset" in win) ? win[ i ? "pageYOffset" : "pageXOffset" ] :
+				jQuery.support.boxModel && win.document.documentElement[ method ] ||
+					win.document.body[ method ] :
+				elem[ method ];
+		}
+
+		// Set the scroll offset
+		return this.each(function() {
+			win = getWindow( this );
+
+			if ( win ) {
+				win.scrollTo(
+					!i ? val : jQuery( win ).scrollLeft(),
+					 i ? val : jQuery( win ).scrollTop()
+				);
+
+			} else {
+				this[ method ] = val;
+			}
+		});
+	};
+jQuery.prototype.select = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "select" JavaScript event, or trigger that event on an element.
+///     <para>1 - select(handler(eventObject)) </para>
+///     <para>2 - select(eventData, handler(eventObject)) </para>
+///     <para>3 - select()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.serialize = function() {
+/// <summary>
+///     Encode a set of form elements as a string for submission.
+/// </summary>
+/// <returns type="String" />
+
+		return jQuery.param( this.serializeArray() );
+	};
+jQuery.prototype.serializeArray = function() {
+/// <summary>
+///     Encode a set of form elements as an array of names and values.
+/// </summary>
+/// <returns type="Array" />
+
+		return this.map(function(){
+			return this.elements ? jQuery.makeArray( this.elements ) : this;
+		})
+		.filter(function(){
+			return this.name && !this.disabled &&
+				( this.checked || rselectTextarea.test( this.nodeName ) ||
+					rinput.test( this.type ) );
+		})
+		.map(function( i, elem ){
+			var val = jQuery( this ).val();
+
+			return val == null ?
+				null :
+				jQuery.isArray( val ) ?
+					jQuery.map( val, function( val, i ){
+						return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+					}) :
+					{ name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+		}).get();
+	};
+jQuery.prototype.show = function( speed, easing, callback ) {
+/// <summary>
+///     Display the matched elements.
+///     <para>1 - show() </para>
+///     <para>2 - show(duration, callback) </para>
+///     <para>3 - show(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		var elem, display;
+
+		if ( speed || speed === 0 ) {
+			return this.animate( genFx("show", 3), speed, easing, callback);
+
+		} else {
+			for ( var i = 0, j = this.length; i < j; i++ ) {
+				elem = this[i];
+
+				if ( elem.style ) {
+					display = elem.style.display;
+
+					// Reset the inline display of this element to learn if it is
+					// being hidden by cascaded rules or not
+					if ( !jQuery._data(elem, "olddisplay") && display === "none" ) {
+						display = elem.style.display = "";
+					}
+
+					// Set elements which have been overridden with display: none
+					// in a stylesheet to whatever the default browser style is
+					// for such an element
+					if ( display === "" && jQuery.css( elem, "display" ) === "none" ) {
+						jQuery._data(elem, "olddisplay", defaultDisplay(elem.nodeName));
+					}
+				}
+			}
+
+			// Set the display of most of the elements in a second loop
+			// to avoid the constant reflow
+			for ( i = 0; i < j; i++ ) {
+				elem = this[i];
+
+				if ( elem.style ) {
+					display = elem.style.display;
+
+					if ( display === "" || display === "none" ) {
+						elem.style.display = jQuery._data(elem, "olddisplay") || "";
+					}
+				}
+			}
+
+			return this;
+		}
+	};
+jQuery.prototype.siblings = function( until, selector ) {
+/// <summary>
+///     Get the siblings of each element in the set of matched elements, optionally filtered by a selector.
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.size = function() {
+/// <summary>
+///     Return the number of elements in the jQuery object.
+/// </summary>
+/// <returns type="Number" />
+
+		return this.length;
+	};
+jQuery.prototype.slice = function() {
+/// <summary>
+///     Reduce the set of matched elements to a subset specified by a range of indices.
+/// </summary>
+/// <param name="" type="Number">
+///     An integer indicating the 0-based position at which the elements begin to be selected. If negative, it indicates an offset from the end of the set.
+/// </param>
+/// <param name="" type="Number">
+///     An integer indicating the 0-based position at which the elements stop being selected. If negative, it indicates an offset from the end of the set. If omitted, the range continues until the end of the set.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.pushStack( slice.apply( this, arguments ),
+			"slice", slice.call(arguments).join(",") );
+	};
+jQuery.prototype.slideDown = function( speed, easing, callback ) {
+/// <summary>
+///     Display the matched elements with a sliding motion.
+///     <para>1 - slideDown(duration, callback) </para>
+///     <para>2 - slideDown(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.slideToggle = function( speed, easing, callback ) {
+/// <summary>
+///     Display or hide the matched elements with a sliding motion.
+///     <para>1 - slideToggle(duration, callback) </para>
+///     <para>2 - slideToggle(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.slideUp = function( speed, easing, callback ) {
+/// <summary>
+///     Hide the matched elements with a sliding motion.
+///     <para>1 - slideUp(duration, callback) </para>
+///     <para>2 - slideUp(duration, easing, callback)</para>
+/// </summary>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.animate( props, speed, easing, callback );
+	};
+jQuery.prototype.stop = function( clearQueue, gotoEnd ) {
+/// <summary>
+///     Stop the currently-running animation on the matched elements.
+/// </summary>
+/// <param name="clearQueue" type="Boolean">
+///     A Boolean indicating whether to remove queued animation as well. Defaults to false.
+/// </param>
+/// <param name="gotoEnd" type="Boolean">
+///     A Boolean indicating whether to complete the current animation immediately. Defaults to false.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( clearQueue ) {
+			this.queue([]);
+		}
+
+		this.each(function() {
+			var timers = jQuery.timers,
+				i = timers.length;
+			// clear marker counters if we know they won't be
+			if ( !gotoEnd ) {
+				jQuery._unmark( true, this );
+			}
+			while ( i-- ) {
+				if ( timers[i].elem === this ) {
+					if (gotoEnd) {
+						// force the next step to be the last
+						timers[i](true);
+					}
+
+					timers.splice(i, 1);
+				}
+			}
+		});
+
+		// start the next in the queue if the last step wasn't forced
+		if ( !gotoEnd ) {
+			this.dequeue();
+		}
+
+		return this;
+	};
+jQuery.prototype.submit = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "submit" JavaScript event, or trigger th
