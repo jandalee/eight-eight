@@ -6543,4 +6543,372 @@ jQuery.prototype.stop = function( clearQueue, gotoEnd ) {
 	};
 jQuery.prototype.submit = function( data, fn ) {
 /// <summary>
-///     Bind an event handler to the "submit" JavaScript event, or trigger th
+///     Bind an event handler to the "submit" JavaScript event, or trigger that event on an element.
+///     <para>1 - submit(handler(eventObject)) </para>
+///     <para>2 - submit(eventData, handler(eventObject)) </para>
+///     <para>3 - submit()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.text = function( text ) {
+/// <summary>
+///     1: Get the combined text contents of each element in the set of matched elements, including their descendants.
+///     <para>    1.1 - text()</para>
+///     <para>2: Set the content of each element in the set of matched elements to the specified text.</para>
+///     <para>    2.1 - text(textString) </para>
+///     <para>    2.2 - text(function(index, text))</para>
+/// </summary>
+/// <param name="text" type="String">
+///     A string of text to set as the content of each matched element.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( jQuery.isFunction(text) ) {
+			return this.each(function(i) {
+				var self = jQuery( this );
+
+				self.text( text.call(this, i, self.text()) );
+			});
+		}
+
+		if ( typeof text !== "object" && text !== undefined ) {
+			return this.empty().append( (this[0] && this[0].ownerDocument || document).createTextNode( text ) );
+		}
+
+		return jQuery.text( this );
+	};
+jQuery.prototype.toArray = function() {
+/// <summary>
+///     Retrieve all the DOM elements contained in the jQuery set, as an array.
+/// </summary>
+/// <returns type="Array" />
+
+		return slice.call( this, 0 );
+	};
+jQuery.prototype.toggle = function( fn, fn2, callback ) {
+/// <summary>
+///     1: Bind two or more handlers to the matched elements, to be executed on alternate clicks.
+///     <para>    1.1 - toggle(handler(eventObject), handler(eventObject), handler(eventObject))</para>
+///     <para>2: Display or hide the matched elements.</para>
+///     <para>    2.1 - toggle(duration, callback) </para>
+///     <para>    2.2 - toggle(duration, easing, callback) </para>
+///     <para>    2.3 - toggle(showOrHide)</para>
+/// </summary>
+/// <param name="fn" type="Function">
+///     A function to execute every even time the element is clicked.
+/// </param>
+/// <param name="fn2" type="Function">
+///     A function to execute every odd time the element is clicked.
+/// </param>
+/// <param name="callback" type="Function">
+///     Additional handlers to cycle through after clicks.
+/// </param>
+/// <returns type="jQuery" />
+
+		var bool = typeof fn === "boolean";
+
+		if ( jQuery.isFunction(fn) && jQuery.isFunction(fn2) ) {
+			this._toggle.apply( this, arguments );
+
+		} else if ( fn == null || bool ) {
+			this.each(function() {
+				var state = bool ? fn : jQuery(this).is(":hidden");
+				jQuery(this)[ state ? "show" : "hide" ]();
+			});
+
+		} else {
+			this.animate(genFx("toggle", 3), fn, fn2, callback);
+		}
+
+		return this;
+	};
+jQuery.prototype.toggleClass = function( value, stateVal ) {
+/// <summary>
+///     Add or remove one or more classes from each element in the set of matched elements, depending on either the class's presence or the value of the switch argument.
+///     <para>1 - toggleClass(className) </para>
+///     <para>2 - toggleClass(className, switch) </para>
+///     <para>3 - toggleClass(switch) </para>
+///     <para>4 - toggleClass(function(index, class, switch), switch)</para>
+/// </summary>
+/// <param name="value" type="String">
+///     One or more class names (separated by spaces) to be toggled for each element in the matched set.
+/// </param>
+/// <param name="stateVal" type="Boolean">
+///     A Boolean (not just truthy/falsy) value to determine whether the class should be added or removed.
+/// </param>
+/// <returns type="jQuery" />
+
+		var type = typeof value,
+			isBool = typeof stateVal === "boolean";
+
+		if ( jQuery.isFunction( value ) ) {
+			return this.each(function( i ) {
+				jQuery( this ).toggleClass( value.call(this, i, this.className, stateVal), stateVal );
+			});
+		}
+
+		return this.each(function() {
+			if ( type === "string" ) {
+				// toggle individual class names
+				var className,
+					i = 0,
+					self = jQuery( this ),
+					state = stateVal,
+					classNames = value.split( rspace );
+
+				while ( (className = classNames[ i++ ]) ) {
+					// check each className given, space seperated list
+					state = isBool ? state : !self.hasClass( className );
+					self[ state ? "addClass" : "removeClass" ]( className );
+				}
+
+			} else if ( type === "undefined" || type === "boolean" ) {
+				if ( this.className ) {
+					// store className if set
+					jQuery._data( this, "__className__", this.className );
+				}
+
+				// toggle whole className
+				this.className = this.className || value === false ? "" : jQuery._data( this, "__className__" ) || "";
+			}
+		});
+	};
+jQuery.prototype.trigger = function( type, data ) {
+/// <summary>
+///     Execute all handlers and behaviors attached to the matched elements for the given event type.
+///     <para>1 - trigger(eventType, extraParameters) </para>
+///     <para>2 - trigger(event)</para>
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing a JavaScript event type, such as click or submit.
+/// </param>
+/// <param name="data" type="Object">
+///     Additional parameters to pass along to the event handler.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.each(function() {
+			jQuery.event.trigger( type, data, this );
+		});
+	};
+jQuery.prototype.triggerHandler = function( type, data ) {
+/// <summary>
+///     Execute all handlers attached to an element for an event.
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing a JavaScript event type, such as click or submit.
+/// </param>
+/// <param name="data" type="Array">
+///     An array of additional parameters to pass along to the event handler.
+/// </param>
+/// <returns type="Object" />
+
+		if ( this[0] ) {
+			return jQuery.event.trigger( type, data, this[0], true );
+		}
+	};
+jQuery.prototype.unbind = function( type, fn ) {
+/// <summary>
+///     Remove a previously-attached event handler from the elements.
+///     <para>1 - unbind(eventType, handler(eventObject)) </para>
+///     <para>2 - unbind(eventType, false) </para>
+///     <para>3 - unbind(event)</para>
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing a JavaScript event type, such as click or submit.
+/// </param>
+/// <param name="fn" type="Function">
+///     The function that is to be no longer executed.
+/// </param>
+/// <returns type="jQuery" />
+
+		// Handle object literals
+		if ( typeof type === "object" && !type.preventDefault ) {
+			for ( var key in type ) {
+				this.unbind(key, type[key]);
+			}
+
+		} else {
+			for ( var i = 0, l = this.length; i < l; i++ ) {
+				jQuery.event.remove( this[i], type, fn );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.undelegate = function( selector, types, fn ) {
+/// <summary>
+///     Remove a handler from the event for all elements which match the current selector, now or in the future, based upon a specific set of root elements.
+///     <para>1 - undelegate() </para>
+///     <para>2 - undelegate(selector, eventType) </para>
+///     <para>3 - undelegate(selector, eventType, handler) </para>
+///     <para>4 - undelegate(selector, events) </para>
+///     <para>5 - undelegate(namespace)</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A selector which will be used to filter the event results.
+/// </param>
+/// <param name="types" type="String">
+///     A string containing a JavaScript event type, such as "click" or "keydown"
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute at the time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( arguments.length === 0 ) {
+			return this.unbind( "live" );
+
+		} else {
+			return this.die( types, null, fn, selector );
+		}
+	};
+jQuery.prototype.unload = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "unload" JavaScript event.
+///     <para>1 - unload(handler(eventObject)) </para>
+///     <para>2 - unload(eventData, handler(eventObject))</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.unwrap = function() {
+/// <summary>
+///     Remove the parents of the set of matched elements from the DOM, leaving the matched elements in their place.
+/// </summary>
+/// <returns type="jQuery" />
+
+		return this.parent().each(function() {
+			if ( !jQuery.nodeName( this, "body" ) ) {
+				jQuery( this ).replaceWith( this.childNodes );
+			}
+		}).end();
+	};
+jQuery.prototype.val = function( value ) {
+/// <summary>
+///     1: Get the current value of the first element in the set of matched elements.
+///     <para>    1.1 - val()</para>
+///     <para>2: Set the value of each element in the set of matched elements.</para>
+///     <para>    2.1 - val(value) </para>
+///     <para>    2.2 - val(function(index, value))</para>
+/// </summary>
+/// <param name="value" type="String">
+///     A string of text or an array of strings corresponding to the value of each matched element to set as selected/checked.
+/// </param>
+/// <returns type="jQuery" />
+
+		var hooks, ret,
+			elem = this[0];
+		
+		if ( !arguments.length ) {
+			if ( elem ) {
+				hooks = jQuery.valHooks[ elem.nodeName.toLowerCase() ] || jQuery.valHooks[ elem.type ];
+
+				if ( hooks && "get" in hooks && (ret = hooks.get( elem, "value" )) !== undefined ) {
+					return ret;
+				}
+
+				ret = elem.value;
+
+				return typeof ret === "string" ? 
+					// handle most common string cases
+					ret.replace(rreturn, "") : 
+					// handle cases where value is null/undef or number
+					ret == null ? "" : ret;
+			}
+
+			return undefined;
+		}
+
+		var isFunction = jQuery.isFunction( value );
+
+		return this.each(function( i ) {
+			var self = jQuery(this), val;
+
+			if ( this.nodeType !== 1 ) {
+				return;
+			}
+
+			if ( isFunction ) {
+				val = value.call( this, i, self.val() );
+			} else {
+				val = value;
+			}
+
+			// Treat null/undefined as ""; convert numbers to string
+			if ( val == null ) {
+				val = "";
+			} else if ( typeof val === "number" ) {
+				val += "";
+			} else if ( jQuery.isArray( val ) ) {
+				val = jQuery.map(val, function ( value ) {
+					return value == null ? "" : value + "";
+				});
+			}
+
+			hooks = jQuery.valHooks[ this.nodeName.toLowerCase() ] || jQuery.valHooks[ this.type ];
+
+			// If set returns undefined, fall back to normal setting
+			if ( !hooks || !("set" in hooks) || hooks.set( this, val, "value" ) === undefined ) {
+				this.value = val;
+			}
+		});
+	};
+jQuery.prototype.width = function( size ) {
+/// <summary>
+///     1: Get the current computed width for the first element in the set of matched elements.
+///     <para>    1.1 - width()</para>
+///     <para>2: Set the CSS width of each element in the set of matched elements.</para>
+///     <para>    2.1 - width(value) </para>
+///     <para>    2.2 - width(function(index, width))</para>
+/// </summary>
+/// <param name="size" type="Number">
+///     An integer representing the number of pixels, or an integer along with an optional unit of measure appended (as a string).
+/// </param>
+/// <returns type="jQuery" />
+
+		// Get window width or height
+		var elem = this[0];
+		if ( !elem ) {
+			return size == null ? null : this;
+		}
+
+		if ( jQuery.isFunction( size ) ) {
+			return this.each(function( i ) {
+				var self = jQuery( this );
+				self[ type ]( size.call( this, i, self[ type ]() ) );
+			});
+		}
+
+		if ( jQuery.isWindow( elem ) ) {
+			// Everyone else use document.documentElement or document.body depending on Quirks vs Standards mode
+			// 3rd condition allow
