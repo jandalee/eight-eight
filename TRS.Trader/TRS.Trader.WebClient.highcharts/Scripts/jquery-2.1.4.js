@@ -4667,4 +4667,458 @@ jQuery.removeEvent = function( elem, type, handle ) {
 
 jQuery.Event = function( src, props ) {
 	// Allow instantiation without the 'new' keyword
-	if ( 
+	if ( !(this instanceof jQuery.Event) ) {
+		return new jQuery.Event( src, props );
+	}
+
+	// Event object
+	if ( src && src.type ) {
+		this.originalEvent = src;
+		this.type = src.type;
+
+		// Events bubbling up the document may have been marked as prevented
+		// by a handler lower down the tree; reflect the correct value.
+		this.isDefaultPrevented = src.defaultPrevented ||
+				src.defaultPrevented === undefined &&
+				// Support: Android<4.0
+				src.returnValue === false ?
+			returnTrue :
+			returnFalse;
+
+	// Event type
+	} else {
+		this.type = src;
+	}
+
+	// Put explicitly provided properties onto the event object
+	if ( props ) {
+		jQuery.extend( this, props );
+	}
+
+	// Create a timestamp if incoming event doesn't have one
+	this.timeStamp = src && src.timeStamp || jQuery.now();
+
+	// Mark it as fixed
+	this[ jQuery.expando ] = true;
+};
+
+// jQuery.Event is based on DOM3 Events as specified by the ECMAScript Language Binding
+// http://www.w3.org/TR/2003/WD-DOM-Level-3-Events-20030331/ecma-script-binding.html
+jQuery.Event.prototype = {
+	isDefaultPrevented: returnFalse,
+	isPropagationStopped: returnFalse,
+	isImmediatePropagationStopped: returnFalse,
+
+	preventDefault: function() {
+		var e = this.originalEvent;
+
+		this.isDefaultPrevented = returnTrue;
+
+		if ( e && e.preventDefault ) {
+			e.preventDefault();
+		}
+	},
+	stopPropagation: function() {
+		var e = this.originalEvent;
+
+		this.isPropagationStopped = returnTrue;
+
+		if ( e && e.stopPropagation ) {
+			e.stopPropagation();
+		}
+	},
+	stopImmediatePropagation: function() {
+		var e = this.originalEvent;
+
+		this.isImmediatePropagationStopped = returnTrue;
+
+		if ( e && e.stopImmediatePropagation ) {
+			e.stopImmediatePropagation();
+		}
+
+		this.stopPropagation();
+	}
+};
+
+// Create mouseenter/leave events using mouseover/out and event-time checks
+// Support: Chrome 15+
+jQuery.each({
+	mouseenter: "mouseover",
+	mouseleave: "mouseout",
+	pointerenter: "pointerover",
+	pointerleave: "pointerout"
+}, function( orig, fix ) {
+	jQuery.event.special[ orig ] = {
+		delegateType: fix,
+		bindType: fix,
+
+		handle: function( event ) {
+			var ret,
+				target = this,
+				related = event.relatedTarget,
+				handleObj = event.handleObj;
+
+			// For mousenter/leave call the handler if related is outside the target.
+			// NB: No relatedTarget if the mouse left/entered the browser window
+			if ( !related || (related !== target && !jQuery.contains( target, related )) ) {
+				event.type = handleObj.origType;
+				ret = handleObj.handler.apply( this, arguments );
+				event.type = fix;
+			}
+			return ret;
+		}
+	};
+});
+
+// Support: Firefox, Chrome, Safari
+// Create "bubbling" focus and blur events
+if ( !support.focusinBubbles ) {
+	jQuery.each({ focus: "focusin", blur: "focusout" }, function( orig, fix ) {
+
+		// Attach a single capturing handler on the document while someone wants focusin/focusout
+		var handler = function( event ) {
+				jQuery.event.simulate( fix, event.target, jQuery.event.fix( event ), true );
+			};
+
+		jQuery.event.special[ fix ] = {
+			setup: function() {
+				var doc = this.ownerDocument || this,
+					attaches = data_priv.access( doc, fix );
+
+				if ( !attaches ) {
+					doc.addEventListener( orig, handler, true );
+				}
+				data_priv.access( doc, fix, ( attaches || 0 ) + 1 );
+			},
+			teardown: function() {
+				var doc = this.ownerDocument || this,
+					attaches = data_priv.access( doc, fix ) - 1;
+
+				if ( !attaches ) {
+					doc.removeEventListener( orig, handler, true );
+					data_priv.remove( doc, fix );
+
+				} else {
+					data_priv.access( doc, fix, attaches );
+				}
+			}
+		};
+	});
+}
+
+jQuery.fn.extend({
+
+	on: function( types, selector, data, fn, /*INTERNAL*/ one ) {
+		var origFn, type;
+
+		// Types can be a map of types/handlers
+		if ( typeof types === "object" ) {
+			// ( types-Object, selector, data )
+			if ( typeof selector !== "string" ) {
+				// ( types-Object, data )
+				data = data || selector;
+				selector = undefined;
+			}
+			for ( type in types ) {
+				this.on( type, selector, data, types[ type ], one );
+			}
+			return this;
+		}
+
+		if ( data == null && fn == null ) {
+			// ( types, fn )
+			fn = selector;
+			data = selector = undefined;
+		} else if ( fn == null ) {
+			if ( typeof selector === "string" ) {
+				// ( types, selector, fn )
+				fn = data;
+				data = undefined;
+			} else {
+				// ( types, data, fn )
+				fn = data;
+				data = selector;
+				selector = undefined;
+			}
+		}
+		if ( fn === false ) {
+			fn = returnFalse;
+		} else if ( !fn ) {
+			return this;
+		}
+
+		if ( one === 1 ) {
+			origFn = fn;
+			fn = function( event ) {
+				// Can use an empty set, since event contains the info
+				jQuery().off( event );
+				return origFn.apply( this, arguments );
+			};
+			// Use same guid so caller can remove using origFn
+			fn.guid = origFn.guid || ( origFn.guid = jQuery.guid++ );
+		}
+		return this.each( function() {
+			jQuery.event.add( this, types, fn, data, selector );
+		});
+	},
+	one: function( types, selector, data, fn ) {
+		return this.on( types, selector, data, fn, 1 );
+	},
+	off: function( types, selector, fn ) {
+		var handleObj, type;
+		if ( types && types.preventDefault && types.handleObj ) {
+			// ( event )  dispatched jQuery.Event
+			handleObj = types.handleObj;
+			jQuery( types.delegateTarget ).off(
+				handleObj.namespace ? handleObj.origType + "." + handleObj.namespace : handleObj.origType,
+				handleObj.selector,
+				handleObj.handler
+			);
+			return this;
+		}
+		if ( typeof types === "object" ) {
+			// ( types-object [, selector] )
+			for ( type in types ) {
+				this.off( type, selector, types[ type ] );
+			}
+			return this;
+		}
+		if ( selector === false || typeof selector === "function" ) {
+			// ( types [, fn] )
+			fn = selector;
+			selector = undefined;
+		}
+		if ( fn === false ) {
+			fn = returnFalse;
+		}
+		return this.each(function() {
+			jQuery.event.remove( this, types, fn, selector );
+		});
+	},
+
+	trigger: function( type, data ) {
+		return this.each(function() {
+			jQuery.event.trigger( type, data, this );
+		});
+	},
+	triggerHandler: function( type, data ) {
+		var elem = this[0];
+		if ( elem ) {
+			return jQuery.event.trigger( type, data, elem, true );
+		}
+	}
+});
+
+
+var
+	rxhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/gi,
+	rtagName = /<([\w:]+)/,
+	rhtml = /<|&#?\w+;/,
+	rnoInnerhtml = /<(?:script|style|link)/i,
+	// checked="checked" or checked
+	rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
+	rscriptType = /^$|\/(?:java|ecma)script/i,
+	rscriptTypeMasked = /^true\/(.*)/,
+	rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g,
+
+	// We have to close these tags to support XHTML (#13200)
+	wrapMap = {
+
+		// Support: IE9
+		option: [ 1, "<select multiple='multiple'>", "</select>" ],
+
+		thead: [ 1, "<table>", "</table>" ],
+		col: [ 2, "<table><colgroup>", "</colgroup></table>" ],
+		tr: [ 2, "<table><tbody>", "</tbody></table>" ],
+		td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
+
+		_default: [ 0, "", "" ]
+	};
+
+// Support: IE9
+wrapMap.optgroup = wrapMap.option;
+
+wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
+wrapMap.th = wrapMap.td;
+
+// Support: 1.x compatibility
+// Manipulating tables requires a tbody
+function manipulationTarget( elem, content ) {
+	return jQuery.nodeName( elem, "table" ) &&
+		jQuery.nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ?
+
+		elem.getElementsByTagName("tbody")[0] ||
+			elem.appendChild( elem.ownerDocument.createElement("tbody") ) :
+		elem;
+}
+
+// Replace/restore the type attribute of script elements for safe DOM manipulation
+function disableScript( elem ) {
+	elem.type = (elem.getAttribute("type") !== null) + "/" + elem.type;
+	return elem;
+}
+function restoreScript( elem ) {
+	var match = rscriptTypeMasked.exec( elem.type );
+
+	if ( match ) {
+		elem.type = match[ 1 ];
+	} else {
+		elem.removeAttribute("type");
+	}
+
+	return elem;
+}
+
+// Mark scripts as having already been evaluated
+function setGlobalEval( elems, refElements ) {
+	var i = 0,
+		l = elems.length;
+
+	for ( ; i < l; i++ ) {
+		data_priv.set(
+			elems[ i ], "globalEval", !refElements || data_priv.get( refElements[ i ], "globalEval" )
+		);
+	}
+}
+
+function cloneCopyEvent( src, dest ) {
+	var i, l, type, pdataOld, pdataCur, udataOld, udataCur, events;
+
+	if ( dest.nodeType !== 1 ) {
+		return;
+	}
+
+	// 1. Copy private data: events, handlers, etc.
+	if ( data_priv.hasData( src ) ) {
+		pdataOld = data_priv.access( src );
+		pdataCur = data_priv.set( dest, pdataOld );
+		events = pdataOld.events;
+
+		if ( events ) {
+			delete pdataCur.handle;
+			pdataCur.events = {};
+
+			for ( type in events ) {
+				for ( i = 0, l = events[ type ].length; i < l; i++ ) {
+					jQuery.event.add( dest, type, events[ type ][ i ] );
+				}
+			}
+		}
+	}
+
+	// 2. Copy user data
+	if ( data_user.hasData( src ) ) {
+		udataOld = data_user.access( src );
+		udataCur = jQuery.extend( {}, udataOld );
+
+		data_user.set( dest, udataCur );
+	}
+}
+
+function getAll( context, tag ) {
+	var ret = context.getElementsByTagName ? context.getElementsByTagName( tag || "*" ) :
+			context.querySelectorAll ? context.querySelectorAll( tag || "*" ) :
+			[];
+
+	return tag === undefined || tag && jQuery.nodeName( context, tag ) ?
+		jQuery.merge( [ context ], ret ) :
+		ret;
+}
+
+// Fix IE bugs, see support tests
+function fixInput( src, dest ) {
+	var nodeName = dest.nodeName.toLowerCase();
+
+	// Fails to persist the checked state of a cloned checkbox or radio button.
+	if ( nodeName === "input" && rcheckableType.test( src.type ) ) {
+		dest.checked = src.checked;
+
+	// Fails to return the selected option to the default selected state when cloning options
+	} else if ( nodeName === "input" || nodeName === "textarea" ) {
+		dest.defaultValue = src.defaultValue;
+	}
+}
+
+jQuery.extend({
+	clone: function( elem, dataAndEvents, deepDataAndEvents ) {
+		var i, l, srcElements, destElements,
+			clone = elem.cloneNode( true ),
+			inPage = jQuery.contains( elem.ownerDocument, elem );
+
+		// Fix IE cloning issues
+		if ( !support.noCloneChecked && ( elem.nodeType === 1 || elem.nodeType === 11 ) &&
+				!jQuery.isXMLDoc( elem ) ) {
+
+			// We eschew Sizzle here for performance reasons: http://jsperf.com/getall-vs-sizzle/2
+			destElements = getAll( clone );
+			srcElements = getAll( elem );
+
+			for ( i = 0, l = srcElements.length; i < l; i++ ) {
+				fixInput( srcElements[ i ], destElements[ i ] );
+			}
+		}
+
+		// Copy the events from the original to the clone
+		if ( dataAndEvents ) {
+			if ( deepDataAndEvents ) {
+				srcElements = srcElements || getAll( elem );
+				destElements = destElements || getAll( clone );
+
+				for ( i = 0, l = srcElements.length; i < l; i++ ) {
+					cloneCopyEvent( srcElements[ i ], destElements[ i ] );
+				}
+			} else {
+				cloneCopyEvent( elem, clone );
+			}
+		}
+
+		// Preserve script evaluation history
+		destElements = getAll( clone, "script" );
+		if ( destElements.length > 0 ) {
+			setGlobalEval( destElements, !inPage && getAll( elem, "script" ) );
+		}
+
+		// Return the cloned set
+		return clone;
+	},
+
+	buildFragment: function( elems, context, scripts, selection ) {
+		var elem, tmp, tag, wrap, contains, j,
+			fragment = context.createDocumentFragment(),
+			nodes = [],
+			i = 0,
+			l = elems.length;
+
+		for ( ; i < l; i++ ) {
+			elem = elems[ i ];
+
+			if ( elem || elem === 0 ) {
+
+				// Add nodes directly
+				if ( jQuery.type( elem ) === "object" ) {
+					// Support: QtWebKit, PhantomJS
+					// push.apply(_, arraylike) throws on ancient WebKit
+					jQuery.merge( nodes, elem.nodeType ? [ elem ] : elem );
+
+				// Convert non-html into a text node
+				} else if ( !rhtml.test( elem ) ) {
+					nodes.push( context.createTextNode( elem ) );
+
+				// Convert html into DOM nodes
+				} else {
+					tmp = tmp || fragment.appendChild( context.createElement("div") );
+
+					// Deserialize a standard representation
+					tag = ( rtagName.exec( elem ) || [ "", "" ] )[ 1 ].toLowerCase();
+					wrap = wrapMap[ tag ] || wrapMap._default;
+					tmp.innerHTML = wrap[ 1 ] + elem.replace( rxhtmlTag, "<$1></$2>" ) + wrap[ 2 ];
+
+					// Descend through wrappers to the right content
+					j = wrap[ 0 ];
+					while ( j-- ) {
+						tmp = tmp.lastChild;
+					}
+
+					// Support: QtWebKit, PhantomJS
+					// push.apply(_, arraylike) throws on ancient WebKit
+					jQuery.merge( nodes, tmp.childNodes );
