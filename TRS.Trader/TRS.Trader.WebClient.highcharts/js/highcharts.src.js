@@ -1681,4 +1681,472 @@ var Color = function (input) {
 	function init(input) {
 
 		// Gradients
-		if (i
+		if (input && input.stops) {
+			stops = map(input.stops, function (stop) {
+				return Color(stop[1]);
+			});
+
+		// Solid colors
+		} else {
+			// rgba
+			result = rgbaRegEx.exec(input);
+			if (result) {
+				rgba = [pInt(result[1]), pInt(result[2]), pInt(result[3]), parseFloat(result[4], 10)];
+			} else { 
+				// hex
+				result = hexRegEx.exec(input);
+				if (result) {
+					rgba = [pInt(result[1], 16), pInt(result[2], 16), pInt(result[3], 16), 1];
+				} else {
+					// rgb
+					result = rgbRegEx.exec(input);
+					if (result) {
+						rgba = [pInt(result[1]), pInt(result[2]), pInt(result[3]), 1];
+					}
+				}
+			}
+		}		
+
+	}
+	/**
+	 * Return the color a specified format
+	 * @param {String} format
+	 */
+	function get(format) {
+		var ret;
+
+		if (stops) {
+			ret = merge(input);
+			ret.stops = [].concat(ret.stops);
+			each(stops, function (stop, i) {
+				ret.stops[i] = [ret.stops[i][0], stop.get(format)];
+			});
+
+		// it's NaN if gradient colors on a column chart
+		} else if (rgba && !isNaN(rgba[0])) {
+			if (format === 'rgb') {
+				ret = 'rgb(' + rgba[0] + ',' + rgba[1] + ',' + rgba[2] + ')';
+			} else if (format === 'a') {
+				ret = rgba[3];
+			} else {
+				ret = 'rgba(' + rgba.join(',') + ')';
+			}
+		} else {
+			ret = input;
+		}
+		return ret;
+	}
+
+	/**
+	 * Brighten the color
+	 * @param {Number} alpha
+	 */
+	function brighten(alpha) {
+		if (stops) {
+			each(stops, function (stop) {
+				stop.brighten(alpha);
+			});
+		
+		} else if (isNumber(alpha) && alpha !== 0) {
+			var i;
+			for (i = 0; i < 3; i++) {
+				rgba[i] += pInt(alpha * 255);
+
+				if (rgba[i] < 0) {
+					rgba[i] = 0;
+				}
+				if (rgba[i] > 255) {
+					rgba[i] = 255;
+				}
+			}
+		}
+		return this;
+	}
+	/**
+	 * Set the color's opacity to a given alpha value
+	 * @param {Number} alpha
+	 */
+	function setOpacity(alpha) {
+		rgba[3] = alpha;
+		return this;
+	}
+
+	// initialize: parse the input
+	init(input);
+
+	// public methods
+	return {
+		get: get,
+		brighten: brighten,
+		rgba: rgba,
+		setOpacity: setOpacity,
+		raw: input
+	};
+};
+
+
+/**
+ * A wrapper object for SVG elements
+ */
+function SVGElement() {}
+
+SVGElement.prototype = {
+	
+	// Default base for animation
+	opacity: 1,
+	// For labels, these CSS properties are applied to the <text> node directly
+	textProps: ['fontSize', 'fontWeight', 'fontFamily', 'fontStyle', 'color', 
+		'lineHeight', 'width', 'textDecoration', 'textShadow'],
+	
+	/**
+	 * Initialize the SVG renderer
+	 * @param {Object} renderer
+	 * @param {String} nodeName
+	 */
+	init: function (renderer, nodeName) {
+		var wrapper = this;
+		wrapper.element = nodeName === 'span' ?
+			createElement(nodeName) :
+			doc.createElementNS(SVG_NS, nodeName);
+		wrapper.renderer = renderer;
+	},
+	
+	/**
+	 * Animate a given attribute
+	 * @param {Object} params
+	 * @param {Number} options The same options as in jQuery animation
+	 * @param {Function} complete Function to perform at the end of animation
+	 */
+	animate: function (params, options, complete) {
+		var animOptions = pick(options, globalAnimation, true);
+		stop(this); // stop regardless of animation actually running, or reverting to .attr (#607)
+		if (animOptions) {
+			animOptions = merge(animOptions, {}); //#2625
+			if (complete) { // allows using a callback with the global animation without overwriting it
+				animOptions.complete = complete;
+			}
+			animate(this, params, animOptions);
+		} else {
+			this.attr(params);
+			if (complete) {
+				complete();
+			}
+		}
+		return this;
+	},
+
+	/**
+	 * Build an SVG gradient out of a common JavaScript configuration object
+	 */
+	colorGradient: function (color, prop, elem) {
+		var renderer = this.renderer,
+			colorObject,
+			gradName,
+			gradAttr,
+			gradients,
+			gradientObject,
+			stops,
+			stopColor,
+			stopOpacity,
+			radialReference,
+			n,
+			id,
+			key = [];
+
+		// Apply linear or radial gradients
+		if (color.linearGradient) {
+			gradName = 'linearGradient';
+		} else if (color.radialGradient) {
+			gradName = 'radialGradient';
+		}
+
+		if (gradName) {
+			gradAttr = color[gradName];
+			gradients = renderer.gradients;
+			stops = color.stops;
+			radialReference = elem.radialReference;
+
+			// Keep < 2.2 kompatibility
+			if (isArray(gradAttr)) {
+				color[gradName] = gradAttr = {
+					x1: gradAttr[0],
+					y1: gradAttr[1],
+					x2: gradAttr[2],
+					y2: gradAttr[3],
+					gradientUnits: 'userSpaceOnUse'
+				};
+			}
+
+			// Correct the radial gradient for the radial reference system
+			if (gradName === 'radialGradient' && radialReference && !defined(gradAttr.gradientUnits)) {
+				gradAttr = merge(gradAttr, {
+					cx: (radialReference[0] - radialReference[2] / 2) + gradAttr.cx * radialReference[2],
+					cy: (radialReference[1] - radialReference[2] / 2) + gradAttr.cy * radialReference[2],
+					r: gradAttr.r * radialReference[2],
+					gradientUnits: 'userSpaceOnUse'
+				});
+			}
+
+			// Build the unique key to detect whether we need to create a new element (#1282)
+			for (n in gradAttr) {
+				if (n !== 'id') {
+					key.push(n, gradAttr[n]);
+				}
+			}
+			for (n in stops) {
+				key.push(stops[n]);
+			}
+			key = key.join(',');
+
+			// Check if a gradient object with the same config object is created within this renderer
+			if (gradients[key]) {
+				id = gradients[key].attr('id');
+
+			} else {
+
+				// Set the id and create the element
+				gradAttr.id = id = PREFIX + idCounter++;
+				gradients[key] = gradientObject = renderer.createElement(gradName)
+					.attr(gradAttr)
+					.add(renderer.defs);
+
+
+				// The gradient needs to keep a list of stops to be able to destroy them
+				gradientObject.stops = [];
+				each(stops, function (stop) {
+					var stopObject;
+					if (stop[1].indexOf('rgba') === 0) {
+						colorObject = Color(stop[1]);
+						stopColor = colorObject.get('rgb');
+						stopOpacity = colorObject.get('a');
+					} else {
+						stopColor = stop[1];
+						stopOpacity = 1;
+					}
+					stopObject = renderer.createElement('stop').attr({
+						offset: stop[0],
+						'stop-color': stopColor,
+						'stop-opacity': stopOpacity
+					}).add(gradientObject);
+
+					// Add the stop element to the gradient
+					gradientObject.stops.push(stopObject);
+				});
+			}
+
+			// Set the reference to the gradient object
+			elem.setAttribute(prop, 'url(' + renderer.url + '#' + id + ')');
+		} 
+	},
+
+	/**
+	 * Apply a polyfill to the text-stroke CSS property, by copying the text element
+	 * and apply strokes to the copy.
+	 *
+	 * docs: update default, document the polyfill and the limitations on hex colors and pixel values, document contrast pseudo-color
+	 * TODO: 
+	 * - update defaults
+	 */
+	applyTextShadow: function (textShadow) {
+		var elem = this.element,
+			tspans,
+			hasContrast = textShadow.indexOf('contrast') !== -1,
+			styles = {},
+			// IE10 and IE11 report textShadow in elem.style even though it doesn't work. Check
+			// this again with new IE release. In exports, the rendering is passed to PhantomJS. 
+			supports = this.renderer.forExport || (elem.style.textShadow !== UNDEFINED && !isIE);
+
+		// When the text shadow is set to contrast, use dark stroke for light text and vice versa
+		if (hasContrast) {
+			styles.textShadow = textShadow = textShadow.replace(/contrast/g, this.renderer.getContrast(elem.style.fill));
+		}
+
+		// Safari with retina displays as well as PhantomJS bug (#3974). Firefox does not tolerate this,
+		// it removes the text shadows.
+		if (isWebKit) {
+			styles.textRendering = 'geometricPrecision';
+		}
+
+		/* Selective side-by-side testing in supported browser (http://jsfiddle.net/highcharts/73L1ptrh/)
+		if (elem.textContent.indexOf('2.') === 0) {
+			elem.style['text-shadow'] = 'none';
+			supports = false;
+		}
+		// */
+
+		// No reason to polyfill, we've got native support
+		if (supports) {
+			css(elem, styles); // Apply altered textShadow or textRendering workaround
+		} else {
+
+			this.fakeTS = true; // Fake text shadow
+
+			// In order to get the right y position of the clones, 
+			// copy over the y setter
+			this.ySetter = this.xSetter;
+
+			tspans = [].slice.call(elem.getElementsByTagName('tspan'));
+			each(textShadow.split(/\s?,\s?/g), function (textShadow) {
+				var firstChild = elem.firstChild,
+					color,
+					strokeWidth;
+				
+				textShadow = textShadow.split(' ');
+				color = textShadow[textShadow.length - 1];
+
+				// Approximately tune the settings to the text-shadow behaviour
+				strokeWidth = textShadow[textShadow.length - 2];
+
+				if (strokeWidth) {
+					each(tspans, function (tspan, y) {
+						var clone;
+
+						// Let the first line start at the correct X position
+						if (y === 0) {
+							tspan.setAttribute('x', elem.getAttribute('x'));
+							y = elem.getAttribute('y');
+							tspan.setAttribute('y', y || 0);
+							if (y === null) {
+								elem.setAttribute('y', 0);
+							}
+						}
+
+						// Create the clone and apply shadow properties
+						clone = tspan.cloneNode(1);
+						attr(clone, {
+							'class': PREFIX + 'text-shadow',
+							'fill': color,
+							'stroke': color,
+							'stroke-opacity': 1 / mathMax(pInt(strokeWidth), 3),
+							'stroke-width': strokeWidth,
+							'stroke-linejoin': 'round'
+						});
+						elem.insertBefore(clone, firstChild);
+					});
+				}
+			});
+		}
+	},
+
+	/**
+	 * Set or get a given attribute
+	 * @param {Object|String} hash
+	 * @param {Mixed|Undefined} val
+	 */
+	attr: function (hash, val) {
+		var key,
+			value,
+			element = this.element,
+			hasSetSymbolSize,
+			ret = this,
+			skipAttr;
+
+		// single key-value pair
+		if (typeof hash === 'string' && val !== UNDEFINED) {
+			key = hash;
+			hash = {};
+			hash[key] = val;
+		}
+
+		// used as a getter: first argument is a string, second is undefined
+		if (typeof hash === 'string') {
+			ret = (this[hash + 'Getter'] || this._defaultGetter).call(this, hash, element);
+		
+		// setter
+		} else {
+
+			for (key in hash) {
+				value = hash[key];
+				skipAttr = false;
+
+
+
+				if (this.symbolName && /^(x|y|width|height|r|start|end|innerR|anchorX|anchorY)/.test(key)) {
+					if (!hasSetSymbolSize) {
+						this.symbolAttr(hash);
+						hasSetSymbolSize = true;
+					}
+					skipAttr = true;
+				}
+
+				if (this.rotation && (key === 'x' || key === 'y')) {
+					this.doTransform = true;
+				}
+				
+				if (!skipAttr) {
+					(this[key + 'Setter'] || this._defaultSetter).call(this, value, key, element);
+				}
+
+				// Let the shadow follow the main element
+				if (this.shadows && /^(width|height|visibility|x|y|d|transform|cx|cy|r)$/.test(key)) {
+					this.updateShadows(key, value);
+				}
+			}
+
+			// Update transform. Do this outside the loop to prevent redundant updating for batch setting
+			// of attributes.
+			if (this.doTransform) {
+				this.updateTransform();
+				this.doTransform = false;
+			}
+
+		}
+
+		return ret;
+	},
+
+	updateShadows: function (key, value) {
+		var shadows = this.shadows,
+			i = shadows.length;
+		while (i--) {
+			shadows[i].setAttribute(
+				key,
+				key === 'height' ?
+					mathMax(value - (shadows[i].cutHeight || 0), 0) :
+					key === 'd' ? this.d : value
+			);
+		}
+	},
+
+	/**
+	 * Add a class name to an element
+	 */
+	addClass: function (className) {
+		var element = this.element,
+			currentClassName = attr(element, 'class') || '';
+
+		if (currentClassName.indexOf(className) === -1) {
+			attr(element, 'class', currentClassName + ' ' + className);
+		}
+		return this;
+	},
+	/* hasClass and removeClass are not (yet) needed
+	hasClass: function (className) {
+		return attr(this.element, 'class').indexOf(className) !== -1;
+	},
+	removeClass: function (className) {
+		attr(this.element, 'class', attr(this.element, 'class').replace(className, ''));
+		return this;
+	},
+	*/
+
+	/**
+	 * If one of the symbol size affecting parameters are changed,
+	 * check all the others only once for each call to an element's
+	 * .attr() method
+	 * @param {Object} hash
+	 */
+	symbolAttr: function (hash) {
+		var wrapper = this;
+
+		each(['x', 'y', 'r', 'start', 'end', 'width', 'height', 'innerR', 'anchorX', 'anchorY'], function (key) {
+			wrapper[key] = pick(hash[key], wrapper[key]);
+		});
+
+		wrapper.attr({
+			d: wrapper.renderer.symbols[wrapper.symbolName](
+				wrapper.x,
+				wrapper.y,
+				wrapper.width,
+				wrapper.height,
+				wrapper
