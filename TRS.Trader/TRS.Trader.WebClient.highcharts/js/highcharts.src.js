@@ -2601,4 +2601,455 @@ SVGElement.prototype = {
 		}, {
 			duration: duration || 150,
 			complete: function () {
-				elemWrapper.attr({ y: -9999 }); // #3088, assuming we're only using this for tool
+				elemWrapper.attr({ y: -9999 }); // #3088, assuming we're only using this for tooltips
+			}
+		});
+	},
+
+	/**
+	 * Add the element
+	 * @param {Object|Undefined} parent Can be an element, an element wrapper or undefined
+	 *	to append the element to the renderer.box.
+	 */
+	add: function (parent) {
+
+		var renderer = this.renderer,
+			element = this.element,
+			inserted;
+
+		if (parent) {
+			this.parentGroup = parent;
+		}
+
+		// mark as inverted
+		this.parentInverted = parent && parent.inverted;
+
+		// build formatted text
+		if (this.textStr !== undefined) {
+			renderer.buildText(this);
+		}
+
+		// Mark as added
+		this.added = true;
+
+		// If we're adding to renderer root, or other elements in the group 
+		// have a z index, we need to handle it
+		if (!parent || parent.handleZ || this.zIndex) {
+			inserted = this.zIndexSetter();
+		}
+
+		// If zIndex is not handled, append at the end
+		if (!inserted) {
+			(parent ? parent.element : renderer.box).appendChild(element);
+		}
+
+		// fire an event for internal hooks
+		if (this.onAdd) {
+			this.onAdd();
+		}
+
+		return this;
+	},
+
+	/**
+	 * Removes a child either by removeChild or move to garbageBin.
+	 * Issue 490; in VML removeChild results in Orphaned nodes according to sIEve, discardElement does not.
+	 */
+	safeRemoveChild: function (element) {
+		var parentNode = element.parentNode;
+		if (parentNode) {
+			parentNode.removeChild(element);
+		}
+	},
+
+	/**
+	 * Destroy the element and element wrapper
+	 */
+	destroy: function () {
+		var wrapper = this,
+			element = wrapper.element || {},
+			shadows = wrapper.shadows,
+			parentToClean = wrapper.renderer.isSVG && element.nodeName === 'SPAN' && wrapper.parentGroup,
+			grandParent,
+			key,
+			i;
+
+		// remove events
+		element.onclick = element.onmouseout = element.onmouseover = element.onmousemove = element.point = null;
+		stop(wrapper); // stop running animations
+
+		if (wrapper.clipPath) {
+			wrapper.clipPath = wrapper.clipPath.destroy();
+		}
+
+		// Destroy stops in case this is a gradient object
+		if (wrapper.stops) {
+			for (i = 0; i < wrapper.stops.length; i++) {
+				wrapper.stops[i] = wrapper.stops[i].destroy();
+			}
+			wrapper.stops = null;
+		}
+
+		// remove element
+		wrapper.safeRemoveChild(element);
+
+		// destroy shadows
+		if (shadows) {
+			each(shadows, function (shadow) {
+				wrapper.safeRemoveChild(shadow);
+			});
+		}
+
+		// In case of useHTML, clean up empty containers emulating SVG groups (#1960, #2393, #2697).
+		while (parentToClean && parentToClean.div && parentToClean.div.childNodes.length === 0) {
+			grandParent = parentToClean.parentGroup;
+			wrapper.safeRemoveChild(parentToClean.div);
+			delete parentToClean.div;
+			parentToClean = grandParent;
+		}
+
+		// remove from alignObjects
+		if (wrapper.alignTo) {
+			erase(wrapper.renderer.alignedObjects, wrapper);
+		}
+
+		for (key in wrapper) {
+			delete wrapper[key];
+		}
+
+		return null;
+	},
+
+	/**
+	 * Add a shadow to the element. Must be done after the element is added to the DOM
+	 * @param {Boolean|Object} shadowOptions
+	 */
+	shadow: function (shadowOptions, group, cutOff) {
+		var shadows = [],
+			i,
+			shadow,
+			element = this.element,
+			strokeWidth,
+			shadowWidth,
+			shadowElementOpacity,
+
+			// compensate for inverted plot area
+			transform;
+
+
+		if (shadowOptions) {
+			shadowWidth = pick(shadowOptions.width, 3);
+			shadowElementOpacity = (shadowOptions.opacity || 0.15) / shadowWidth;
+			transform = this.parentInverted ?
+				'(-1,-1)' :
+				'(' + pick(shadowOptions.offsetX, 1) + ', ' + pick(shadowOptions.offsetY, 1) + ')';
+			for (i = 1; i <= shadowWidth; i++) {
+				shadow = element.cloneNode(0);
+				strokeWidth = (shadowWidth * 2) + 1 - (2 * i);
+				attr(shadow, {
+					'isShadow': 'true',
+					'stroke': shadowOptions.color || 'black',
+					'stroke-opacity': shadowElementOpacity * i,
+					'stroke-width': strokeWidth,
+					'transform': 'translate' + transform,
+					'fill': NONE
+				});
+				if (cutOff) {
+					attr(shadow, 'height', mathMax(attr(shadow, 'height') - strokeWidth, 0));
+					shadow.cutHeight = strokeWidth;
+				}
+
+				if (group) {
+					group.element.appendChild(shadow);
+				} else {
+					element.parentNode.insertBefore(shadow, element);
+				}
+
+				shadows.push(shadow);
+			}
+
+			this.shadows = shadows;
+		}
+		return this;
+
+	},
+
+	xGetter: function (key) {
+		if (this.element.nodeName === 'circle') {
+			key = { x: 'cx', y: 'cy' }[key] || key;
+		}
+		return this._defaultGetter(key);
+	},
+
+	/** 
+	 * Get the current value of an attribute or pseudo attribute, used mainly
+	 * for animation.
+	 */
+	_defaultGetter: function (key) {
+		var ret = pick(this[key], this.element ? this.element.getAttribute(key) : null, 0);
+
+		if (/^[\-0-9\.]+$/.test(ret)) { // is numerical
+			ret = parseFloat(ret);
+		}
+		return ret;
+	},
+
+
+	dSetter: function (value, key, element) {
+		if (value && value.join) { // join path
+			value = value.join(' ');
+		}
+		if (/(NaN| {2}|^$)/.test(value)) {
+			value = 'M 0 0';
+		}
+		element.setAttribute(key, value);
+
+		this[key] = value;
+	},
+	dashstyleSetter: function (value) {
+		var i;
+		value = value && value.toLowerCase();
+		if (value) {
+			value = value
+				.replace('shortdashdotdot', '3,1,1,1,1,1,')
+				.replace('shortdashdot', '3,1,1,1')
+				.replace('shortdot', '1,1,')
+				.replace('shortdash', '3,1,')
+				.replace('longdash', '8,3,')
+				.replace(/dot/g, '1,3,')
+				.replace('dash', '4,3,')
+				.replace(/,$/, '')
+				.split(','); // ending comma
+
+			i = value.length;
+			while (i--) {
+				value[i] = pInt(value[i]) * this['stroke-width'];
+			}
+			value = value.join(',')
+				.replace('NaN', 'none'); // #3226
+			this.element.setAttribute('stroke-dasharray', value);
+		}
+	},
+	alignSetter: function (value) {
+		this.element.setAttribute('text-anchor', { left: 'start', center: 'middle', right: 'end' }[value]);
+	},
+	opacitySetter: function (value, key, element) {
+		this[key] = value;
+		element.setAttribute(key, value);
+	},
+	titleSetter: function (value) {
+		var titleNode = this.element.getElementsByTagName('title')[0];
+		if (!titleNode) {
+			titleNode = doc.createElementNS(SVG_NS, 'title');
+			this.element.appendChild(titleNode);
+		}
+		titleNode.appendChild(
+			doc.createTextNode(
+				(String(pick(value), '')).replace(/<[^>]*>/g, '') // #3276, #3895
+			)
+		);
+	},
+	textSetter: function (value) {
+		if (value !== this.textStr) {
+			// Delete bBox memo when the text changes
+			delete this.bBox;
+		
+			this.textStr = value;
+			if (this.added) {
+				this.renderer.buildText(this);
+			}
+		}
+	},
+	fillSetter: function (value, key, element) {
+		if (typeof value === 'string') {
+			element.setAttribute(key, value);
+		} else if (value) {
+			this.colorGradient(value, key, element);
+		}
+	},
+	zIndexSetter: function (value, key) {
+		var renderer = this.renderer,
+			parentGroup = this.parentGroup,
+			parentWrapper = parentGroup || renderer,
+			parentNode = parentWrapper.element || renderer.box,
+			childNodes,
+			otherElement,
+			otherZIndex,
+			element = this.element,
+			inserted,
+			run = this.added,
+			i;
+		
+		if (defined(value)) {
+			element.setAttribute(key, value); // So we can read it for other elements in the group
+			value = +value;
+			if (this[key] === value) { // Only update when needed (#3865)
+				run = false;
+			}
+			this[key] = value;
+		}
+
+		// Insert according to this and other elements' zIndex. Before .add() is called,
+		// nothing is done. Then on add, or by later calls to zIndexSetter, the node
+		// is placed on the right place in the DOM.
+		if (run) {
+			value = this.zIndex;
+
+			if (value && parentGroup) {
+				parentGroup.handleZ = true;
+			}
+		
+			childNodes = parentNode.childNodes;
+			for (i = 0; i < childNodes.length && !inserted; i++) {
+				otherElement = childNodes[i];
+				otherZIndex = attr(otherElement, 'zIndex');
+				if (otherElement !== element && (
+						// Insert before the first element with a higher zIndex
+						pInt(otherZIndex) > value ||
+						// If no zIndex given, insert before the first element with a zIndex
+						(!defined(value) && defined(otherZIndex))
+
+						)) {
+					parentNode.insertBefore(element, otherElement);
+					inserted = true;
+				}
+			}
+			if (!inserted) {
+				parentNode.appendChild(element);
+			}
+		}
+		return inserted;
+	},
+	_defaultSetter: function (value, key, element) {
+		element.setAttribute(key, value);
+	}
+};
+
+// Some shared setters and getters
+SVGElement.prototype.yGetter = SVGElement.prototype.xGetter;
+SVGElement.prototype.translateXSetter = SVGElement.prototype.translateYSetter = 
+		SVGElement.prototype.rotationSetter = SVGElement.prototype.verticalAlignSetter = 
+		SVGElement.prototype.scaleXSetter = SVGElement.prototype.scaleYSetter = function (value, key) {
+	this[key] = value;
+	this.doTransform = true;
+};
+
+// WebKit and Batik have problems with a stroke-width of zero, so in this case we remove the 
+// stroke attribute altogether. #1270, #1369, #3065, #3072.
+SVGElement.prototype['stroke-widthSetter'] = SVGElement.prototype.strokeSetter = function (value, key, element) {
+	this[key] = value;
+	// Only apply the stroke attribute if the stroke width is defined and larger than 0
+	if (this.stroke && this['stroke-width']) {
+		this.strokeWidth = this['stroke-width'];
+		SVGElement.prototype.fillSetter.call(this, this.stroke, 'stroke', element); // use prototype as instance may be overridden
+		element.setAttribute('stroke-width', this['stroke-width']);
+		this.hasStroke = true;
+	} else if (key === 'stroke-width' && value === 0 && this.hasStroke) {
+		element.removeAttribute('stroke');
+		this.hasStroke = false;
+	}
+};
+
+
+/**
+ * The default SVG renderer
+ */
+var SVGRenderer = function () {
+	this.init.apply(this, arguments);
+};
+SVGRenderer.prototype = {
+	Element: SVGElement,
+
+	/**
+	 * Initialize the SVGRenderer
+	 * @param {Object} container
+	 * @param {Number} width
+	 * @param {Number} height
+	 * @param {Boolean} forExport
+	 */
+	init: function (container, width, height, style, forExport) {
+		var renderer = this,
+			loc = location,
+			boxWrapper,
+			element,
+			desc;
+
+		boxWrapper = renderer.createElement('svg')
+			.attr({
+				version: '1.1'
+			})
+			.css(this.getStyle(style));
+		element = boxWrapper.element;
+		container.appendChild(element);
+
+		// For browsers other than IE, add the namespace attribute (#1978)
+		if (container.innerHTML.indexOf('xmlns') === -1) {
+			attr(element, 'xmlns', SVG_NS);
+		}
+
+		// object properties
+		renderer.isSVG = true;
+		renderer.box = element;
+		renderer.boxWrapper = boxWrapper;
+		renderer.alignedObjects = [];
+
+		// Page url used for internal references. #24, #672, #1070
+		renderer.url = (isFirefox || isWebKit) && doc.getElementsByTagName('base').length ?
+			loc.href
+				.replace(/#.*?$/, '') // remove the hash
+				.replace(/([\('\)])/g, '\\$1') // escape parantheses and quotes
+				.replace(/ /g, '%20') : // replace spaces (needed for Safari only)
+			'';
+
+		// Add description
+		desc = this.createElement('desc').add();
+		desc.element.appendChild(doc.createTextNode('Created with ' + PRODUCT + ' ' + VERSION));
+
+
+		renderer.defs = this.createElement('defs').add();
+		renderer.forExport = forExport;
+		renderer.gradients = {}; // Object where gradient SvgElements are stored
+		renderer.cache = {}; // Cache for numerical bounding boxes
+
+		renderer.setSize(width, height, false);
+
+
+
+		// Issue 110 workaround:
+		// In Firefox, if a div is positioned by percentage, its pixel position may land
+		// between pixels. The container itself doesn't display this, but an SVG element
+		// inside this container will be drawn at subpixel precision. In order to draw
+		// sharp lines, this must be compensated for. This doesn't seem to work inside
+		// iframes though (like in jsFiddle).
+		var subPixelFix, rect;
+		if (isFirefox && container.getBoundingClientRect) {
+			renderer.subPixelFix = subPixelFix = function () {
+				css(container, { left: 0, top: 0 });
+				rect = container.getBoundingClientRect();
+				css(container, {
+					left: (mathCeil(rect.left) - rect.left) + PX,
+					top: (mathCeil(rect.top) - rect.top) + PX
+				});
+			};
+
+			// run the fix now
+			subPixelFix();
+
+			// run it on resize
+			addEvent(win, 'resize', subPixelFix);
+		}
+	},
+
+	getStyle: function (style) {
+		return (this.style = extend({
+			fontFamily: '"Lucida Grande", "Lucida Sans Unicode", Arial, Helvetica, sans-serif', // default font
+			fontSize: '12px'
+		}, style));
+	},
+
+	/**
+	 * Detect whether the renderer is hidden. This happens when one of the parent elements
+	 * has display: none. #608.
+	 */
+	isHidden: function () {
+		retu
