@@ -2150,3 +2150,455 @@ SVGElement.prototype = {
 				wrapper.width,
 				wrapper.height,
 				wrapper
+			)
+		});
+	},
+
+	/**
+	 * Apply a clipping path to this object
+	 * @param {String} id
+	 */
+	clip: function (clipRect) {
+		return this.attr('clip-path', clipRect ? 'url(' + this.renderer.url + '#' + clipRect.id + ')' : NONE);
+	},
+
+	/**
+	 * Calculate the coordinates needed for drawing a rectangle crisply and return the
+	 * calculated attributes
+	 * @param {Number} strokeWidth
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	crisp: function (rect) {
+
+		var wrapper = this,
+			key,
+			attribs = {},
+			normalizer,
+			strokeWidth = rect.strokeWidth || wrapper.strokeWidth || 0;
+
+		normalizer = mathRound(strokeWidth) % 2 / 2; // mathRound because strokeWidth can sometimes have roundoff errors
+
+		// normalize for crisp edges
+		rect.x = mathFloor(rect.x || wrapper.x || 0) + normalizer;
+		rect.y = mathFloor(rect.y || wrapper.y || 0) + normalizer;
+		rect.width = mathFloor((rect.width || wrapper.width || 0) - 2 * normalizer);
+		rect.height = mathFloor((rect.height || wrapper.height || 0) - 2 * normalizer);
+		rect.strokeWidth = strokeWidth;
+
+		for (key in rect) {
+			if (wrapper[key] !== rect[key]) { // only set attribute if changed
+				wrapper[key] = attribs[key] = rect[key];
+			}
+		}
+
+		return attribs;
+	},
+
+	/**
+	 * Set styles for the element
+	 * @param {Object} styles
+	 */
+	css: function (styles) {
+		var elemWrapper = this,
+			oldStyles = elemWrapper.styles,
+			newStyles = {},
+			elem = elemWrapper.element,
+			textWidth,
+			n,
+			serializedCss = '',
+			hyphenate,
+			hasNew = !oldStyles;
+
+		// convert legacy
+		if (styles && styles.color) {
+			styles.fill = styles.color;
+		}
+
+		// Filter out existing styles to increase performance (#2640)
+		if (oldStyles) {
+			for (n in styles) {
+				if (styles[n] !== oldStyles[n]) {
+					newStyles[n] = styles[n];
+					hasNew = true;
+				}
+			}
+		}
+		if (hasNew) {
+			textWidth = elemWrapper.textWidth = 
+				(styles && styles.width && elem.nodeName.toLowerCase() === 'text' && pInt(styles.width)) || 
+				elemWrapper.textWidth; // #3501
+
+			// Merge the new styles with the old ones
+			if (oldStyles) {
+				styles = extend(
+					oldStyles,
+					newStyles
+				);
+			}		
+
+			// store object
+			elemWrapper.styles = styles;
+
+			if (textWidth && (useCanVG || (!hasSVG && elemWrapper.renderer.forExport))) {
+				delete styles.width;
+			}
+
+			// serialize and set style attribute
+			if (isIE && !hasSVG) {
+				css(elemWrapper.element, styles);
+			} else {
+				/*jslint unparam: true*/
+				hyphenate = function (a, b) { return '-' + b.toLowerCase(); };
+				/*jslint unparam: false*/
+				for (n in styles) {
+					serializedCss += n.replace(/([A-Z])/g, hyphenate) + ':' + styles[n] + ';';
+				}
+				attr(elem, 'style', serializedCss); // #1881
+			}
+
+
+			// re-build text
+			if (textWidth && elemWrapper.added) {
+				elemWrapper.renderer.buildText(elemWrapper);
+			}
+		}
+
+		return elemWrapper;
+	},
+
+	/**
+	 * Add an event listener
+	 * @param {String} eventType
+	 * @param {Function} handler
+	 */
+	on: function (eventType, handler) {
+		var svgElement = this,
+			element = svgElement.element;
+		
+		// touch
+		if (hasTouch && eventType === 'click') {
+			element.ontouchstart = function (e) {			
+				svgElement.touchEventFired = Date.now();				
+				e.preventDefault();
+				handler.call(element, e);
+			};
+			element.onclick = function (e) {												
+				if (userAgent.indexOf('Android') === -1 || Date.now() - (svgElement.touchEventFired || 0) > 1100) { // #2269
+					handler.call(element, e);
+				}
+			};			
+		} else {
+			// simplest possible event model for internal use
+			element['on' + eventType] = handler;
+		}
+		return this;
+	},
+
+	/**
+	 * Set the coordinates needed to draw a consistent radial gradient across
+	 * pie slices regardless of positioning inside the chart. The format is
+	 * [centerX, centerY, diameter] in pixels.
+	 */
+	setRadialReference: function (coordinates) {
+		this.element.radialReference = coordinates;
+		return this;
+	},
+
+	/**
+	 * Move an object and its children by x and y values
+	 * @param {Number} x
+	 * @param {Number} y
+	 */
+	translate: function (x, y) {
+		return this.attr({
+			translateX: x,
+			translateY: y
+		});
+	},
+
+	/**
+	 * Invert a group, rotate and flip
+	 */
+	invert: function () {
+		var wrapper = this;
+		wrapper.inverted = true;
+		wrapper.updateTransform();
+		return wrapper;
+	},
+
+	/**
+	 * Private method to update the transform attribute based on internal
+	 * properties
+	 */
+	updateTransform: function () {
+		var wrapper = this,
+			translateX = wrapper.translateX || 0,
+			translateY = wrapper.translateY || 0,
+			scaleX = wrapper.scaleX,
+			scaleY = wrapper.scaleY,
+			inverted = wrapper.inverted,
+			rotation = wrapper.rotation,
+			element = wrapper.element,
+			transform;
+
+		// flipping affects translate as adjustment for flipping around the group's axis
+		if (inverted) {
+			translateX += wrapper.attr('width');
+			translateY += wrapper.attr('height');
+		}
+
+		// Apply translate. Nearly all transformed elements have translation, so instead
+		// of checking for translate = 0, do it always (#1767, #1846).
+		transform = ['translate(' + translateX + ',' + translateY + ')'];
+
+		// apply rotation
+		if (inverted) {
+			transform.push('rotate(90) scale(-1,1)');
+		} else if (rotation) { // text rotation
+			transform.push('rotate(' + rotation + ' ' + (element.getAttribute('x') || 0) + ' ' + (element.getAttribute('y') || 0) + ')');
+			
+			// Delete bBox memo when the rotation changes
+			//delete wrapper.bBox;
+		}
+
+		// apply scale
+		if (defined(scaleX) || defined(scaleY)) {
+			transform.push('scale(' + pick(scaleX, 1) + ' ' + pick(scaleY, 1) + ')');
+		}
+
+		if (transform.length) {
+			element.setAttribute('transform', transform.join(' '));
+		}
+	},
+	/**
+	 * Bring the element to the front
+	 */
+	toFront: function () {
+		var element = this.element;
+		element.parentNode.appendChild(element);
+		return this;
+	},
+
+
+	/**
+	 * Break down alignment options like align, verticalAlign, x and y
+	 * to x and y relative to the chart.
+	 *
+	 * @param {Object} alignOptions
+	 * @param {Boolean} alignByTranslate
+	 * @param {String[Object} box The box to align to, needs a width and height. When the
+	 *		box is a string, it refers to an object in the Renderer. For example, when
+	 *		box is 'spacingBox', it refers to Renderer.spacingBox which holds width, height
+	 *		x and y properties.
+	 *
+	 */
+	align: function (alignOptions, alignByTranslate, box) {
+		var align,
+			vAlign,
+			x,
+			y,
+			attribs = {},
+			alignTo,
+			renderer = this.renderer,
+			alignedObjects = renderer.alignedObjects;
+
+		// First call on instanciate
+		if (alignOptions) {
+			this.alignOptions = alignOptions;
+			this.alignByTranslate = alignByTranslate;
+			if (!box || isString(box)) { // boxes other than renderer handle this internally
+				this.alignTo = alignTo = box || 'renderer';
+				erase(alignedObjects, this); // prevent duplicates, like legendGroup after resize
+				alignedObjects.push(this);
+				box = null; // reassign it below
+			}
+
+		// When called on resize, no arguments are supplied
+		} else {
+			alignOptions = this.alignOptions;
+			alignByTranslate = this.alignByTranslate;
+			alignTo = this.alignTo;
+		}
+
+		box = pick(box, renderer[alignTo], renderer);
+
+		// Assign variables
+		align = alignOptions.align;
+		vAlign = alignOptions.verticalAlign;
+		x = (box.x || 0) + (alignOptions.x || 0); // default: left align
+		y = (box.y || 0) + (alignOptions.y || 0); // default: top align
+
+		// Align
+		if (align === 'right' || align === 'center') {
+			x += (box.width - (alignOptions.width || 0)) /
+					{ right: 1, center: 2 }[align];
+		}
+		attribs[alignByTranslate ? 'translateX' : 'x'] = mathRound(x);
+
+
+		// Vertical align
+		if (vAlign === 'bottom' || vAlign === 'middle') {
+			y += (box.height - (alignOptions.height || 0)) /
+					({ bottom: 1, middle: 2 }[vAlign] || 1);
+
+		}
+		attribs[alignByTranslate ? 'translateY' : 'y'] = mathRound(y);
+
+		// Animate only if already placed
+		this[this.placed ? 'animate' : 'attr'](attribs);
+		this.placed = true;
+		this.alignAttr = attribs;
+
+		return this;
+	},
+
+	/**
+	 * Get the bounding box (width, height, x and y) for the element
+	 */
+	getBBox: function (reload) {
+		var wrapper = this,
+			bBox,// = wrapper.bBox,
+			renderer = wrapper.renderer,
+			width,
+			height,
+			rotation = wrapper.rotation,
+			element = wrapper.element,
+			styles = wrapper.styles,
+			rad = rotation * deg2rad,
+			textStr = wrapper.textStr,
+			textShadow,
+			elemStyle = element.style,
+			toggleTextShadowShim,
+			cacheKey;
+
+		if (textStr !== UNDEFINED) {
+
+			// Properties that affect bounding box
+			cacheKey = ['', rotation || 0, styles && styles.fontSize, element.style.width].join(',');
+
+			// Since numbers are monospaced, and numerical labels appear a lot in a chart,
+			// we assume that a label of n characters has the same bounding box as others 
+			// of the same length.
+			if (textStr === '' || numRegex.test(textStr)) {
+				cacheKey = 'num:' + textStr.toString().length + cacheKey;
+
+			// Caching all strings reduces rendering time by 4-5%.
+			} else {
+				cacheKey = textStr + cacheKey;
+			}
+		}
+
+		if (cacheKey && !reload) {
+			bBox = renderer.cache[cacheKey];
+		}
+
+		// No cache found
+		if (!bBox) {
+
+			// SVG elements
+			if (element.namespaceURI === SVG_NS || renderer.forExport) {
+				try { // Fails in Firefox if the container has display: none.
+
+					// When the text shadow shim is used, we need to hide the fake shadows
+					// to get the correct bounding box (#3872)
+					toggleTextShadowShim = this.fakeTS && function (display) {
+						each(element.querySelectorAll('.' + PREFIX + 'text-shadow'), function (tspan) {
+							tspan.style.display = display;
+						});
+					};
+
+					// Workaround for #3842, Firefox reporting wrong bounding box for shadows
+					if (isFirefox && elemStyle.textShadow) {
+						textShadow = elemStyle.textShadow;
+						elemStyle.textShadow = '';
+					} else if (toggleTextShadowShim) {
+						toggleTextShadowShim(NONE);
+					}
+
+					bBox = element.getBBox ?
+						// SVG: use extend because IE9 is not allowed to change width and height in case
+						// of rotation (below)
+						extend({}, element.getBBox()) :
+						// Canvas renderer and legacy IE in export mode
+						{
+							width: element.offsetWidth,
+							height: element.offsetHeight
+						};
+
+					// #3842
+					if (textShadow) {
+						elemStyle.textShadow = textShadow;
+					} else if (toggleTextShadowShim) {
+						toggleTextShadowShim('');
+					}
+				} catch (e) {}
+
+				// If the bBox is not set, the try-catch block above failed. The other condition
+				// is for Opera that returns a width of -Infinity on hidden elements.
+				if (!bBox || bBox.width < 0) {
+					bBox = { width: 0, height: 0 };
+				}
+
+
+			// VML Renderer or useHTML within SVG
+			} else {
+
+				bBox = wrapper.htmlGetBBox();
+
+			}
+
+			// True SVG elements as well as HTML elements in modern browsers using the .useHTML option
+			// need to compensated for rotation
+			if (renderer.isSVG) {
+				width = bBox.width;
+				height = bBox.height;
+
+				// Workaround for wrong bounding box in IE9 and IE10 (#1101, #1505, #1669, #2568)
+				if (isIE && styles && styles.fontSize === '11px' && height.toPrecision(3) === '16.9') {
+					bBox.height = height = 14;
+				}
+
+				// Adjust for rotated text
+				if (rotation) {
+					bBox.width = mathAbs(height * mathSin(rad)) + mathAbs(width * mathCos(rad));
+					bBox.height = mathAbs(height * mathCos(rad)) + mathAbs(width * mathSin(rad));
+				}
+			}
+
+			// Cache it
+			renderer.cache[cacheKey] = bBox;
+		}
+		return bBox;
+	},
+
+	/**
+	 * Show the element
+	 */
+	show: function (inherit) {
+		// IE9-11 doesn't handle visibilty:inherit well, so we remove the attribute instead (#2881)
+		if (inherit && this.element.namespaceURI === SVG_NS) {
+			this.element.removeAttribute('visibility');
+		} else {
+			this.attr({ visibility: inherit ? 'inherit' : VISIBLE });
+		}
+		return this;
+	},
+
+	/**
+	 * Hide the element
+	 */
+	hide: function () {
+		return this.attr({ visibility: HIDDEN });
+	},
+
+	fadeOut: function (duration) {
+		var elemWrapper = this;
+		elemWrapper.animate({
+			opacity: 0
+		}, {
+			duration: duration || 150,
+			complete: function () {
+				elemWrapper.attr({ y: -9999 }); // #3088, assuming we're only using this for tool
