@@ -3052,4 +3052,457 @@ SVGRenderer.prototype = {
 	 * has display: none. #608.
 	 */
 	isHidden: function () {
-		retu
+		return !this.boxWrapper.getBBox().width;
+	},
+
+	/**
+	 * Destroys the renderer and its allocated members.
+	 */
+	destroy: function () {
+		var renderer = this,
+			rendererDefs = renderer.defs;
+		renderer.box = null;
+		renderer.boxWrapper = renderer.boxWrapper.destroy();
+
+		// Call destroy on all gradient elements
+		destroyObjectProperties(renderer.gradients || {});
+		renderer.gradients = null;
+
+		// Defs are null in VMLRenderer
+		// Otherwise, destroy them here.
+		if (rendererDefs) {
+			renderer.defs = rendererDefs.destroy();
+		}
+
+		// Remove sub pixel fix handler
+		// We need to check that there is a handler, otherwise all functions that are registered for event 'resize' are removed
+		// See issue #982
+		if (renderer.subPixelFix) {
+			removeEvent(win, 'resize', renderer.subPixelFix);
+		}
+
+		renderer.alignedObjects = null;
+
+		return null;
+	},
+
+	/**
+	 * Create a wrapper for an SVG element
+	 * @param {Object} nodeName
+	 */
+	createElement: function (nodeName) {
+		var wrapper = new this.Element();
+		wrapper.init(this, nodeName);
+		return wrapper;
+	},
+
+	/**
+	 * Dummy function for use in canvas renderer
+	 */
+	draw: function () {},
+
+	/**
+	 * Parse a simple HTML string into SVG tspans
+	 *
+	 * @param {Object} textNode The parent text SVG node
+	 */
+	buildText: function (wrapper) {
+		var textNode = wrapper.element,
+			renderer = this,
+			forExport = renderer.forExport,
+			textStr = pick(wrapper.textStr, '').toString(),
+			hasMarkup = textStr.indexOf('<') !== -1,
+			lines,
+			childNodes = textNode.childNodes,
+			styleRegex,
+			hrefRegex,
+			parentX = attr(textNode, 'x'),
+			textStyles = wrapper.styles,
+			width = wrapper.textWidth,
+			textLineHeight = textStyles && textStyles.lineHeight,
+			textShadow = textStyles && textStyles.textShadow,
+			ellipsis = textStyles && textStyles.textOverflow === 'ellipsis',
+			i = childNodes.length,
+			tempParent = width && !wrapper.added && this.box,
+			getLineHeight = function (tspan) {
+				return textLineHeight ? 
+					pInt(textLineHeight) :
+					renderer.fontMetrics(
+						/(px|em)$/.test(tspan && tspan.style.fontSize) ?
+							tspan.style.fontSize :
+							((textStyles && textStyles.fontSize) || renderer.style.fontSize || 12),
+						tspan
+					).h;
+			},
+			unescapeAngleBrackets = function (inputStr) {
+				return inputStr.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+			};
+
+		/// remove old text
+		while (i--) {
+			textNode.removeChild(childNodes[i]);
+		}
+
+		// Skip tspans, add text directly to text node. The forceTSpan is a hook 
+		// used in text outline hack.
+		if (!hasMarkup && !textShadow && !ellipsis && textStr.indexOf(' ') === -1) {
+			textNode.appendChild(doc.createTextNode(unescapeAngleBrackets(textStr)));
+			return;
+
+		// Complex strings, add more logic
+		} else {
+
+			styleRegex = /<.*style="([^"]+)".*>/;
+			hrefRegex = /<.*href="(http[^"]+)".*>/;
+
+			if (tempParent) {
+				tempParent.appendChild(textNode); // attach it to the DOM to read offset width
+			}
+
+			if (hasMarkup) {
+				lines = textStr
+					.replace(/<(b|strong)>/g, '<span style="font-weight:bold">')
+					.replace(/<(i|em)>/g, '<span style="font-style:italic">')
+					.replace(/<a/g, '<span')
+					.replace(/<\/(b|strong|i|em|a)>/g, '</span>')
+					.split(/<br.*?>/g);
+
+			} else {
+				lines = [textStr];
+			}
+
+
+			// remove empty line at end
+			if (lines[lines.length - 1] === '') {
+				lines.pop();
+			}
+
+			
+			// build the lines
+			each(lines, function (line, lineNo) {
+				var spans, spanNo = 0;
+
+				line = line.replace(/<span/g, '|||<span').replace(/<\/span>/g, '</span>|||');
+				spans = line.split('|||');
+
+				each(spans, function (span) {
+					if (span !== '' || spans.length === 1) {
+						var attributes = {},
+							tspan = doc.createElementNS(SVG_NS, 'tspan'),
+							spanStyle; // #390
+						if (styleRegex.test(span)) {
+							spanStyle = span.match(styleRegex)[1].replace(/(;| |^)color([ :])/, '$1fill$2');
+							attr(tspan, 'style', spanStyle);
+						}
+						if (hrefRegex.test(span) && !forExport) { // Not for export - #1529
+							attr(tspan, 'onclick', 'location.href=\"' + span.match(hrefRegex)[1] + '\"');
+							css(tspan, { cursor: 'pointer' });
+						}
+
+						span = unescapeAngleBrackets(span.replace(/<(.|\n)*?>/g, '') || ' ');
+
+						// Nested tags aren't supported, and cause crash in Safari (#1596)
+						if (span !== ' ') {
+
+							// add the text node
+							tspan.appendChild(doc.createTextNode(span));
+
+							if (!spanNo) { // first span in a line, align it to the left
+								if (lineNo && parentX !== null) {
+									attributes.x = parentX;
+								}
+							} else {
+								attributes.dx = 0; // #16
+							}
+
+							// add attributes
+							attr(tspan, attributes);
+
+							// Append it
+							textNode.appendChild(tspan);
+
+							// first span on subsequent line, add the line height
+							if (!spanNo && lineNo) {
+
+								// allow getting the right offset height in exporting in IE
+								if (!hasSVG && forExport) {
+									css(tspan, { display: 'block' });
+								}
+
+								// Set the line height based on the font size of either
+								// the text element or the tspan element
+								attr(
+									tspan,
+									'dy',
+									getLineHeight(tspan)
+								);
+							}
+
+							/*if (width) {
+								renderer.breakText(wrapper, width);
+							}*/
+
+							// Check width and apply soft breaks or ellipsis
+							if (width) {
+								var words = span.replace(/([^\^])-/g, '$1- ').split(' '), // #1273
+									hasWhiteSpace = spans.length > 1 || lineNo || (words.length > 1 && textStyles.whiteSpace !== 'nowrap'),
+									tooLong,
+									wasTooLong,
+									actualWidth,
+									rest = [],
+									dy = getLineHeight(tspan),
+									softLineNo = 1,
+									rotation = wrapper.rotation,
+									wordStr = span, // for ellipsis
+									cursor = wordStr.length, // binary search cursor
+									bBox;
+
+								while ((hasWhiteSpace || ellipsis) && (words.length || rest.length)) {
+									wrapper.rotation = 0; // discard rotation when computing box
+									bBox = wrapper.getBBox(true);
+									actualWidth = bBox.width;
+
+									// Old IE cannot measure the actualWidth for SVG elements (#2314)
+									if (!hasSVG && renderer.forExport) {
+										actualWidth = renderer.measureSpanWidth(tspan.firstChild.data, wrapper.styles);
+									}
+
+									tooLong = actualWidth > width;
+
+									// For ellipsis, do a binary search for the correct string length
+									if (wasTooLong === undefined) {
+										wasTooLong = tooLong; // First time
+									}
+									if (ellipsis && wasTooLong) {
+										cursor /= 2;
+
+										if (wordStr === '' || (!tooLong && cursor < 0.5)) {
+											words = []; // All ok, break out
+										} else {
+											if (tooLong) {
+												wasTooLong = true;
+											}
+											wordStr = span.substring(0, wordStr.length + (tooLong ? -1 : 1) * mathCeil(cursor));
+											words = [wordStr + (width > 3 ? '\u2026' : '')];
+											tspan.removeChild(tspan.firstChild);
+										}
+
+									// Looping down, this is the first word sequence that is not too long,
+									// so we can move on to build the next line.
+									} else if (!tooLong || words.length === 1) {
+										words = rest;
+										rest = [];
+												
+										if (words.length) {
+											softLineNo++;
+											
+											tspan = doc.createElementNS(SVG_NS, 'tspan');
+											attr(tspan, {
+												dy: dy,
+												x: parentX
+											});
+											if (spanStyle) { // #390
+												attr(tspan, 'style', spanStyle);
+											}
+											textNode.appendChild(tspan);
+										}
+										if (actualWidth > width) { // a single word is pressing it out
+											width = actualWidth;
+										}
+									} else { // append to existing line tspan
+										tspan.removeChild(tspan.firstChild);
+										rest.unshift(words.pop());
+									}
+									if (words.length) {
+										tspan.appendChild(doc.createTextNode(words.join(' ').replace(/- /g, '-')));
+									}
+								}
+								if (wasTooLong) {
+									wrapper.attr('title', wrapper.textStr);
+								}
+								wrapper.rotation = rotation;
+							}
+
+							spanNo++;
+						}
+					}
+				});
+			});
+			if (tempParent) {
+				tempParent.removeChild(textNode); // attach it to the DOM to read offset width
+			}
+
+			// Apply the text shadow
+			if (textShadow && wrapper.applyTextShadow) {
+				wrapper.applyTextShadow(textShadow);
+			}
+		}
+	},
+
+	
+
+	/*
+	breakText: function (wrapper, width) {
+		var bBox = wrapper.getBBox(),
+			node = wrapper.element,
+			textLength = node.textContent.length,
+			pos = mathRound(width * textLength / bBox.width), // try this position first, based on average character width
+			increment = 0,
+			finalPos;
+
+		if (bBox.width > width) {
+			while (finalPos === undefined) {
+				textLength = node.getSubStringLength(0, pos);
+
+				if (textLength <= width) {
+					if (increment === -1) {
+						finalPos = pos;
+					} else {
+						increment = 1;
+					}
+				} else {
+					if (increment === 1) {
+						finalPos = pos - 1;
+					} else {
+						increment = -1;
+					}
+				}
+				pos += increment;
+			}
+		}
+		console.log(finalPos, node.getSubStringLength(0, finalPos))
+	},
+	*/
+
+	/** 
+	 * Returns white for dark colors and black for bright colors
+	 */
+	getContrast: function (color) {
+		color = Color(color).rgba;
+		return color[0] + color[1] + color[2] > 384 ? '#000000' : '#FFFFFF';
+	},
+
+	/**
+	 * Create a button with preset states
+	 * @param {String} text
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Function} callback
+	 * @param {Object} normalState
+	 * @param {Object} hoverState
+	 * @param {Object} pressedState
+	 */
+	button: function (text, x, y, callback, normalState, hoverState, pressedState, disabledState, shape) {
+		var label = this.label(text, x, y, shape, null, null, null, null, 'button'),
+			curState = 0,
+			stateOptions,
+			stateStyle,
+			normalStyle,
+			hoverStyle,
+			pressedStyle,
+			disabledStyle,
+			verticalGradient = { x1: 0, y1: 0, x2: 0, y2: 1 };
+
+		// Normal state - prepare the attributes
+		normalState = merge({
+			'stroke-width': 1,
+			stroke: '#CCCCCC',
+			fill: {
+				linearGradient: verticalGradient,
+				stops: [
+					[0, '#FEFEFE'],
+					[1, '#F6F6F6']
+				]
+			},
+			r: 2,
+			padding: 5,
+			style: {
+				color: 'black'
+			}
+		}, normalState);
+		normalStyle = normalState.style;
+		delete normalState.style;
+
+		// Hover state
+		hoverState = merge(normalState, {
+			stroke: '#68A',
+			fill: {
+				linearGradient: verticalGradient,
+				stops: [
+					[0, '#FFF'],
+					[1, '#ACF']
+				]
+			}
+		}, hoverState);
+		hoverStyle = hoverState.style;
+		delete hoverState.style;
+
+		// Pressed state
+		pressedState = merge(normalState, {
+			stroke: '#68A',
+			fill: {
+				linearGradient: verticalGradient,
+				stops: [
+					[0, '#9BD'],
+					[1, '#CDF']
+				]
+			}
+		}, pressedState);
+		pressedStyle = pressedState.style;
+		delete pressedState.style;
+
+		// Disabled state
+		disabledState = merge(normalState, {
+			style: {
+				color: '#CCC'
+			}
+		}, disabledState);
+		disabledStyle = disabledState.style;
+		delete disabledState.style;
+
+		// Add the events. IE9 and IE10 need mouseover and mouseout to funciton (#667).
+		addEvent(label.element, isIE ? 'mouseover' : 'mouseenter', function () {
+			if (curState !== 3) {
+				label.attr(hoverState)
+					.css(hoverStyle);
+			}
+		});
+		addEvent(label.element, isIE ? 'mouseout' : 'mouseleave', function () {
+			if (curState !== 3) {
+				stateOptions = [normalState, hoverState, pressedState][curState];
+				stateStyle = [normalStyle, hoverStyle, pressedStyle][curState];
+				label.attr(stateOptions)
+					.css(stateStyle);
+			}
+		});
+
+		label.setState = function (state) {
+			label.state = curState = state;
+			if (!state) {
+				label.attr(normalState)
+					.css(normalStyle);
+			} else if (state === 2) {
+				label.attr(pressedState)
+					.css(pressedStyle);
+			} else if (state === 3) {
+				label.attr(disabledState)
+					.css(disabledStyle);
+			}
+		};
+
+		return label
+			.on('click', function () {
+				if (curState !== 3) {
+					callback.call(label);
+				}
+			})
+			.attr(normalState)
+			.css(extend({ cursor: 'default' }, normalStyle));
+	},
+
+	/**
+	 * Make a straight line crisper by not spilling out to neighbour pixels
+	 * @param {Array} points
+	 * @param {Number} width
+	 */
+	crispLine: function (po
