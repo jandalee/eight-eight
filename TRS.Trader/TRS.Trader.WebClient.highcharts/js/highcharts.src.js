@@ -3505,4 +3505,523 @@ SVGRenderer.prototype = {
 	 * @param {Array} points
 	 * @param {Number} width
 	 */
-	crispLine: function (po
+	crispLine: function (points, width) {
+		// points format: [M, 0, 0, L, 100, 0]
+		// normalize to a crisp line
+		if (points[1] === points[4]) {
+			// Substract due to #1129. Now bottom and left axis gridlines behave the same.
+			points[1] = points[4] = mathRound(points[1]) - (width % 2 / 2);
+		}
+		if (points[2] === points[5]) {
+			points[2] = points[5] = mathRound(points[2]) + (width % 2 / 2);
+		}
+		return points;
+	},
+
+
+	/**
+	 * Draw a path
+	 * @param {Array} path An SVG path in array form
+	 */
+	path: function (path) {
+		var attr = {
+			fill: NONE
+		};
+		if (isArray(path)) {
+			attr.d = path;
+		} else if (isObject(path)) { // attributes
+			extend(attr, path);
+		}
+		return this.createElement('path').attr(attr);
+	},
+
+	/**
+	 * Draw and return an SVG circle
+	 * @param {Number} x The x position
+	 * @param {Number} y The y position
+	 * @param {Number} r The radius
+	 */
+	circle: function (x, y, r) {
+		var attr = isObject(x) ?
+			x :
+			{
+				x: x,
+				y: y,
+				r: r
+			},
+			wrapper = this.createElement('circle');
+
+		wrapper.xSetter = function (value) {
+			this.element.setAttribute('cx', value);
+		};
+		wrapper.ySetter = function (value) {
+			this.element.setAttribute('cy', value);
+		};
+		return wrapper.attr(attr);
+	},
+
+	/**
+	 * Draw and return an arc
+	 * @param {Number} x X position
+	 * @param {Number} y Y position
+	 * @param {Number} r Radius
+	 * @param {Number} innerR Inner radius like used in donut charts
+	 * @param {Number} start Starting angle
+	 * @param {Number} end Ending angle
+	 */
+	arc: function (x, y, r, innerR, start, end) {
+		var arc;
+
+		if (isObject(x)) {
+			y = x.y;
+			r = x.r;
+			innerR = x.innerR;
+			start = x.start;
+			end = x.end;
+			x = x.x;
+		}
+
+		// Arcs are defined as symbols for the ability to set
+		// attributes in attr and animate
+		arc = this.symbol('arc', x || 0, y || 0, r || 0, r || 0, {
+			innerR: innerR || 0,
+			start: start || 0,
+			end: end || 0
+		});
+		arc.r = r; // #959
+		return arc;
+	},
+
+	/**
+	 * Draw and return a rectangle
+	 * @param {Number} x Left position
+	 * @param {Number} y Top position
+	 * @param {Number} width
+	 * @param {Number} height
+	 * @param {Number} r Border corner radius
+	 * @param {Number} strokeWidth A stroke width can be supplied to allow crisp drawing
+	 */
+	rect: function (x, y, width, height, r, strokeWidth) {
+
+		r = isObject(x) ? x.r : r;
+
+		var wrapper = this.createElement('rect'),
+			attribs = isObject(x) ? x : x === UNDEFINED ? {} : {
+				x: x,
+				y: y,
+				width: mathMax(width, 0),
+				height: mathMax(height, 0)
+			};
+
+		if (strokeWidth !== UNDEFINED) {
+			attribs.strokeWidth = strokeWidth;
+			attribs = wrapper.crisp(attribs);
+		}
+
+		if (r) {
+			attribs.r = r;
+		}
+
+		wrapper.rSetter = function (value) {
+			attr(this.element, {
+				rx: value,
+				ry: value
+			});
+		};
+		
+		return wrapper.attr(attribs);
+	},
+
+	/**
+	 * Resize the box and re-align all aligned elements
+	 * @param {Object} width
+	 * @param {Object} height
+	 * @param {Boolean} animate
+	 *
+	 */
+	setSize: function (width, height, animate) {
+		var renderer = this,
+			alignedObjects = renderer.alignedObjects,
+			i = alignedObjects.length;
+
+		renderer.width = width;
+		renderer.height = height;
+
+		renderer.boxWrapper[pick(animate, true) ? 'animate' : 'attr']({
+			width: width,
+			height: height
+		});
+
+		while (i--) {
+			alignedObjects[i].align();
+		}
+	},
+
+	/**
+	 * Create a group
+	 * @param {String} name The group will be given a class name of 'highcharts-{name}'.
+	 *	 This can be used for styling and scripting.
+	 */
+	g: function (name) {
+		var elem = this.createElement('g');
+		return defined(name) ? elem.attr({ 'class': PREFIX + name }) : elem;
+	},
+
+	/**
+	 * Display an image
+	 * @param {String} src
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	image: function (src, x, y, width, height) {
+		var attribs = {
+				preserveAspectRatio: NONE
+			},
+			elemWrapper;
+
+		// optional properties
+		if (arguments.length > 1) {
+			extend(attribs, {
+				x: x,
+				y: y,
+				width: width,
+				height: height
+			});
+		}
+
+		elemWrapper = this.createElement('image').attr(attribs);
+
+		// set the href in the xlink namespace
+		if (elemWrapper.element.setAttributeNS) {
+			elemWrapper.element.setAttributeNS('http://www.w3.org/1999/xlink',
+				'href', src);
+		} else {
+			// could be exporting in IE
+			// using href throws "not supported" in ie7 and under, requries regex shim to fix later
+			elemWrapper.element.setAttribute('hc-svg-href', src);
+		}
+		return elemWrapper;
+	},
+
+	/**
+	 * Draw a symbol out of pre-defined shape paths from the namespace 'symbol' object.
+	 *
+	 * @param {Object} symbol
+	 * @param {Object} x
+	 * @param {Object} y
+	 * @param {Object} radius
+	 * @param {Object} options
+	 */
+	symbol: function (symbol, x, y, width, height, options) {
+
+		var obj,
+
+			// get the symbol definition function
+			symbolFn = this.symbols[symbol],
+
+			// check if there's a path defined for this symbol
+			path = symbolFn && symbolFn(
+				mathRound(x),
+				mathRound(y),
+				width,
+				height,
+				options
+			),
+
+			imageElement,
+			imageRegex = /^url\((.*?)\)$/,
+			imageSrc,
+			imageSize,
+			centerImage;
+
+		if (path) {
+
+			obj = this.path(path);
+			// expando properties for use in animate and attr
+			extend(obj, {
+				symbolName: symbol,
+				x: x,
+				y: y,
+				width: width,
+				height: height
+			});
+			if (options) {
+				extend(obj, options);
+			}
+
+
+		// image symbols
+		} else if (imageRegex.test(symbol)) {
+
+			// On image load, set the size and position
+			centerImage = function (img, size) {
+				if (img.element) { // it may be destroyed in the meantime (#1390)
+					img.attr({
+						width: size[0],
+						height: size[1]
+					});
+
+					if (!img.alignByTranslate) { // #185
+						img.translate(
+							mathRound((width - size[0]) / 2), // #1378
+							mathRound((height - size[1]) / 2)
+						);
+					}
+				}
+			};
+
+			imageSrc = symbol.match(imageRegex)[1];
+			imageSize = symbolSizes[imageSrc] || (options && options.width && options.height && [options.width, options.height]);
+
+			// Ireate the image synchronously, add attribs async
+			obj = this.image(imageSrc)
+				.attr({
+					x: x,
+					y: y
+				});
+			obj.isImg = true;
+
+			if (imageSize) {
+				centerImage(obj, imageSize);
+			} else {
+				// Initialize image to be 0 size so export will still function if there's no cached sizes.
+				obj.attr({ width: 0, height: 0 });
+
+				// Create a dummy JavaScript image to get the width and height. Due to a bug in IE < 8,
+				// the created element must be assigned to a variable in order to load (#292).
+				imageElement = createElement('img', {
+					onload: function () {
+						centerImage(obj, symbolSizes[imageSrc] = [this.width, this.height]);
+					},
+					src: imageSrc
+				});
+			}
+		}
+
+		return obj;
+	},
+
+	/**
+	 * An extendable collection of functions for defining symbol paths.
+	 */
+	symbols: {
+		'circle': function (x, y, w, h) {
+			var cpw = 0.166 * w;
+			return [
+				M, x + w / 2, y,
+				'C', x + w + cpw, y, x + w + cpw, y + h, x + w / 2, y + h,
+				'C', x - cpw, y + h, x - cpw, y, x + w / 2, y,
+				'Z'
+			];
+		},
+
+		'square': function (x, y, w, h) {
+			return [
+				M, x, y,
+				L, x + w, y,
+				x + w, y + h,
+				x, y + h,
+				'Z'
+			];
+		},
+
+		'triangle': function (x, y, w, h) {
+			return [
+				M, x + w / 2, y,
+				L, x + w, y + h,
+				x, y + h,
+				'Z'
+			];
+		},
+
+		'triangle-down': function (x, y, w, h) {
+			return [
+				M, x, y,
+				L, x + w, y,
+				x + w / 2, y + h,
+				'Z'
+			];
+		},
+		'diamond': function (x, y, w, h) {
+			return [
+				M, x + w / 2, y,
+				L, x + w, y + h / 2,
+				x + w / 2, y + h,
+				x, y + h / 2,
+				'Z'
+			];
+		},
+		'arc': function (x, y, w, h, options) {
+			var start = options.start,
+				radius = options.r || w || h,
+				end = options.end - 0.001, // to prevent cos and sin of start and end from becoming equal on 360 arcs (related: #1561)
+				innerRadius = options.innerR,
+				open = options.open,
+				cosStart = mathCos(start),
+				sinStart = mathSin(start),
+				cosEnd = mathCos(end),
+				sinEnd = mathSin(end),
+				longArc = options.end - start < mathPI ? 0 : 1;
+
+			return [
+				M,
+				x + radius * cosStart,
+				y + radius * sinStart,
+				'A', // arcTo
+				radius, // x radius
+				radius, // y radius
+				0, // slanting
+				longArc, // long or short arc
+				1, // clockwise
+				x + radius * cosEnd,
+				y + radius * sinEnd,
+				open ? M : L,
+				x + innerRadius * cosEnd,
+				y + innerRadius * sinEnd,
+				'A', // arcTo
+				innerRadius, // x radius
+				innerRadius, // y radius
+				0, // slanting
+				longArc, // long or short arc
+				0, // clockwise
+				x + innerRadius * cosStart,
+				y + innerRadius * sinStart,
+
+				open ? '' : 'Z' // close
+			];
+		},
+
+		/**
+		 * Callout shape used for default tooltips, also used for rounded rectangles in VML
+		 */
+		callout: function (x, y, w, h, options) {
+			var arrowLength = 6,
+				halfDistance = 6,
+				r = mathMin((options && options.r) || 0, w, h),
+				safeDistance = r + halfDistance,
+				anchorX = options && options.anchorX,
+				anchorY = options && options.anchorY,
+				path;
+
+			path = [
+				'M', x + r, y, 
+				'L', x + w - r, y, // top side
+				'C', x + w, y, x + w, y, x + w, y + r, // top-right corner
+				'L', x + w, y + h - r, // right side
+				'C', x + w, y + h, x + w, y + h, x + w - r, y + h, // bottom-right corner
+				'L', x + r, y + h, // bottom side
+				'C', x, y + h, x, y + h, x, y + h - r, // bottom-left corner
+				'L', x, y + r, // left side
+				'C', x, y, x, y, x + r, y // top-right corner
+			];
+			
+			if (anchorX && anchorX > w && anchorY > y + safeDistance && anchorY < y + h - safeDistance) { // replace right side
+				path.splice(13, 3,
+					'L', x + w, anchorY - halfDistance, 
+					x + w + arrowLength, anchorY,
+					x + w, anchorY + halfDistance,
+					x + w, y + h - r
+				);
+			} else if (anchorX && anchorX < 0 && anchorY > y + safeDistance && anchorY < y + h - safeDistance) { // replace left side
+				path.splice(33, 3, 
+					'L', x, anchorY + halfDistance, 
+					x - arrowLength, anchorY,
+					x, anchorY - halfDistance,
+					x, y + r
+				);
+			} else if (anchorY && anchorY > h && anchorX > x + safeDistance && anchorX < x + w - safeDistance) { // replace bottom
+				path.splice(23, 3,
+					'L', anchorX + halfDistance, y + h,
+					anchorX, y + h + arrowLength,
+					anchorX - halfDistance, y + h,
+					x + r, y + h
+				);
+			} else if (anchorY && anchorY < 0 && anchorX > x + safeDistance && anchorX < x + w - safeDistance) { // replace top
+				path.splice(3, 3,
+					'L', anchorX - halfDistance, y,
+					anchorX, y - arrowLength,
+					anchorX + halfDistance, y,
+					w - r, y
+				);
+			}
+			return path;
+		}
+	},
+
+	/**
+	 * Define a clipping rectangle
+	 * @param {String} id
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	clipRect: function (x, y, width, height) {
+		var wrapper,
+			id = PREFIX + idCounter++,
+
+			clipPath = this.createElement('clipPath').attr({
+				id: id
+			}).add(this.defs);
+
+		wrapper = this.rect(x, y, width, height, 0).add(clipPath);
+		wrapper.id = id;
+		wrapper.clipPath = clipPath;
+		wrapper.count = 0;
+
+		return wrapper;
+	},
+
+
+	
+
+
+	/**
+	 * Add text to the SVG object
+	 * @param {String} str
+	 * @param {Number} x Left position
+	 * @param {Number} y Top position
+	 * @param {Boolean} useHTML Use HTML to render the text
+	 */
+	text: function (str, x, y, useHTML) {
+
+		// declare variables
+		var renderer = this,
+			fakeSVG = useCanVG || (!hasSVG && renderer.forExport),
+			wrapper,
+			attr = {};
+
+		if (useHTML && !renderer.forExport) {
+			return renderer.html(str, x, y);
+		}
+
+		attr.x = Math.round(x || 0); // X is always needed for line-wrap logic
+		if (y) {
+			attr.y = Math.round(y);
+		}
+		if (str || str === 0) {
+			attr.text = str;
+		}
+
+		wrapper = renderer.createElement('text')
+			.attr(attr);
+
+		// Prevent wrapping from creating false offsetWidths in export in legacy IE (#1079, #1063)
+		if (fakeSVG) {
+			wrapper.css({
+				position: ABSOLUTE
+			});
+		}
+
+		if (!useHTML) {
+			wrapper.xSetter = function (value, key, element) {
+				var tspans = element.getElementsByTagName('tspan'),
+					tspan,
+					parentVal = element.getAttribute(key),
+					i;
+				for (i = 0; i < tspans.length; i++) {
+					tspan = tspans[i];
+					// If the x values are equal, the tspan represents a linebreak
+					if (tspan.getAttribute(ke
