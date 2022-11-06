@@ -4024,4 +4024,465 @@ SVGRenderer.prototype = {
 				for (i = 0; i < tspans.length; i++) {
 					tspan = tspans[i];
 					// If the x values are equal, the tspan represents a linebreak
-					if (tspan.getAttribute(ke
+					if (tspan.getAttribute(key) === parentVal) {
+						tspan.setAttribute(key, value);
+					}
+				}
+				element.setAttribute(key, value);
+			};
+		}
+		
+		return wrapper;
+	},
+
+	/**
+	 * Utility to return the baseline offset and total line height from the font size
+	 */
+	fontMetrics: function (fontSize, elem) {
+		var lineHeight,
+			baseline,
+			style;
+
+		fontSize = fontSize || this.style.fontSize;
+		if (elem && win.getComputedStyle) {
+			elem = elem.element || elem; // SVGElement
+			style = win.getComputedStyle(elem, "");
+			fontSize = style && style.fontSize; // #4309, the style doesn't exist inside a hidden iframe in Firefox
+		}
+		fontSize = /px/.test(fontSize) ? pInt(fontSize) : /em/.test(fontSize) ? parseFloat(fontSize) * 12 : 12;
+
+		// Empirical values found by comparing font size and bounding box height.
+		// Applies to the default font family. http://jsfiddle.net/highcharts/7xvn7/
+		lineHeight = fontSize < 24 ? fontSize + 3 : mathRound(fontSize * 1.2);
+		baseline = mathRound(lineHeight * 0.8);
+
+		return {
+			h: lineHeight,
+			b: baseline,
+			f: fontSize
+		};
+	},
+
+	/**
+	 * Correct X and Y positioning of a label for rotation (#1764)
+	 */
+	rotCorr: function (baseline, rotation, alterY) {
+		var y = baseline;
+		if (rotation && alterY) {
+			y = mathMax(y * mathCos(rotation * deg2rad), 4);
+		}
+		return {
+			x: (-baseline / 3) * mathSin(rotation * deg2rad),
+			y: y
+		};
+	},
+
+	/**
+	 * Add a label, a text item that can hold a colored or gradient background
+	 * as well as a border and shadow.
+	 * @param {string} str
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {String} shape
+	 * @param {Number} anchorX In case the shape has a pointer, like a flag, this is the
+	 *	coordinates it should be pinned to
+	 * @param {Number} anchorY
+	 * @param {Boolean} baseline Whether to position the label relative to the text baseline,
+	 *	like renderer.text, or to the upper border of the rectangle.
+	 * @param {String} className Class name for the group
+	 */
+	label: function (str, x, y, shape, anchorX, anchorY, useHTML, baseline, className) {
+
+		var renderer = this,
+			wrapper = renderer.g(className),
+			text = renderer.text('', 0, 0, useHTML)
+				.attr({
+					zIndex: 1
+				}),
+				//.add(wrapper),
+			box,
+			bBox,
+			alignFactor = 0,
+			padding = 3,
+			paddingLeft = 0,
+			width,
+			height,
+			wrapperX,
+			wrapperY,
+			crispAdjust = 0,
+			deferredAttr = {},
+			baselineOffset,
+			needsBox;
+
+		/**
+		 * This function runs after the label is added to the DOM (when the bounding box is
+		 * available), and after the text of the label is updated to detect the new bounding
+		 * box and reflect it in the border box.
+		 */
+		function updateBoxSize() {
+			var boxX,
+				boxY,
+				style = text.element.style;
+
+			bBox = (width === undefined || height === undefined || wrapper.styles.textAlign) && defined(text.textStr) && 
+				text.getBBox(); //#3295 && 3514 box failure when string equals 0
+			wrapper.width = (width || bBox.width || 0) + 2 * padding + paddingLeft;
+			wrapper.height = (height || bBox.height || 0) + 2 * padding;
+
+			// update the label-scoped y offset
+			baselineOffset = padding + renderer.fontMetrics(style && style.fontSize, text).b;
+
+			
+			if (needsBox) {
+
+				// create the border box if it is not already present
+				if (!box) {
+					boxX = mathRound(-alignFactor * padding) + crispAdjust;
+					boxY = (baseline ? -baselineOffset : 0) + crispAdjust;
+
+					wrapper.box = box = shape ?
+						renderer.symbol(shape, boxX, boxY, wrapper.width, wrapper.height, deferredAttr) :
+						renderer.rect(boxX, boxY, wrapper.width, wrapper.height, 0, deferredAttr[STROKE_WIDTH]);
+					box.attr('fill', NONE).add(wrapper);
+				}
+
+				// apply the box attributes
+				if (!box.isImg) { // #1630
+					box.attr(extend({
+						width: mathRound(wrapper.width),
+						height: mathRound(wrapper.height)
+					}, deferredAttr));
+				}
+				deferredAttr = null;
+			}
+		}
+
+		/**
+		 * This function runs after setting text or padding, but only if padding is changed
+		 */
+		function updateTextPadding() {
+			var styles = wrapper.styles,
+				textAlign = styles && styles.textAlign,
+				x = paddingLeft + padding * (1 - alignFactor),
+				y;
+
+			// determin y based on the baseline
+			y = baseline ? 0 : baselineOffset;
+
+			// compensate for alignment
+			if (defined(width) && bBox && (textAlign === 'center' || textAlign === 'right')) {
+				x += { center: 0.5, right: 1 }[textAlign] * (width - bBox.width);
+			}
+
+			// update if anything changed
+			if (x !== text.x || y !== text.y) {
+				text.attr('x', x);
+				if (y !== UNDEFINED) {
+					text.attr('y', y);
+				}
+			}
+
+			// record current values
+			text.x = x;
+			text.y = y;
+		}
+
+		/**
+		 * Set a box attribute, or defer it if the box is not yet created
+		 * @param {Object} key
+		 * @param {Object} value
+		 */
+		function boxAttr(key, value) {
+			if (box) {
+				box.attr(key, value);
+			} else {
+				deferredAttr[key] = value;
+			}
+		}
+
+		/**
+		 * After the text element is added, get the desired size of the border box
+		 * and add it before the text in the DOM.
+		 */
+		wrapper.onAdd = function () {
+			text.add(wrapper);
+			wrapper.attr({
+				text: (str || str === 0) ? str : '', // alignment is available now // #3295: 0 not rendered if given as a value
+				x: x,
+				y: y
+			});
+
+			if (box && defined(anchorX)) {
+				wrapper.attr({
+					anchorX: anchorX,
+					anchorY: anchorY
+				});
+			}
+		};
+
+		/*
+		 * Add specific attribute setters.
+		 */
+
+		// only change local variables
+		wrapper.widthSetter = function (value) {
+			width = value;
+		};
+		wrapper.heightSetter = function (value) {
+			height = value;
+		};
+		wrapper.paddingSetter =  function (value) {
+			if (defined(value) && value !== padding) {
+				padding = wrapper.padding = value;
+				updateTextPadding();
+			}
+		};
+		wrapper.paddingLeftSetter =  function (value) {
+			if (defined(value) && value !== paddingLeft) {
+				paddingLeft = value;
+				updateTextPadding();
+			}
+		};
+
+
+		// change local variable and prevent setting attribute on the group
+		wrapper.alignSetter = function (value) {
+			alignFactor = { left: 0, center: 0.5, right: 1 }[value];
+		};
+
+		// apply these to the box and the text alike
+		wrapper.textSetter = function (value) {
+			if (value !== UNDEFINED) {
+				text.textSetter(value);
+			}
+			updateBoxSize();
+			updateTextPadding();
+		};
+
+		// apply these to the box but not to the text
+		wrapper['stroke-widthSetter'] = function (value, key) {
+			if (value) {
+				needsBox = true;
+			}
+			crispAdjust = value % 2 / 2;
+			boxAttr(key, value);
+		};
+		wrapper.strokeSetter = wrapper.fillSetter = wrapper.rSetter = function (value, key) {
+			if (key === 'fill' && value) {
+				needsBox = true;
+			}
+			boxAttr(key, value);
+		};
+		wrapper.anchorXSetter = function (value, key) {
+			anchorX = value;
+			boxAttr(key, mathRound(value) - crispAdjust - wrapperX);
+		};
+		wrapper.anchorYSetter = function (value, key) {
+			anchorY = value;
+			boxAttr(key, value - wrapperY);
+		};
+
+		// rename attributes
+		wrapper.xSetter = function (value) {
+			wrapper.x = value; // for animation getter
+			if (alignFactor) {
+				value -= alignFactor * ((width || bBox.width) + padding);
+			}
+			wrapperX = mathRound(value);
+			wrapper.attr('translateX', wrapperX);
+		};
+		wrapper.ySetter = function (value) {
+			wrapperY = wrapper.y = mathRound(value);
+			wrapper.attr('translateY', wrapperY);
+		};
+
+		// Redirect certain methods to either the box or the text
+		var baseCss = wrapper.css;
+		return extend(wrapper, {
+			/**
+			 * Pick up some properties and apply them to the text instead of the wrapper
+			 */
+			css: function (styles) {
+				if (styles) {
+					var textStyles = {};
+					styles = merge(styles); // create a copy to avoid altering the original object (#537)
+					each(wrapper.textProps, function (prop) {
+						if (styles[prop] !== UNDEFINED) {
+							textStyles[prop] = styles[prop];
+							delete styles[prop];
+						}
+					});
+					text.css(textStyles);
+				}
+				return baseCss.call(wrapper, styles);
+			},
+			/**
+			 * Return the bounding box of the box, not the group
+			 */
+			getBBox: function () {
+				return {
+					width: bBox.width + 2 * padding,
+					height: bBox.height + 2 * padding,
+					x: bBox.x - padding,
+					y: bBox.y - padding
+				};
+			},
+			/**
+			 * Apply the shadow to the box
+			 */
+			shadow: function (b) {
+				if (box) {
+					box.shadow(b);
+				}
+				return wrapper;
+			},
+			/**
+			 * Destroy and release memory.
+			 */
+			destroy: function () {
+
+				// Added by button implementation
+				removeEvent(wrapper.element, 'mouseenter');
+				removeEvent(wrapper.element, 'mouseleave');
+
+				if (text) {
+					text = text.destroy();
+				}
+				if (box) {
+					box = box.destroy();
+				}
+				// Call base implementation to destroy the rest
+				SVGElement.prototype.destroy.call(wrapper);
+
+				// Release local pointers (#1298)
+				wrapper = renderer = updateBoxSize = updateTextPadding = boxAttr = null;
+			}
+		});
+	}
+}; // end SVGRenderer
+
+
+// general renderer
+Renderer = SVGRenderer;
+// extend SvgElement for useHTML option
+extend(SVGElement.prototype, {
+	/**
+	 * Apply CSS to HTML elements. This is used in text within SVG rendering and
+	 * by the VML renderer
+	 */
+	htmlCss: function (styles) {
+		var wrapper = this,
+			element = wrapper.element,
+			textWidth = styles && element.tagName === 'SPAN' && styles.width;
+
+		if (textWidth) {
+			delete styles.width;
+			wrapper.textWidth = textWidth;
+			wrapper.updateTransform();
+		}
+		if (styles && styles.textOverflow === 'ellipsis') {
+			styles.whiteSpace = 'nowrap';
+			styles.overflow = 'hidden';
+		}
+		wrapper.styles = extend(wrapper.styles, styles);
+		css(wrapper.element, styles);
+
+		return wrapper;
+	},
+
+	/**
+	 * VML and useHTML method for calculating the bounding box based on offsets
+	 * @param {Boolean} refresh Whether to force a fresh value from the DOM or to
+	 * use the cached value
+	 *
+	 * @return {Object} A hash containing values for x, y, width and height
+	 */
+
+	htmlGetBBox: function () {
+		var wrapper = this,
+			element = wrapper.element;
+
+		// faking getBBox in exported SVG in legacy IE
+		// faking getBBox in exported SVG in legacy IE (is this a duplicate of the fix for #1079?)
+		if (element.nodeName === 'text') {
+			element.style.position = ABSOLUTE;
+		}
+
+		return {
+			x: element.offsetLeft,
+			y: element.offsetTop,
+			width: element.offsetWidth,
+			height: element.offsetHeight
+		};
+	},
+
+	/**
+	 * VML override private method to update elements based on internal
+	 * properties based on SVG transform
+	 */
+	htmlUpdateTransform: function () {
+		// aligning non added elements is expensive
+		if (!this.added) {
+			this.alignOnAdd = true;
+			return;
+		}
+
+		var wrapper = this,
+			renderer = wrapper.renderer,
+			elem = wrapper.element,
+			translateX = wrapper.translateX || 0,
+			translateY = wrapper.translateY || 0,
+			x = wrapper.x || 0,
+			y = wrapper.y || 0,
+			align = wrapper.textAlign || 'left',
+			alignCorrection = { left: 0, center: 0.5, right: 1 }[align],
+			shadows = wrapper.shadows,
+			styles = wrapper.styles;
+
+		// apply translate
+		css(elem, {
+			marginLeft: translateX,
+			marginTop: translateY
+		});
+		if (shadows) { // used in labels/tooltip
+			each(shadows, function (shadow) {
+				css(shadow, {
+					marginLeft: translateX + 1,
+					marginTop: translateY + 1
+				});
+			});
+		}
+
+		// apply inversion
+		if (wrapper.inverted) { // wrapper is a group
+			each(elem.childNodes, function (child) {
+				renderer.invertChild(child, elem);
+			});
+		}
+
+		if (elem.tagName === 'SPAN') {
+
+			var width,
+				rotation = wrapper.rotation,
+				baseline,
+				textWidth = pInt(wrapper.textWidth),
+				currentTextTransform = [rotation, align, elem.innerHTML, wrapper.textWidth].join(',');
+
+			if (currentTextTransform !== wrapper.cTT) { // do the calculations and DOM access only if properties changed
+
+
+				baseline = renderer.fontMetrics(elem.style.fontSize).b;
+
+				// Renderer specific handling of span rotation
+				if (defined(rotation)) {
+					wrapper.setSpanRotation(rotation, alignCorrection, baseline);
+				}
+
+				width = pick(wrapper.elemWidth, elem.offsetWidth);
+
+				// Update textWidth
+				if (width > textWidth && /[ \-]/.test(elem.textContent || elem.innerText)) { // #983, #1254
+					css(elem, {
+						width: textWidth + PX,
+						display: 'block',
+						whiteSpace: (styles && styles.whiteSpace) || 'normal' // #33
