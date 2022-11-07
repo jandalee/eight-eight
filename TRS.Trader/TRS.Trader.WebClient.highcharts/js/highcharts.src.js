@@ -4914,4 +4914,469 @@ VMLElement = {
 	/**
 	 * Extend element.destroy by removing it from the clip members array
 	 */
-	
+	destroy: function () {
+		if (this.destroyClip) {
+			this.destroyClip();
+		}
+
+		return SVGElement.prototype.destroy.apply(this);
+	},
+
+	/**
+	 * Add an event listener. VML override for normalizing event parameters.
+	 * @param {String} eventType
+	 * @param {Function} handler
+	 */
+	on: function (eventType, handler) {
+		// simplest possible event model for internal use
+		this.element['on' + eventType] = function () {
+			var evt = win.event;
+			evt.target = evt.srcElement;
+			handler(evt);
+		};
+		return this;
+	},
+
+	/**
+	 * In stacked columns, cut off the shadows so that they don't overlap
+	 */
+	cutOffPath: function (path, length) {
+
+		var len;
+
+		path = path.split(/[ ,]/);
+		len = path.length;
+
+		if (len === 9 || len === 11) {
+			path[len - 4] = path[len - 2] = pInt(path[len - 2]) - 10 * length;
+		}
+		return path.join(' ');
+	},
+
+	/**
+	 * Apply a drop shadow by copying elements and giving them different strokes
+	 * @param {Boolean|Object} shadowOptions
+	 */
+	shadow: function (shadowOptions, group, cutOff) {
+		var shadows = [],
+			i,
+			element = this.element,
+			renderer = this.renderer,
+			shadow,
+			elemStyle = element.style,
+			markup,
+			path = element.path,
+			strokeWidth,
+			modifiedPath,
+			shadowWidth,
+			shadowElementOpacity;
+
+		// some times empty paths are not strings
+		if (path && typeof path.value !== 'string') {
+			path = 'x';
+		}
+		modifiedPath = path;
+
+		if (shadowOptions) {
+			shadowWidth = pick(shadowOptions.width, 3);
+			shadowElementOpacity = (shadowOptions.opacity || 0.15) / shadowWidth;
+			for (i = 1; i <= 3; i++) {
+
+				strokeWidth = (shadowWidth * 2) + 1 - (2 * i);
+
+				// Cut off shadows for stacked column items
+				if (cutOff) {
+					modifiedPath = this.cutOffPath(path.value, strokeWidth + 0.5);
+				}
+
+				markup = ['<shape isShadow="true" strokeweight="', strokeWidth,
+					'" filled="false" path="', modifiedPath,
+					'" coordsize="10 10" style="', element.style.cssText, '" />'];
+
+				shadow = createElement(renderer.prepVML(markup),
+					null, {
+						left: pInt(elemStyle.left) + pick(shadowOptions.offsetX, 1),
+						top: pInt(elemStyle.top) + pick(shadowOptions.offsetY, 1)
+					}
+				);
+				if (cutOff) {
+					shadow.cutOff = strokeWidth + 1;
+				}
+
+				// apply the opacity
+				markup = ['<stroke color="', shadowOptions.color || 'black', '" opacity="', shadowElementOpacity * i, '"/>'];
+				createElement(renderer.prepVML(markup), null, null, shadow);
+
+
+				// insert it
+				if (group) {
+					group.element.appendChild(shadow);
+				} else {
+					element.parentNode.insertBefore(shadow, element);
+				}
+
+				// record it
+				shadows.push(shadow);
+
+			}
+
+			this.shadows = shadows;
+		}
+		return this;
+	},
+	updateShadows: noop, // Used in SVG only
+
+	setAttr: function (key, value) {
+		if (docMode8) { // IE8 setAttribute bug
+			this.element[key] = value;
+		} else {
+			this.element.setAttribute(key, value);
+		}
+	},
+	classSetter: function (value) {
+		// IE8 Standards mode has problems retrieving the className unless set like this
+		this.element.className = value;
+	},
+	dashstyleSetter: function (value, key, element) {
+		var strokeElem = element.getElementsByTagName('stroke')[0] ||
+			createElement(this.renderer.prepVML(['<stroke/>']), null, null, element);
+		strokeElem[key] = value || 'solid';
+		this[key] = value; /* because changing stroke-width will change the dash length
+			and cause an epileptic effect */
+	},
+	dSetter: function (value, key, element) {
+		var i,
+			shadows = this.shadows;
+		value = value || [];
+		this.d = value.join && value.join(' '); // used in getter for animation
+
+		element.path = value = this.pathToVML(value);
+
+		// update shadows
+		if (shadows) {
+			i = shadows.length;
+			while (i--) {
+				shadows[i].path = shadows[i].cutOff ? this.cutOffPath(value, shadows[i].cutOff) : value;
+			}
+		}
+		this.setAttr(key, value);
+	},
+	fillSetter: function (value, key, element) {
+		var nodeName = element.nodeName;
+		if (nodeName === 'SPAN') { // text color
+			element.style.color = value;
+		} else if (nodeName !== 'IMG') { // #1336
+			element.filled = value !== NONE;
+			this.setAttr('fillcolor', this.renderer.color(value, element, key, this));
+		}
+	},
+	opacitySetter: noop, // Don't bother - animation is too slow and filters introduce artifacts
+	rotationSetter: function (value, key, element) {
+		var style = element.style;
+		this[key] = style[key] = value; // style is for #1873
+
+		// Correction for the 1x1 size of the shape container. Used in gauge needles.
+		style.left = -mathRound(mathSin(value * deg2rad) + 1) + PX;
+		style.top = mathRound(mathCos(value * deg2rad)) + PX;
+	},
+	strokeSetter: function (value, key, element) {
+		this.setAttr('strokecolor', this.renderer.color(value, element, key));
+	},
+	'stroke-widthSetter': function (value, key, element) {
+		element.stroked = !!value; // VML "stroked" attribute
+		this[key] = value; // used in getter, issue #113
+		if (isNumber(value)) {
+			value += PX;
+		}
+		this.setAttr('strokeweight', value);
+	},
+	titleSetter: function (value, key) {
+		this.setAttr(key, value);
+	},
+	visibilitySetter: function (value, key, element) {
+
+		// Handle inherited visibility
+		if (value === 'inherit') {
+			value = VISIBLE;
+		}
+		
+		// Let the shadow follow the main element
+		if (this.shadows) {
+			each(this.shadows, function (shadow) {
+				shadow.style[key] = value;
+			});
+		}
+
+		// Instead of toggling the visibility CSS property, move the div out of the viewport.
+		// This works around #61 and #586
+		if (element.nodeName === 'DIV') {
+			value = value === HIDDEN ? '-999em' : 0;
+
+			// In order to redraw, IE7 needs the div to be visible when tucked away
+			// outside the viewport. So the visibility is actually opposite of
+			// the expected value. This applies to the tooltip only.
+			if (!docMode8) {
+				element.style[key] = value ? VISIBLE : HIDDEN;
+			}
+			key = 'top';
+		}
+		element.style[key] = value;
+	},
+	xSetter: function (value, key, element) {
+		this[key] = value; // used in getter
+
+		if (key === 'x') {
+			key = 'left';
+		} else if (key === 'y') {
+			key = 'top';
+		}/* else {
+			value = mathMax(0, value); // don't set width or height below zero (#311)
+		}*/
+
+		// clipping rectangle special
+		if (this.updateClipping) {
+			this[key] = value; // the key is now 'left' or 'top' for 'x' and 'y'
+			this.updateClipping();
+		} else {
+			// normal
+			element.style[key] = value;
+		}
+	},
+	zIndexSetter: function (value, key, element) {
+		element.style[key] = value;
+	}
+};
+Highcharts.VMLElement = VMLElement = extendClass(SVGElement, VMLElement);
+
+// Some shared setters
+VMLElement.prototype.ySetter =
+	VMLElement.prototype.widthSetter = 
+	VMLElement.prototype.heightSetter = 
+	VMLElement.prototype.xSetter;
+
+
+/**
+ * The VML renderer
+ */
+var VMLRendererExtension = { // inherit SVGRenderer
+
+	Element: VMLElement,
+	isIE8: userAgent.indexOf('MSIE 8.0') > -1,
+
+
+	/**
+	 * Initialize the VMLRenderer
+	 * @param {Object} container
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	init: function (container, width, height, style) {
+		var renderer = this,
+			boxWrapper,
+			box,
+			css;
+
+		renderer.alignedObjects = [];
+
+		boxWrapper = renderer.createElement(DIV)
+			.css(extend(this.getStyle(style), { position: RELATIVE}));
+		box = boxWrapper.element;
+		container.appendChild(boxWrapper.element);
+
+
+		// generate the containing box
+		renderer.isVML = true;
+		renderer.box = box;
+		renderer.boxWrapper = boxWrapper;
+		renderer.cache = {};
+
+
+		renderer.setSize(width, height, false);
+
+		// The only way to make IE6 and IE7 print is to use a global namespace. However,
+		// with IE8 the only way to make the dynamic shapes visible in screen and print mode
+		// seems to be to add the xmlns attribute and the behaviour style inline.
+		if (!doc.namespaces.hcv) {
+
+			doc.namespaces.add('hcv', 'urn:schemas-microsoft-com:vml');
+
+			// Setup default CSS (#2153, #2368, #2384)
+			css = 'hcv\\:fill, hcv\\:path, hcv\\:shape, hcv\\:stroke' +
+				'{ behavior:url(#default#VML); display: inline-block; } ';
+			try {
+				doc.createStyleSheet().cssText = css;
+			} catch (e) {
+				doc.styleSheets[0].cssText += css;
+			}
+
+		}
+	},
+
+
+	/**
+	 * Detect whether the renderer is hidden. This happens when one of the parent elements
+	 * has display: none
+	 */
+	isHidden: function () {
+		return !this.box.offsetWidth;
+	},
+
+	/**
+	 * Define a clipping rectangle. In VML it is accomplished by storing the values
+	 * for setting the CSS style to all associated members.
+	 *
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	clipRect: function (x, y, width, height) {
+
+		// create a dummy element
+		var clipRect = this.createElement(),
+			isObj = isObject(x);
+
+		// mimic a rectangle with its style object for automatic updating in attr
+		return extend(clipRect, {
+			members: [],
+			count: 0,
+			left: (isObj ? x.x : x) + 1,
+			top: (isObj ? x.y : y) + 1,
+			width: (isObj ? x.width : width) - 1,
+			height: (isObj ? x.height : height) - 1,
+			getCSS: function (wrapper) {
+				var element = wrapper.element,
+					nodeName = element.nodeName,
+					isShape = nodeName === 'shape',
+					inverted = wrapper.inverted,
+					rect = this,
+					top = rect.top - (isShape ? element.offsetTop : 0),
+					left = rect.left,
+					right = left + rect.width,
+					bottom = top + rect.height,
+					ret = {
+						clip: 'rect(' +
+							mathRound(inverted ? left : top) + 'px,' +
+							mathRound(inverted ? bottom : right) + 'px,' +
+							mathRound(inverted ? right : bottom) + 'px,' +
+							mathRound(inverted ? top : left) + 'px)'
+					};
+
+				// issue 74 workaround
+				if (!inverted && docMode8 && nodeName === 'DIV') {
+					extend(ret, {
+						width: right + PX,
+						height: bottom + PX
+					});
+				}
+				return ret;
+			},
+
+			// used in attr and animation to update the clipping of all members
+			updateClipping: function () {
+				each(clipRect.members, function (member) {
+					if (member.element) { // Deleted series, like in stock/members/series-remove demo. Should be removed from members, but this will do.
+						member.css(clipRect.getCSS(member));
+					}
+				});
+			}
+		});
+
+	},
+
+
+	/**
+	 * Take a color and return it if it's a string, make it a gradient if it's a
+	 * gradient configuration object, and apply opacity.
+	 *
+	 * @param {Object} color The color or config object
+	 */
+	color: function (color, elem, prop, wrapper) {
+		var renderer = this,
+			colorObject,
+			regexRgba = /^rgba/,
+			markup,
+			fillType,
+			ret = NONE;
+
+		// Check for linear or radial gradient
+		if (color && color.linearGradient) {
+			fillType = 'gradient';
+		} else if (color && color.radialGradient) {
+			fillType = 'pattern';
+		}
+
+
+		if (fillType) {
+
+			var stopColor,
+				stopOpacity,
+				gradient = color.linearGradient || color.radialGradient,
+				x1,
+				y1,
+				x2,
+				y2,
+				opacity1,
+				opacity2,
+				color1,
+				color2,
+				fillAttr = '',
+				stops = color.stops,
+				firstStop,
+				lastStop,
+				colors = [],
+				addFillNode = function () {
+					// Add the fill subnode. When colors attribute is used, the meanings of opacity and o:opacity2
+					// are reversed.
+					markup = ['<fill colors="' + colors.join(',') + '" opacity="', opacity2, '" o:opacity2="', opacity1,
+						'" type="', fillType, '" ', fillAttr, 'focus="100%" method="any" />'];
+					createElement(renderer.prepVML(markup), null, null, elem);
+				};
+
+			// Extend from 0 to 1
+			firstStop = stops[0];
+			lastStop = stops[stops.length - 1];
+			if (firstStop[0] > 0) {
+				stops.unshift([
+					0,
+					firstStop[1]
+				]);
+			}
+			if (lastStop[0] < 1) {
+				stops.push([
+					1,
+					lastStop[1]
+				]);
+			}
+
+			// Compute the stops
+			each(stops, function (stop, i) {
+				if (regexRgba.test(stop[1])) {
+					colorObject = Color(stop[1]);
+					stopColor = colorObject.get('rgb');
+					stopOpacity = colorObject.get('a');
+				} else {
+					stopColor = stop[1];
+					stopOpacity = 1;
+				}
+
+				// Build the color attribute
+				colors.push((stop[0] * 100) + '% ' + stopColor);
+
+				// Only start and end opacities are allowed, so we use the first and the last
+				if (!i) {
+					opacity1 = stopOpacity;
+					color2 = stopColor;
+				} else {
+					opacity2 = stopOpacity;
+					color1 = stopColor;
+				}
+			});
+
+			// Apply the gradient to fills only.
+			if (prop === 'fill') {
+
+				// Handle linear gradient angle
+				if (fillType === 'gradient') {
+					x1 = gradient.x1 || gradient[0] || 0;
+					
