@@ -4485,4 +4485,433 @@ extend(SVGElement.prototype, {
 					css(elem, {
 						width: textWidth + PX,
 						display: 'block',
-						whiteSpace: (styles && styles.whiteSpace) || 'normal' // #33
+						whiteSpace: (styles && styles.whiteSpace) || 'normal' // #3331
+					});
+					width = textWidth;
+				}
+
+				wrapper.getSpanCorrection(width, baseline, alignCorrection, rotation, align);
+			}
+
+			// apply position with correction
+			css(elem, {
+				left: (x + (wrapper.xCorr || 0)) + PX,
+				top: (y + (wrapper.yCorr || 0)) + PX
+			});
+
+			// force reflow in webkit to apply the left and top on useHTML element (#1249)
+			if (isWebKit) {
+				baseline = elem.offsetHeight; // assigned to baseline for JSLint purpose
+			}
+
+			// record current text transform
+			wrapper.cTT = currentTextTransform;
+		}
+	},
+
+	/**
+	 * Set the rotation of an individual HTML span
+	 */
+	setSpanRotation: function (rotation, alignCorrection, baseline) {
+		var rotationStyle = {},
+			cssTransformKey = isIE ? '-ms-transform' : isWebKit ? '-webkit-transform' : isFirefox ? 'MozTransform' : isOpera ? '-o-transform' : '';
+
+		rotationStyle[cssTransformKey] = rotationStyle.transform = 'rotate(' + rotation + 'deg)';
+		rotationStyle[cssTransformKey + (isFirefox ? 'Origin' : '-origin')] = rotationStyle.transformOrigin = (alignCorrection * 100) + '% ' + baseline + 'px';
+		css(this.element, rotationStyle);
+	},
+
+	/**
+	 * Get the correction in X and Y positioning as the element is rotated.
+	 */
+	getSpanCorrection: function (width, baseline, alignCorrection) {
+		this.xCorr = -width * alignCorrection;
+		this.yCorr = -baseline;
+	}
+});
+
+// Extend SvgRenderer for useHTML option.
+extend(SVGRenderer.prototype, {
+	/**
+	 * Create HTML text node. This is used by the VML renderer as well as the SVG
+	 * renderer through the useHTML option.
+	 *
+	 * @param {String} str
+	 * @param {Number} x
+	 * @param {Number} y
+	 */
+	html: function (str, x, y) {
+		var wrapper = this.createElement('span'),
+			element = wrapper.element,
+			renderer = wrapper.renderer;
+
+		// Text setter
+		wrapper.textSetter = function (value) {
+			if (value !== element.innerHTML) {
+				delete this.bBox;
+			}
+			element.innerHTML = this.textStr = value;
+		};
+
+		// Various setters which rely on update transform
+		wrapper.xSetter = wrapper.ySetter = wrapper.alignSetter = wrapper.rotationSetter = function (value, key) {
+			if (key === 'align') {
+				key = 'textAlign'; // Do not overwrite the SVGElement.align method. Same as VML.
+			}
+			wrapper[key] = value;
+			wrapper.htmlUpdateTransform();
+		};
+
+		// Set the default attributes
+		wrapper.attr({
+				text: str,
+				x: mathRound(x),
+				y: mathRound(y)
+			})
+			.css({
+				position: ABSOLUTE,
+				fontFamily: this.style.fontFamily,
+				fontSize: this.style.fontSize
+			});
+
+		// Keep the whiteSpace style outside the wrapper.styles collection
+		element.style.whiteSpace = 'nowrap';
+
+		// Use the HTML specific .css method
+		wrapper.css = wrapper.htmlCss;
+
+		// This is specific for HTML within SVG
+		if (renderer.isSVG) {
+			wrapper.add = function (svgGroupWrapper) {
+
+				var htmlGroup,
+					container = renderer.box.parentNode,
+					parentGroup,
+					parents = [];
+
+				this.parentGroup = svgGroupWrapper;
+
+				// Create a mock group to hold the HTML elements
+				if (svgGroupWrapper) {
+					htmlGroup = svgGroupWrapper.div;
+					if (!htmlGroup) {
+
+						// Read the parent chain into an array and read from top down
+						parentGroup = svgGroupWrapper;
+						while (parentGroup) {
+
+							parents.push(parentGroup);
+
+							// Move up to the next parent group
+							parentGroup = parentGroup.parentGroup;
+						}
+
+						// Ensure dynamically updating position when any parent is translated
+						each(parents.reverse(), function (parentGroup) {
+							var htmlGroupStyle,
+								cls = attr(parentGroup.element, 'class');
+
+							if (cls) {
+								cls = { className: cls };
+							} // else null
+
+							// Create a HTML div and append it to the parent div to emulate
+							// the SVG group structure
+							htmlGroup = parentGroup.div = parentGroup.div || createElement(DIV, cls, {
+								position: ABSOLUTE,
+								left: (parentGroup.translateX || 0) + PX,
+								top: (parentGroup.translateY || 0) + PX
+							}, htmlGroup || container); // the top group is appended to container
+
+							// Shortcut
+							htmlGroupStyle = htmlGroup.style;
+
+							// Set listeners to update the HTML div's position whenever the SVG group
+							// position is changed
+							extend(parentGroup, {
+								translateXSetter: function (value, key) {
+									htmlGroupStyle.left = value + PX;
+									parentGroup[key] = value;
+									parentGroup.doTransform = true;
+								},
+								translateYSetter: function (value, key) {
+									htmlGroupStyle.top = value + PX;
+									parentGroup[key] = value;
+									parentGroup.doTransform = true;
+								},
+								visibilitySetter: function (value, key) {
+									htmlGroupStyle[key] = value;
+								}
+							});
+						});
+
+					}
+				} else {
+					htmlGroup = container;
+				}
+
+				htmlGroup.appendChild(element);
+
+				// Shared with VML:
+				wrapper.added = true;
+				if (wrapper.alignOnAdd) {
+					wrapper.htmlUpdateTransform();
+				}
+
+				return wrapper;
+			};
+		}
+		return wrapper;
+	}
+});
+
+/* ****************************************************************************
+ *                                                                            *
+ * START OF INTERNET EXPLORER <= 8 SPECIFIC CODE                              *
+ *                                                                            *
+ * For applications and websites that don't need IE support, like platform    *
+ * targeted mobile apps and web apps, this code can be removed.               *
+ *                                                                            *
+ *****************************************************************************/
+
+/**
+ * @constructor
+ */
+var VMLRenderer, VMLElement;
+if (!hasSVG && !useCanVG) {
+
+/**
+ * The VML element wrapper.
+ */
+VMLElement = {
+
+	/**
+	 * Initialize a new VML element wrapper. It builds the markup as a string
+	 * to minimize DOM traffic.
+	 * @param {Object} renderer
+	 * @param {Object} nodeName
+	 */
+	init: function (renderer, nodeName) {
+		var wrapper = this,
+			markup =  ['<', nodeName, ' filled="f" stroked="f"'],
+			style = ['position: ', ABSOLUTE, ';'],
+			isDiv = nodeName === DIV;
+
+		// divs and shapes need size
+		if (nodeName === 'shape' || isDiv) {
+			style.push('left:0;top:0;width:1px;height:1px;');
+		}
+		style.push('visibility: ', isDiv ? HIDDEN : VISIBLE);
+
+		markup.push(' style="', style.join(''), '"/>');
+
+		// create element with default attributes and style
+		if (nodeName) {
+			markup = isDiv || nodeName === 'span' || nodeName === 'img' ?
+				markup.join('')
+				: renderer.prepVML(markup);
+			wrapper.element = createElement(markup);
+		}
+
+		wrapper.renderer = renderer;
+	},
+
+	/**
+	 * Add the node to the given parent
+	 * @param {Object} parent
+	 */
+	add: function (parent) {
+		var wrapper = this,
+			renderer = wrapper.renderer,
+			element = wrapper.element,
+			box = renderer.box,
+			inverted = parent && parent.inverted,
+
+			// get the parent node
+			parentNode = parent ?
+				parent.element || parent :
+				box;
+
+
+		// if the parent group is inverted, apply inversion on all children
+		if (inverted) { // only on groups
+			renderer.invertChild(element, parentNode);
+		}
+
+		// append it
+		parentNode.appendChild(element);
+
+		// align text after adding to be able to read offset
+		wrapper.added = true;
+		if (wrapper.alignOnAdd && !wrapper.deferUpdateTransform) {
+			wrapper.updateTransform();
+		}
+
+		// fire an event for internal hooks
+		if (wrapper.onAdd) {
+			wrapper.onAdd();
+		}
+
+		return wrapper;
+	},
+
+	/**
+	 * VML always uses htmlUpdateTransform
+	 */
+	updateTransform: SVGElement.prototype.htmlUpdateTransform,
+
+	/**
+	 * Set the rotation of a span with oldIE's filter
+	 */
+	setSpanRotation: function () {
+		// Adjust for alignment and rotation. Rotation of useHTML content is not yet implemented
+		// but it can probably be implemented for Firefox 3.5+ on user request. FF3.5+
+		// has support for CSS3 transform. The getBBox method also needs to be updated
+		// to compensate for the rotation, like it currently does for SVG.
+		// Test case: http://jsfiddle.net/highcharts/Ybt44/
+
+		var rotation = this.rotation,
+			costheta = mathCos(rotation * deg2rad),
+			sintheta = mathSin(rotation * deg2rad);
+					
+		css(this.element, {
+			filter: rotation ? ['progid:DXImageTransform.Microsoft.Matrix(M11=', costheta,
+				', M12=', -sintheta, ', M21=', sintheta, ', M22=', costheta,
+				', sizingMethod=\'auto expand\')'].join('') : NONE
+		});
+	},
+
+	/**
+	 * Get the positioning correction for the span after rotating. 
+	 */
+	getSpanCorrection: function (width, baseline, alignCorrection, rotation, align) {
+
+		var costheta = rotation ? mathCos(rotation * deg2rad) : 1,
+			sintheta = rotation ? mathSin(rotation * deg2rad) : 0,
+			height = pick(this.elemHeight, this.element.offsetHeight),
+			quad,
+			nonLeft = align && align !== 'left';
+
+		// correct x and y
+		this.xCorr = costheta < 0 && -width;
+		this.yCorr = sintheta < 0 && -height;
+
+		// correct for baseline and corners spilling out after rotation
+		quad = costheta * sintheta < 0;
+		this.xCorr += sintheta * baseline * (quad ? 1 - alignCorrection : alignCorrection);
+		this.yCorr -= costheta * baseline * (rotation ? (quad ? alignCorrection : 1 - alignCorrection) : 1);
+		// correct for the length/height of the text
+		if (nonLeft) {
+			this.xCorr -= width * alignCorrection * (costheta < 0 ? -1 : 1);
+			if (rotation) {
+				this.yCorr -= height * alignCorrection * (sintheta < 0 ? -1 : 1);
+			}
+			css(this.element, {
+				textAlign: align
+			});
+		}
+	},
+
+	/**
+	 * Converts a subset of an SVG path definition to its VML counterpart. Takes an array
+	 * as the parameter and returns a string.
+	 */
+	pathToVML: function (value) {
+		// convert paths
+		var i = value.length,
+			path = [];
+
+		while (i--) {
+
+			// Multiply by 10 to allow subpixel precision.
+			// Substracting half a pixel seems to make the coordinates
+			// align with SVG, but this hasn't been tested thoroughly
+			if (isNumber(value[i])) {
+				path[i] = mathRound(value[i] * 10) - 5;
+			} else if (value[i] === 'Z') { // close the path
+				path[i] = 'x';
+			} else {
+				path[i] = value[i];
+
+				// When the start X and end X coordinates of an arc are too close,
+				// they are rounded to the same value above. In this case, substract or 
+				// add 1 from the end X and Y positions. #186, #760, #1371, #1410.
+				if (value.isArc && (value[i] === 'wa' || value[i] === 'at')) {
+					// Start and end X
+					if (path[i + 5] === path[i + 7]) {
+						path[i + 7] += value[i + 7] > value[i + 5] ? 1 : -1;
+					}
+					// Start and end Y
+					if (path[i + 6] === path[i + 8]) {
+						path[i + 8] += value[i + 8] > value[i + 6] ? 1 : -1;
+					}
+				}
+			}
+		}
+
+		
+		// Loop up again to handle path shortcuts (#2132)
+		/*while (i++ < path.length) {
+			if (path[i] === 'H') { // horizontal line to
+				path[i] = 'L';
+				path.splice(i + 2, 0, path[i - 1]);
+			} else if (path[i] === 'V') { // vertical line to
+				path[i] = 'L';
+				path.splice(i + 1, 0, path[i - 2]);
+			}
+		}*/
+		return path.join(' ') || 'x';
+	},
+
+	/**
+	 * Set the element's clipping to a predefined rectangle
+	 *
+	 * @param {String} id The id of the clip rectangle
+	 */
+	clip: function (clipRect) {
+		var wrapper = this,
+			clipMembers,
+			cssRet;
+
+		if (clipRect) {
+			clipMembers = clipRect.members;
+			erase(clipMembers, wrapper); // Ensure unique list of elements (#1258)
+			clipMembers.push(wrapper);
+			wrapper.destroyClip = function () {
+				erase(clipMembers, wrapper);
+			};
+			cssRet = clipRect.getCSS(wrapper);
+
+		} else {
+			if (wrapper.destroyClip) {
+				wrapper.destroyClip();
+			}
+			cssRet = { clip: docMode8 ? 'inherit' : 'rect(auto)' }; // #1214
+		}
+
+		return wrapper.css(cssRet);
+
+	},
+
+	/**
+	 * Set styles for the element
+	 * @param {Object} styles
+	 */
+	css: SVGElement.prototype.htmlCss,
+
+	/**
+	 * Removes a child either by removeChild or move to garbageBin.
+	 * Issue 490; in VML removeChild results in Orphaned nodes according to sIEve, discardElement does not.
+	 */
+	safeRemoveChild: function (element) {
+		// discardElement will detach the node from its parent before attaching it
+		// to the garbage bin. Therefore it is important that the node is attached and have parent.
+		if (element.parentNode) {
+			discardElement(element);
+		}
+	},
+
+	/**
+	 * Extend element.destroy by removing it from the clip members array
+	 */
+	
