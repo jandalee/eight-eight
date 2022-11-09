@@ -5379,4 +5379,450 @@ var VMLRendererExtension = { // inherit SVGRenderer
 				// Handle linear gradient angle
 				if (fillType === 'gradient') {
 					x1 = gradient.x1 || gradient[0] || 0;
-					
+					y1 = gradient.y1 || gradient[1] || 0;
+					x2 = gradient.x2 || gradient[2] || 0;
+					y2 = gradient.y2 || gradient[3] || 0;
+					fillAttr = 'angle="' + (90  - math.atan(
+						(y2 - y1) / // y vector
+						(x2 - x1) // x vector
+						) * 180 / mathPI) + '"';
+
+					addFillNode();
+
+				// Radial (circular) gradient
+				} else {
+
+					var r = gradient.r,
+						sizex = r * 2,
+						sizey = r * 2,
+						cx = gradient.cx,
+						cy = gradient.cy,
+						radialReference = elem.radialReference,
+						bBox,
+						applyRadialGradient = function () {
+							if (radialReference) {
+								bBox = wrapper.getBBox();
+								cx += (radialReference[0] - bBox.x) / bBox.width - 0.5;
+								cy += (radialReference[1] - bBox.y) / bBox.height - 0.5;
+								sizex *= radialReference[2] / bBox.width;
+								sizey *= radialReference[2] / bBox.height;
+							}
+							fillAttr = 'src="' + defaultOptions.global.VMLRadialGradientURL + '" ' +
+								'size="' + sizex + ',' + sizey + '" ' +
+								'origin="0.5,0.5" ' +
+								'position="' + cx + ',' + cy + '" ' +
+								'color2="' + color2 + '" ';
+
+							addFillNode();
+						};
+
+					// Apply radial gradient
+					if (wrapper.added) {
+						applyRadialGradient();
+					} else {
+						// We need to know the bounding box to get the size and position right
+						wrapper.onAdd = applyRadialGradient;
+					}
+
+					// The fill element's color attribute is broken in IE8 standards mode, so we
+					// need to set the parent shape's fillcolor attribute instead.
+					ret = color1;
+				}
+
+			// Gradients are not supported for VML stroke, return the first color. #722.
+			} else {
+				ret = stopColor;
+			}
+
+		// if the color is an rgba color, split it and add a fill node
+		// to hold the opacity component
+		} else if (regexRgba.test(color) && elem.tagName !== 'IMG') {
+
+			colorObject = Color(color);
+
+			markup = ['<', prop, ' opacity="', colorObject.get('a'), '"/>'];
+			createElement(this.prepVML(markup), null, null, elem);
+
+			ret = colorObject.get('rgb');
+
+
+		} else {
+			var propNodes = elem.getElementsByTagName(prop); // 'stroke' or 'fill' node
+			if (propNodes.length) {
+				propNodes[0].opacity = 1;
+				propNodes[0].type = 'solid';
+			}
+			ret = color;
+		}
+
+		return ret;
+	},
+
+	/**
+	 * Take a VML string and prepare it for either IE8 or IE6/IE7.
+	 * @param {Array} markup A string array of the VML markup to prepare
+	 */
+	prepVML: function (markup) {
+		var vmlStyle = 'display:inline-block;behavior:url(#default#VML);',
+			isIE8 = this.isIE8;
+
+		markup = markup.join('');
+
+		if (isIE8) { // add xmlns and style inline
+			markup = markup.replace('/>', ' xmlns="urn:schemas-microsoft-com:vml" />');
+			if (markup.indexOf('style="') === -1) {
+				markup = markup.replace('/>', ' style="' + vmlStyle + '" />');
+			} else {
+				markup = markup.replace('style="', 'style="' + vmlStyle);
+			}
+
+		} else { // add namespace
+			markup = markup.replace('<', '<hcv:');
+		}
+
+		return markup;
+	},
+
+	/**
+	 * Create rotated and aligned text
+	 * @param {String} str
+	 * @param {Number} x
+	 * @param {Number} y
+	 */
+	text: SVGRenderer.prototype.html,
+
+	/**
+	 * Create and return a path element
+	 * @param {Array} path
+	 */
+	path: function (path) {
+		var attr = {
+			// subpixel precision down to 0.1 (width and height = 1px)
+			coordsize: '10 10'
+		};
+		if (isArray(path)) {
+			attr.d = path;
+		} else if (isObject(path)) { // attributes
+			extend(attr, path);
+		}
+		// create the shape
+		return this.createElement('shape').attr(attr);
+	},
+
+	/**
+	 * Create and return a circle element. In VML circles are implemented as
+	 * shapes, which is faster than v:oval
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} r
+	 */
+	circle: function (x, y, r) {
+		var circle = this.symbol('circle');
+		if (isObject(x)) {
+			r = x.r;
+			y = x.y;
+			x = x.x;
+		}
+		circle.isCircle = true; // Causes x and y to mean center (#1682)
+		circle.r = r;
+		return circle.attr({ x: x, y: y });
+	},
+
+	/**
+	 * Create a group using an outer div and an inner v:group to allow rotating
+	 * and flipping. A simple v:group would have problems with positioning
+	 * child HTML elements and CSS clip.
+	 *
+	 * @param {String} name The name of the group
+	 */
+	g: function (name) {
+		var wrapper,
+			attribs;
+
+		// set the class name
+		if (name) {
+			attribs = { 'className': PREFIX + name, 'class': PREFIX + name };
+		}
+
+		// the div to hold HTML and clipping
+		wrapper = this.createElement(DIV).attr(attribs);
+
+		return wrapper;
+	},
+
+	/**
+	 * VML override to create a regular HTML image
+	 * @param {String} src
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @param {Number} width
+	 * @param {Number} height
+	 */
+	image: function (src, x, y, width, height) {
+		var obj = this.createElement('img')
+			.attr({ src: src });
+
+		if (arguments.length > 1) {
+			obj.attr({
+				x: x,
+				y: y,
+				width: width,
+				height: height
+			});
+		}
+		return obj;
+	},
+
+	/**
+	 * For rectangles, VML uses a shape for rect to overcome bugs and rotation problems
+	 */
+	createElement: function (nodeName) {
+		return nodeName === 'rect' ? this.symbol(nodeName) : SVGRenderer.prototype.createElement.call(this, nodeName);	
+	},
+
+	/**
+	 * In the VML renderer, each child of an inverted div (group) is inverted
+	 * @param {Object} element
+	 * @param {Object} parentNode
+	 */
+	invertChild: function (element, parentNode) {
+		var ren = this,
+			parentStyle = parentNode.style,
+			imgStyle = element.tagName === 'IMG' && element.style; // #1111
+
+		css(element, {
+			flip: 'x',
+			left: pInt(parentStyle.width) - (imgStyle ? pInt(imgStyle.top) : 1),
+			top: pInt(parentStyle.height) - (imgStyle ? pInt(imgStyle.left) : 1),
+			rotation: -90
+		});
+
+		// Recursively invert child elements, needed for nested composite shapes like box plots and error bars. #1680, #1806.
+		each(element.childNodes, function (child) {
+			ren.invertChild(child, element);
+		});
+	},
+
+	/**
+	 * Symbol definitions that override the parent SVG renderer's symbols
+	 *
+	 */
+	symbols: {
+		// VML specific arc function
+		arc: function (x, y, w, h, options) {
+			var start = options.start,
+				end = options.end,
+				radius = options.r || w || h,
+				innerRadius = options.innerR,
+				cosStart = mathCos(start),
+				sinStart = mathSin(start),
+				cosEnd = mathCos(end),
+				sinEnd = mathSin(end),
+				ret;
+
+			if (end - start === 0) { // no angle, don't show it.
+				return ['x'];
+			}
+
+			ret = [
+				'wa', // clockwise arc to
+				x - radius, // left
+				y - radius, // top
+				x + radius, // right
+				y + radius, // bottom
+				x + radius * cosStart, // start x
+				y + radius * sinStart, // start y
+				x + radius * cosEnd, // end x
+				y + radius * sinEnd  // end y
+			];
+
+			if (options.open && !innerRadius) {
+				ret.push(
+					'e',
+					M,
+					x,// - innerRadius,
+					y// - innerRadius
+				);
+			}
+
+			ret.push(
+				'at', // anti clockwise arc to
+				x - innerRadius, // left
+				y - innerRadius, // top
+				x + innerRadius, // right
+				y + innerRadius, // bottom
+				x + innerRadius * cosEnd, // start x
+				y + innerRadius * sinEnd, // start y
+				x + innerRadius * cosStart, // end x
+				y + innerRadius * sinStart, // end y
+				'x', // finish path
+				'e' // close
+			);
+
+			ret.isArc = true;
+			return ret;
+
+		},
+		// Add circle symbol path. This performs significantly faster than v:oval.
+		circle: function (x, y, w, h, wrapper) {
+
+			if (wrapper) {
+				w = h = 2 * wrapper.r;
+			}
+
+			// Center correction, #1682
+			if (wrapper && wrapper.isCircle) {
+				x -= w / 2;
+				y -= h / 2;
+			}
+
+			// Return the path
+			return [
+				'wa', // clockwisearcto
+				x, // left
+				y, // top
+				x + w, // right
+				y + h, // bottom
+				x + w, // start x
+				y + h / 2,     // start y
+				x + w, // end x
+				y + h / 2,     // end y
+				//'x', // finish path
+				'e' // close
+			];
+		},
+		/**
+		 * Add rectangle symbol path which eases rotation and omits arcsize problems
+		 * compared to the built-in VML roundrect shape. When borders are not rounded,
+		 * use the simpler square path, else use the callout path without the arrow.
+		 */
+		rect: function (x, y, w, h, options) {
+			return SVGRenderer.prototype.symbols[
+				!defined(options) || !options.r ? 'square' : 'callout'
+			].call(0, x, y, w, h, options);
+		}
+	}
+};
+Highcharts.VMLRenderer = VMLRenderer = function () {
+	this.init.apply(this, arguments);
+};
+VMLRenderer.prototype = merge(SVGRenderer.prototype, VMLRendererExtension);
+
+	// general renderer
+	Renderer = VMLRenderer;
+}
+
+// This method is used with exporting in old IE, when emulating SVG (see #2314)
+SVGRenderer.prototype.measureSpanWidth = function (text, styles) {
+	var measuringSpan = doc.createElement('span'),
+		offsetWidth,
+	textNode = doc.createTextNode(text);
+
+	measuringSpan.appendChild(textNode);
+	css(measuringSpan, styles);
+	this.box.appendChild(measuringSpan);
+	offsetWidth = measuringSpan.offsetWidth;
+	discardElement(measuringSpan); // #2463
+	return offsetWidth;
+};
+
+
+/* ****************************************************************************
+ *                                                                            *
+ * END OF INTERNET EXPLORER <= 8 SPECIFIC CODE                                *
+ *                                                                            *
+ *****************************************************************************/
+/* ****************************************************************************
+ *                                                                            *
+ * START OF ANDROID < 3 SPECIFIC CODE. THIS CAN BE REMOVED IF YOU'RE NOT      *
+ * TARGETING THAT SYSTEM.                                                     *
+ *                                                                            *
+ *****************************************************************************/
+var CanVGRenderer,
+	CanVGController;
+
+if (useCanVG) {
+	/**
+	 * The CanVGRenderer is empty from start to keep the source footprint small.
+	 * When requested, the CanVGController downloads the rest of the source packaged
+	 * together with the canvg library.
+	 */
+	Highcharts.CanVGRenderer = CanVGRenderer = function () {
+		// Override the global SVG namespace to fake SVG/HTML that accepts CSS
+		SVG_NS = 'http://www.w3.org/1999/xhtml';
+	};
+
+	/**
+	 * Start with an empty symbols object. This is needed when exporting is used (exporting.src.js will add a few symbols), but 
+	 * the implementation from SvgRenderer will not be merged in until first render.
+	 */
+	CanVGRenderer.prototype.symbols = {};
+
+	/**
+	 * Handles on demand download of canvg rendering support.
+	 */
+	CanVGController = (function () {
+		// List of renderering calls
+		var deferredRenderCalls = [];
+
+		/**
+		 * When downloaded, we are ready to draw deferred charts.
+		 */
+		function drawDeferred() {
+			var callLength = deferredRenderCalls.length,
+				callIndex;
+
+			// Draw all pending render calls
+			for (callIndex = 0; callIndex < callLength; callIndex++) {
+				deferredRenderCalls[callIndex]();
+			}
+			// Clear the list
+			deferredRenderCalls = [];
+		}
+
+		return {
+			push: function (func, scriptLocation) {
+				// Only get the script once
+				if (deferredRenderCalls.length === 0) {
+					getScript(scriptLocation, drawDeferred);
+				}
+				// Register render call
+				deferredRenderCalls.push(func);
+			}
+		};
+	}());
+
+	Renderer = CanVGRenderer;
+} // end CanVGRenderer
+
+/* ****************************************************************************
+ *                                                                            *
+ * END OF ANDROID < 3 SPECIFIC CODE                                           *
+ *                                                                            *
+ *****************************************************************************/
+
+/**
+ * The Tick class
+ */
+function Tick(axis, pos, type, noLabel) {
+	this.axis = axis;
+	this.pos = pos;
+	this.type = type || '';
+	this.isNew = true;
+
+	if (!type && !noLabel) {
+		this.addLabel();
+	}
+}
+
+Tick.prototype = {
+	/**
+	 * Write the tick label
+	 */
+	addLabel: function () {
+		var tick = this,
+			axis = tick.axis,
+			options = axis.options,
+			chart = axis.chart,
+			categories = axis.categories,
+			names = axis.nam
