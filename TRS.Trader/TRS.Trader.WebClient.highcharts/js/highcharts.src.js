@@ -6268,3 +6268,543 @@ Highcharts.PlotLineOrBand.prototype = {
 
 			// events
 			if (events) {
+				addEvent = function (eventType) {
+					svgElem.on(eventType, function (e) {
+						events[eventType].apply(plotLine, [e]);
+					});
+				};
+				for (eventType in events) {
+					addEvent(eventType);
+				}
+			}
+		}
+
+		// the plot band/line label
+		if (optionsLabel && defined(optionsLabel.text) && path && path.length && axis.width > 0 && axis.height > 0) {
+			// apply defaults
+			optionsLabel = merge({
+				align: horiz && isBand && 'center',
+				x: horiz ? !isBand && 4 : 10,
+				verticalAlign : !horiz && isBand && 'middle',
+				y: horiz ? isBand ? 16 : 10 : isBand ? 6 : -4,
+				rotation: horiz && !isBand && 90
+			}, optionsLabel);
+
+			// add the SVG element
+			if (!label) {
+				attribs = {
+					align: optionsLabel.textAlign || optionsLabel.align,
+					rotation: optionsLabel.rotation
+				};
+				if (defined(zIndex)) {
+					attribs.zIndex = zIndex;
+				}
+				plotLine.label = label = renderer.text(
+						optionsLabel.text,
+						0,
+						0,
+						optionsLabel.useHTML
+					)
+					.attr(attribs)
+					.css(optionsLabel.style)
+					.add();
+			}
+
+			// get the bounding box and align the label
+			// #3000 changed to better handle choice between plotband or plotline
+			xs = [path[1], path[4], (isBand ? path[6] : path[1])];
+			ys = [path[2], path[5], (isBand ? path[7] : path[2])];
+			x = arrayMin(xs);
+			y = arrayMin(ys);
+
+			label.align(optionsLabel, false, {
+				x: x,
+				y: y,
+				width: arrayMax(xs) - x,
+				height: arrayMax(ys) - y
+			});
+			label.show();
+
+		} else if (label) { // move out of sight
+			label.hide();
+		}
+
+		// chainable
+		return plotLine;
+	},
+
+	/**
+	 * Remove the plot line or band
+	 */
+	destroy: function () {
+		// remove it from the lookup
+		erase(this.axis.plotLinesAndBands, this);
+		
+		delete this.axis;
+		destroyObjectProperties(this);
+	}
+};
+
+/**
+ * Object with members for extending the Axis prototype
+ */
+
+AxisPlotLineOrBandExtension = {
+
+	/**
+	 * Create the path for a plot band
+	 */ 
+	getPlotBandPath: function (from, to) {
+		var toPath = this.getPlotLinePath(to, null, null, true),
+			path = this.getPlotLinePath(from, null, null, true);
+
+		if (path && toPath && path.toString() !== toPath.toString()) { // #3836
+			path.push(
+				toPath[4],
+				toPath[5],
+				toPath[1],
+				toPath[2]
+			);
+		} else { // outside the axis area
+			path = null;
+		}
+		
+		return path;
+	},
+
+	addPlotBand: function (options) {
+		return this.addPlotBandOrLine(options, 'plotBands');
+	},
+	
+	addPlotLine: function (options) {
+		return this.addPlotBandOrLine(options, 'plotLines');
+	},
+
+	/**
+	 * Add a plot band or plot line after render time
+	 *
+	 * @param options {Object} The plotBand or plotLine configuration object
+	 */
+	addPlotBandOrLine: function (options, coll) {
+		var obj = new Highcharts.PlotLineOrBand(this, options).render(),
+			userOptions = this.userOptions;
+
+		if (obj) { // #2189
+			// Add it to the user options for exporting and Axis.update
+			if (coll) {
+				userOptions[coll] = userOptions[coll] || [];
+				userOptions[coll].push(options); 
+			}
+			this.plotLinesAndBands.push(obj); 
+		}
+		
+		return obj;
+	},
+
+	/**
+	 * Remove a plot band or plot line from the chart by id
+	 * @param {Object} id
+	 */
+	removePlotBandOrLine: function (id) {
+		var plotLinesAndBands = this.plotLinesAndBands,
+			options = this.options,
+			userOptions = this.userOptions,
+			i = plotLinesAndBands.length;
+		while (i--) {
+			if (plotLinesAndBands[i].id === id) {
+				plotLinesAndBands[i].destroy();
+			}
+		}
+		each([options.plotLines || [], userOptions.plotLines || [], options.plotBands || [], userOptions.plotBands || []], function (arr) {
+			i = arr.length;
+			while (i--) {
+				if (arr[i].id === id) {
+					erase(arr, arr[i]);
+				}
+			}
+		});
+	}
+};
+
+/**
+ * Create a new axis object
+ * @param {Object} chart
+ * @param {Object} options
+ */
+var Axis = Highcharts.Axis = function () {
+	this.init.apply(this, arguments);
+};
+
+Axis.prototype = {
+
+	/**
+	 * Default options for the X axis - the Y axis has extended defaults
+	 */
+	defaultOptions: {
+		// allowDecimals: null,
+		// alternateGridColor: null,
+		// categories: [],
+		dateTimeLabelFormats: {
+			millisecond: '%H:%M:%S.%L',
+			second: '%H:%M:%S',
+			minute: '%H:%M',
+			hour: '%H:%M',
+			day: '%e. %b',
+			week: '%e. %b',
+			month: '%b \'%y',
+			year: '%Y'
+		},
+		endOnTick: false,
+		gridLineColor: '#D8D8D8',
+		// gridLineDashStyle: 'solid',
+		// gridLineWidth: 0,
+		// reversed: false,
+
+		labels: {
+			enabled: true,
+			// rotation: 0,
+			// align: 'center',
+			// step: null,
+			style: {
+				color: '#606060',
+				cursor: 'default',
+				fontSize: '11px'
+			},
+			x: 0,
+			y: 15
+			/*formatter: function () {
+				return this.value;
+			},*/
+		},
+		lineColor: '#C0D0E0',
+		lineWidth: 1,
+		//linkedTo: null,
+		//max: undefined,
+		//min: undefined,
+		minPadding: 0.01,
+		maxPadding: 0.01,
+		//minRange: null,
+		minorGridLineColor: '#E0E0E0',
+		// minorGridLineDashStyle: null,
+		minorGridLineWidth: 1,
+		minorTickColor: '#A0A0A0',
+		//minorTickInterval: null,
+		minorTickLength: 2,
+		minorTickPosition: 'outside', // inside or outside
+		//minorTickWidth: 0,
+		//opposite: false,
+		//offset: 0,
+		//plotBands: [{
+		//	events: {},
+		//	zIndex: 1,
+		//	labels: { align, x, verticalAlign, y, style, rotation, textAlign }
+		//}],
+		//plotLines: [{
+		//	events: {}
+		//  dashStyle: {}
+		//	zIndex:
+		//	labels: { align, x, verticalAlign, y, style, rotation, textAlign }
+		//}],
+		//reversed: false,
+		// showFirstLabel: true,
+		// showLastLabel: true,
+		startOfWeek: 1,
+		startOnTick: false,
+		tickColor: '#C0D0E0',
+		//tickInterval: null,
+		tickLength: 10,
+		tickmarkPlacement: 'between', // on or between
+		tickPixelInterval: 100,
+		tickPosition: 'outside',
+		tickWidth: 1,
+		title: {
+			//text: null,
+			align: 'middle', // low, middle or high
+			//margin: 0 for horizontal, 10 for vertical axes,
+			//rotation: 0,
+			//side: 'outside',
+			style: {
+				color: '#707070'
+			}
+			//x: 0,
+			//y: 0
+		},
+		type: 'linear' // linear, logarithmic or datetime
+	},
+
+	/**
+	 * This options set extends the defaultOptions for Y axes
+	 */
+	defaultYAxisOptions: {
+		endOnTick: true,
+		gridLineWidth: 1,
+		tickPixelInterval: 72,
+		showLastLabel: true,
+		labels: {
+			x: -8,
+			y: 3
+		},
+		lineWidth: 0,
+		maxPadding: 0.05,
+		minPadding: 0.05,
+		startOnTick: true,
+		tickWidth: 0,
+		title: {
+			rotation: 270,
+			text: 'Values'
+		},
+		stackLabels: {
+			enabled: false,
+			//align: dynamic,
+			//y: dynamic,
+			//x: dynamic,
+			//verticalAlign: dynamic,
+			//textAlign: dynamic,
+			//rotation: 0,
+			formatter: function () {
+				return Highcharts.numberFormat(this.total, -1);
+			},
+			style: merge(defaultPlotOptions.line.dataLabels.style, { color: '#000000' })
+		}
+	},
+
+	/**
+	 * These options extend the defaultOptions for left axes
+	 */
+	defaultLeftAxisOptions: {
+		labels: {
+			x: -15,
+			y: null
+		},
+		title: {
+			rotation: 270
+		}
+	},
+
+	/**
+	 * These options extend the defaultOptions for right axes
+	 */
+	defaultRightAxisOptions: {
+		labels: {
+			x: 15,
+			y: null
+		},
+		title: {
+			rotation: 90
+		}
+	},
+
+	/**
+	 * These options extend the defaultOptions for bottom axes
+	 */
+	defaultBottomAxisOptions: {
+		labels: {
+			autoRotation: [-45],
+			x: 0,
+			y: null // based on font size
+			// overflow: undefined,
+			// staggerLines: null
+		},
+		title: {
+			rotation: 0
+		}
+	},
+	/**
+	 * These options extend the defaultOptions for top axes
+	 */
+	defaultTopAxisOptions: {
+		labels: {
+			autoRotation: [-45],
+			x: 0,
+			y: -15
+			// overflow: undefined
+			// staggerLines: null
+		},
+		title: {
+			rotation: 0
+		}
+	},
+
+	/**
+	 * Initialize the axis
+	 */
+	init: function (chart, userOptions) {
+
+
+		var isXAxis = userOptions.isX,
+			axis = this;
+
+		// Flag, is the axis horizontal
+		axis.horiz = chart.inverted ? !isXAxis : isXAxis;
+
+		// Flag, isXAxis
+		axis.isXAxis = isXAxis;
+		axis.coll = isXAxis ? 'xAxis' : 'yAxis';
+
+		axis.opposite = userOptions.opposite; // needed in setOptions
+		axis.side = userOptions.side || (axis.horiz ?
+				(axis.opposite ? 0 : 2) : // top : bottom
+				(axis.opposite ? 1 : 3));  // right : left
+
+		axis.setOptions(userOptions);
+
+
+		var options = this.options,
+			type = options.type,
+			isDatetimeAxis = type === 'datetime';
+
+		axis.labelFormatter = options.labels.formatter || axis.defaultLabelFormatter; // can be overwritten by dynamic format
+
+
+		// Flag, stagger lines or not
+		axis.userOptions = userOptions;
+
+		//axis.axisTitleMargin = UNDEFINED,// = options.title.margin,
+		axis.minPixelPadding = 0;
+		//axis.ignoreMinPadding = UNDEFINED; // can be set to true by a column or bar series
+		//axis.ignoreMaxPadding = UNDEFINED;
+
+		axis.chart = chart;
+		axis.reversed = options.reversed;
+		axis.zoomEnabled = options.zoomEnabled !== false;
+
+		// Initial categories
+		axis.categories = options.categories || type === 'category';
+		axis.names = axis.names || []; // Preserve on update (#3830)
+
+		// Elements
+		//axis.axisGroup = UNDEFINED;
+		//axis.gridGroup = UNDEFINED;
+		//axis.axisTitle = UNDEFINED;
+		//axis.axisLine = UNDEFINED;
+
+		// Shorthand types
+		axis.isLog = type === 'logarithmic';
+		axis.isDatetimeAxis = isDatetimeAxis;
+
+		// Flag, if axis is linked to another axis
+		axis.isLinked = defined(options.linkedTo);
+		// Linked axis.
+		//axis.linkedParent = UNDEFINED;
+
+		// Tick positions
+		//axis.tickPositions = UNDEFINED; // array containing predefined positions
+		// Tick intervals
+		//axis.tickInterval = UNDEFINED;
+		//axis.minorTickInterval = UNDEFINED;
+
+		
+		// Major ticks
+		axis.ticks = {};
+		axis.labelEdge = [];
+		// Minor ticks
+		axis.minorTicks = {};
+
+		// List of plotLines/Bands
+		axis.plotLinesAndBands = [];
+
+		// Alternate bands
+		axis.alternateBands = {};
+
+		// Axis metrics
+		//axis.left = UNDEFINED;
+		//axis.top = UNDEFINED;
+		//axis.width = UNDEFINED;
+		//axis.height = UNDEFINED;
+		//axis.bottom = UNDEFINED;
+		//axis.right = UNDEFINED;
+		//axis.transA = UNDEFINED;
+		//axis.transB = UNDEFINED;
+		//axis.oldTransA = UNDEFINED;
+		axis.len = 0;
+		//axis.oldMin = UNDEFINED;
+		//axis.oldMax = UNDEFINED;
+		//axis.oldUserMin = UNDEFINED;
+		//axis.oldUserMax = UNDEFINED;
+		//axis.oldAxisLength = UNDEFINED;
+		axis.minRange = axis.userMinRange = options.minRange || options.maxZoom;
+		axis.range = options.range;
+		axis.offset = options.offset || 0;
+
+
+		// Dictionary for stacks
+		axis.stacks = {};
+		axis.oldStacks = {};
+		
+		// Min and max in the data
+		//axis.dataMin = UNDEFINED,
+		//axis.dataMax = UNDEFINED,
+
+		// The axis range
+		axis.max = null;
+		axis.min = null;
+
+		// User set min and max
+		//axis.userMin = UNDEFINED,
+		//axis.userMax = UNDEFINED,
+
+		// Crosshair options
+		axis.crosshair = pick(options.crosshair, splat(chart.options.tooltip.crosshairs)[isXAxis ? 0 : 1], false);
+		// Run Axis
+
+		var eventType,
+			events = axis.options.events;
+
+		// Register
+		if (inArray(axis, chart.axes) === -1) { // don't add it again on Axis.update()
+			if (isXAxis && !this.isColorAxis) { // #2713
+				chart.axes.splice(chart.xAxis.length, 0, axis);
+			} else {
+				chart.axes.push(axis);
+			}
+
+			chart[axis.coll].push(axis);
+		}
+
+		axis.series = axis.series || []; // populated by Series
+
+		// inverted charts have reversed xAxes as default
+		if (chart.inverted && isXAxis && axis.reversed === UNDEFINED) {
+			axis.reversed = true;
+		}
+
+		axis.removePlotBand = axis.removePlotBandOrLine;
+		axis.removePlotLine = axis.removePlotBandOrLine;
+
+
+		// register event listeners
+		for (eventType in events) {
+			addEvent(axis, eventType, events[eventType]);
+		}
+
+		// extend logarithmic axis
+		if (axis.isLog) {
+			axis.val2lin = log2lin;
+			axis.lin2val = lin2log;
+		}
+	},
+
+	/**
+	 * Merge and set options
+	 */
+	setOptions: function (userOptions) {
+		this.options = merge(
+			this.defaultOptions,
+			this.isXAxis ? {} : this.defaultYAxisOptions,
+			[this.defaultTopAxisOptions, this.defaultRightAxisOptions,
+				this.defaultBottomAxisOptions, this.defaultLeftAxisOptions][this.side],
+			merge(
+				defaultOptions[this.coll], // if set in setOptions (#1053)
+				userOptions
+			)
+		);
+	},
+
+	/**
+	 * The default label formatter. The context is a special config object for the label.
+	 */
+	defaultLabelFormatter: function () {
+		var axis = this.axis,
+			value = this.value,
+			categories = axis.categories,
+			dateTimeLabelFormat
