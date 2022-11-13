@@ -6807,4 +6807,408 @@ Axis.prototype = {
 		var axis = this.axis,
 			value = this.value,
 			categories = axis.categories,
-			dateTimeLabelFormat
+			dateTimeLabelFormat = this.dateTimeLabelFormat,
+			numericSymbols = defaultOptions.lang.numericSymbols,
+			i = numericSymbols && numericSymbols.length,
+			multi,
+			ret,
+			formatOption = axis.options.labels.format,
+
+			// make sure the same symbol is added for all labels on a linear axis
+			numericSymbolDetector = axis.isLog ? value : axis.tickInterval;
+
+		if (formatOption) {
+			ret = format(formatOption, this);
+
+		} else if (categories) {
+			ret = value;
+
+		} else if (dateTimeLabelFormat) { // datetime axis
+			ret = dateFormat(dateTimeLabelFormat, value);
+
+		} else if (i && numericSymbolDetector >= 1000) {
+			// Decide whether we should add a numeric symbol like k (thousands) or M (millions).
+			// If we are to enable this in tooltip or other places as well, we can move this
+			// logic to the numberFormatter and enable it by a parameter.
+			while (i-- && ret === UNDEFINED) {
+				multi = Math.pow(1000, i + 1);
+				if (numericSymbolDetector >= multi && (value * 10) % multi === 0 && numericSymbols[i] !== null) {
+					ret = Highcharts.numberFormat(value / multi, -1) + numericSymbols[i];
+				}
+			}
+		}
+
+		if (ret === UNDEFINED) {
+			if (mathAbs(value) >= 10000) { // add thousands separators
+				ret = Highcharts.numberFormat(value, -1);
+
+			} else { // small numbers
+				ret = Highcharts.numberFormat(value, -1, UNDEFINED, ''); // #2466
+			}
+		}
+
+		return ret;
+	},
+
+	/**
+	 * Get the minimum and maximum for the series of each axis
+	 */
+	getSeriesExtremes: function () {
+		var axis = this,
+			chart = axis.chart;
+
+		axis.hasVisibleSeries = false;
+
+		// Reset properties in case we're redrawing (#3353)
+		axis.dataMin = axis.dataMax = axis.ignoreMinPadding = axis.ignoreMaxPadding = null;
+		
+		if (axis.buildStacks) {
+			axis.buildStacks();
+		}
+
+		// loop through this axis' series
+		each(axis.series, function (series) {
+
+			if (series.visible || !chart.options.chart.ignoreHiddenSeries) {
+
+				var seriesOptions = series.options,
+					xData,
+					threshold = seriesOptions.threshold,
+					seriesDataMin,
+					seriesDataMax;
+
+				axis.hasVisibleSeries = true;
+
+				// Validate threshold in logarithmic axes
+				if (axis.isLog && threshold <= 0) {
+					threshold = null;
+				}
+
+				// Get dataMin and dataMax for X axes
+				if (axis.isXAxis) {
+					xData = series.xData;
+					if (xData.length) {
+						axis.dataMin = mathMin(pick(axis.dataMin, xData[0]), arrayMin(xData));
+						axis.dataMax = mathMax(pick(axis.dataMax, xData[0]), arrayMax(xData));
+					}
+
+				// Get dataMin and dataMax for Y axes, as well as handle stacking and processed data
+				} else {
+
+					// Get this particular series extremes
+					series.getExtremes();
+					seriesDataMax = series.dataMax;
+					seriesDataMin = series.dataMin;
+
+					// Get the dataMin and dataMax so far. If percentage is used, the min and max are
+					// always 0 and 100. If seriesDataMin and seriesDataMax is null, then series
+					// doesn't have active y data, we continue with nulls
+					if (defined(seriesDataMin) && defined(seriesDataMax)) {
+						axis.dataMin = mathMin(pick(axis.dataMin, seriesDataMin), seriesDataMin);
+						axis.dataMax = mathMax(pick(axis.dataMax, seriesDataMax), seriesDataMax);
+					}
+
+					// Adjust to threshold
+					if (defined(threshold)) {
+						if (axis.dataMin >= threshold) {
+							axis.dataMin = threshold;
+							axis.ignoreMinPadding = true;
+						} else if (axis.dataMax < threshold) {
+							axis.dataMax = threshold;
+							axis.ignoreMaxPadding = true;
+						}
+					}
+				}
+			}
+		});
+	},
+
+	/**
+	 * Translate from axis value to pixel position on the chart, or back
+	 *
+	 */
+	translate: function (val, backwards, cvsCoord, old, handleLog, pointPlacement) {
+		var axis = this.linkedParent || this, // #1417
+			sign = 1,
+			cvsOffset = 0,
+			localA = old ? axis.oldTransA : axis.transA,
+			localMin = old ? axis.oldMin : axis.min,
+			returnValue,
+			minPixelPadding = axis.minPixelPadding,
+			doPostTranslate = (axis.doPostTranslate || (axis.isLog && handleLog)) && axis.lin2val;
+
+		if (!localA) {
+			localA = axis.transA;
+		}
+
+		// In vertical axes, the canvas coordinates start from 0 at the top like in
+		// SVG.
+		if (cvsCoord) {
+			sign *= -1; // canvas coordinates inverts the value
+			cvsOffset = axis.len;
+		}
+
+		// Handle reversed axis
+		if (axis.reversed) {
+			sign *= -1;
+			cvsOffset -= sign * (axis.sector || axis.len);
+		}
+
+		// From pixels to value
+		if (backwards) { // reverse translation
+
+			val = val * sign + cvsOffset;
+			val -= minPixelPadding;
+			returnValue = val / localA + localMin; // from chart pixel to value
+			if (doPostTranslate) { // log and ordinal axes
+				returnValue = axis.lin2val(returnValue);
+			}
+
+		// From value to pixels
+		} else {
+			if (doPostTranslate) { // log and ordinal axes
+				val = axis.val2lin(val);
+			}
+			if (pointPlacement === 'between') {
+				pointPlacement = 0.5;
+			}
+			returnValue = sign * (val - localMin) * localA + cvsOffset + (sign * minPixelPadding) +
+				(isNumber(pointPlacement) ? localA * pointPlacement * axis.pointRange : 0);
+		}
+
+		return returnValue;
+	},
+
+	/**
+	 * Utility method to translate an axis value to pixel position.
+	 * @param {Number} value A value in terms of axis units
+	 * @param {Boolean} paneCoordinates Whether to return the pixel coordinate relative to the chart
+	 *        or just the axis/pane itself.
+	 */
+	toPixels: function (value, paneCoordinates) {
+		return this.translate(value, false, !this.horiz, null, true) + (paneCoordinates ? 0 : this.pos);
+	},
+
+	/*
+	 * Utility method to translate a pixel position in to an axis value
+	 * @param {Number} pixel The pixel value coordinate
+	 * @param {Boolean} paneCoordiantes Whether the input pixel is relative to the chart or just the
+	 *        axis/pane itself.
+	 */
+	toValue: function (pixel, paneCoordinates) {
+		return this.translate(pixel - (paneCoordinates ? 0 : this.pos), true, !this.horiz, null, true);
+	},
+
+	/**
+	 * Create the path for a plot line that goes from the given value on
+	 * this axis, across the plot to the opposite side
+	 * @param {Number} value
+	 * @param {Number} lineWidth Used for calculation crisp line
+	 * @param {Number] old Use old coordinates (for resizing and rescaling)
+	 */
+	getPlotLinePath: function (value, lineWidth, old, force, translatedValue) {
+		var axis = this,
+			chart = axis.chart,
+			axisLeft = axis.left,
+			axisTop = axis.top,
+			x1,
+			y1,
+			x2,
+			y2,
+			cHeight = (old && chart.oldChartHeight) || chart.chartHeight,
+			cWidth = (old && chart.oldChartWidth) || chart.chartWidth,
+			skip,
+			transB = axis.transB,
+			/**
+			 * Check if x is between a and b. If not, either move to a/b or skip, 
+			 * depending on the force parameter.
+			 */
+			between = function (x, a, b) {
+				if (x < a || x > b) {
+					if (force) {
+						x = mathMin(mathMax(a, x), b);
+					} else {
+						skip = true;
+					}
+				}
+				return x;
+			};
+
+		translatedValue = pick(translatedValue, axis.translate(value, null, null, old));
+		x1 = x2 = mathRound(translatedValue + transB);
+		y1 = y2 = mathRound(cHeight - translatedValue - transB);
+
+		if (isNaN(translatedValue)) { // no min or max
+			skip = true;
+
+		} else if (axis.horiz) {
+			y1 = axisTop;
+			y2 = cHeight - axis.bottom;
+			x1 = x2 = between(x1, axisLeft, axisLeft + axis.width);
+		} else {
+			x1 = axisLeft;
+			x2 = cWidth - axis.right;
+			y1 = y2 = between(y1, axisTop, axisTop + axis.height);
+		}
+		return skip && !force ?
+			null :
+			chart.renderer.crispLine([M, x1, y1, L, x2, y2], lineWidth || 1);
+	},
+
+	/**
+	 * Set the tick positions of a linear axis to round values like whole tens or every five.
+	 */
+	getLinearTickPositions: function (tickInterval, min, max) {
+		var pos,
+			lastPos,
+			roundedMin = correctFloat(mathFloor(min / tickInterval) * tickInterval),
+			roundedMax = correctFloat(mathCeil(max / tickInterval) * tickInterval),
+			tickPositions = [];
+
+		// For single points, add a tick regardless of the relative position (#2662)
+		if (min === max && isNumber(min)) {
+			return [min];
+		}
+
+		// Populate the intermediate values
+		pos = roundedMin;
+		while (pos <= roundedMax) {
+
+			// Place the tick on the rounded value
+			tickPositions.push(pos);
+
+			// Always add the raw tickInterval, not the corrected one.
+			pos = correctFloat(pos + tickInterval);
+
+			// If the interval is not big enough in the current min - max range to actually increase
+			// the loop variable, we need to break out to prevent endless loop. Issue #619
+			if (pos === lastPos) {
+				break;
+			}
+
+			// Record the last value
+			lastPos = pos;
+		}
+		return tickPositions;
+	},
+
+	/**
+	 * Return the minor tick positions. For logarithmic axes, reuse the same logic
+	 * as for major ticks.
+	 */
+	getMinorTickPositions: function () {
+		var axis = this,
+			options = axis.options,
+			tickPositions = axis.tickPositions,
+			minorTickInterval = axis.minorTickInterval,
+			minorTickPositions = [],
+			pos,
+			i,
+			min = axis.min,
+			max = axis.max,
+			range = max - min,
+			len;
+
+		// If minor ticks get too dense, they are hard to read, and may cause long running script. So we don't draw them.
+		if (range && range / minorTickInterval < axis.len / 3) { // #3875
+
+			if (axis.isLog) {
+				len = tickPositions.length;
+				for (i = 1; i < len; i++) {
+					minorTickPositions = minorTickPositions.concat(
+						axis.getLogTickPositions(minorTickInterval, tickPositions[i - 1], tickPositions[i], true)
+					);
+				}
+			} else if (axis.isDatetimeAxis && options.minorTickInterval === 'auto') { // #1314
+				minorTickPositions = minorTickPositions.concat(
+					axis.getTimeTicks(
+						axis.normalizeTimeTickInterval(minorTickInterval),
+						min,
+						max,
+						options.startOfWeek
+					)
+				);
+			} else {
+				for (pos = min + (tickPositions[0] - min) % minorTickInterval; pos <= max; pos += minorTickInterval) {
+					minorTickPositions.push(pos);
+				}
+			}
+		}
+
+		axis.trimTicks(minorTickPositions); // #3652 #3743
+		return minorTickPositions;
+	},
+
+	/**
+	 * Adjust the min and max for the minimum range. Keep in mind that the series data is
+	 * not yet processed, so we don't have information on data cropping and grouping, or
+	 * updated axis.pointRange or series.pointRange. The data can't be processed until
+	 * we have finally established min and max.
+	 */
+	adjustForMinRange: function () {
+		var axis = this,
+			options = axis.options,
+			min = axis.min,
+			max = axis.max,
+			zoomOffset,
+			spaceAvailable = axis.dataMax - axis.dataMin >= axis.minRange,
+			closestDataRange,
+			i,
+			distance,
+			xData,
+			loopLength,
+			minArgs,
+			maxArgs;
+
+		// Set the automatic minimum range based on the closest point distance
+		if (axis.isXAxis && axis.minRange === UNDEFINED && !axis.isLog) {
+
+			if (defined(options.min) || defined(options.max)) {
+				axis.minRange = null; // don't do this again
+
+			} else {
+
+				// Find the closest distance between raw data points, as opposed to
+				// closestPointRange that applies to processed points (cropped and grouped)
+				each(axis.series, function (series) {
+					xData = series.xData;
+					loopLength = series.xIncrement ? 1 : xData.length - 1;
+					for (i = loopLength; i > 0; i--) {
+						distance = xData[i] - xData[i - 1];
+						if (closestDataRange === UNDEFINED || distance < closestDataRange) {
+							closestDataRange = distance;
+						}
+					}
+				});
+				axis.minRange = mathMin(closestDataRange * 5, axis.dataMax - axis.dataMin);
+			}
+		}
+
+		// if minRange is exceeded, adjust
+		if (max - min < axis.minRange) {
+			var minRange = axis.minRange;
+			zoomOffset = (minRange - max + min) / 2;
+
+			// if min and max options have been set, don't go beyond it
+			minArgs = [min - zoomOffset, pick(options.min, min - zoomOffset)];
+			if (spaceAvailable) { // if space is available, stay within the data range
+				minArgs[2] = axis.dataMin;
+			}
+			min = arrayMax(minArgs);
+
+			maxArgs = [min + minRange, pick(options.max, min + minRange)];
+			if (spaceAvailable) { // if space is availabe, stay within the data range
+				maxArgs[2] = axis.dataMax;
+			}
+
+			max = arrayMin(maxArgs);
+
+			// now if the max is adjusted, adjust the min back
+			if (max - min < minRange) {
+				minArgs[0] = max - minRange;
+				minArgs[1] = pick(options.min, max - minRange);
+				min = arrayMax(minArgs);
+			}
+		}
+
+		// R
