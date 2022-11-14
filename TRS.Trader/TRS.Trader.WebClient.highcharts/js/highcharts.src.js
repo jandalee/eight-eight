@@ -7211,4 +7211,340 @@ Axis.prototype = {
 			}
 		}
 
-		// R
+		// Record modified extremes
+		axis.min = min;
+		axis.max = max;
+	},
+
+	/**
+	 * Update translation information
+	 */
+	setAxisTranslation: function (saveOld) {
+		var axis = this,
+			range = axis.max - axis.min,
+			pointRange = axis.axisPointRange || 0,
+			closestPointRange,
+			minPointOffset = 0,
+			pointRangePadding = 0,
+			linkedParent = axis.linkedParent,
+			ordinalCorrection,
+			hasCategories = !!axis.categories,
+			transA = axis.transA,
+			isXAxis = axis.isXAxis;
+
+		// Adjust translation for padding. Y axis with categories need to go through the same (#1784).
+		if (isXAxis || hasCategories || pointRange) {
+			if (linkedParent) {
+				minPointOffset = linkedParent.minPointOffset;
+				pointRangePadding = linkedParent.pointRangePadding;
+
+			} else {
+				each(axis.series, function (series) {
+					var seriesPointRange = hasCategories ? 1 : (isXAxis ? series.pointRange : (axis.axisPointRange || 0)), // #2806
+						pointPlacement = series.options.pointPlacement,
+						seriesClosestPointRange = series.closestPointRange;
+
+					if (seriesPointRange > range) { // #1446
+						seriesPointRange = 0;
+					}
+					pointRange = mathMax(pointRange, seriesPointRange);
+
+					if (!axis.single) {
+						// minPointOffset is the value padding to the left of the axis in order to make
+						// room for points with a pointRange, typically columns. When the pointPlacement option
+						// is 'between' or 'on', this padding does not apply.
+						minPointOffset = mathMax(
+							minPointOffset,
+							isString(pointPlacement) ? 0 : seriesPointRange / 2
+						);
+
+						// Determine the total padding needed to the length of the axis to make room for the
+						// pointRange. If the series' pointPlacement is 'on', no padding is added.
+						pointRangePadding = mathMax(
+							pointRangePadding,
+							pointPlacement === 'on' ? 0 : seriesPointRange
+						);
+					}
+
+					// Set the closestPointRange
+					if (!series.noSharedTooltip && defined(seriesClosestPointRange)) {
+						closestPointRange = defined(closestPointRange) ?
+							mathMin(closestPointRange, seriesClosestPointRange) :
+							seriesClosestPointRange;
+					}
+				});
+			}
+
+			// Record minPointOffset and pointRangePadding
+			ordinalCorrection = axis.ordinalSlope && closestPointRange ? axis.ordinalSlope / closestPointRange : 1; // #988, #1853
+			axis.minPointOffset = minPointOffset = minPointOffset * ordinalCorrection;
+			axis.pointRangePadding = pointRangePadding = pointRangePadding * ordinalCorrection;
+
+			// pointRange means the width reserved for each point, like in a column chart
+			axis.pointRange = mathMin(pointRange, range);
+
+			// closestPointRange means the closest distance between points. In columns
+			// it is mostly equal to pointRange, but in lines pointRange is 0 while closestPointRange
+			// is some other value
+			if (isXAxis) {
+				axis.closestPointRange = closestPointRange;
+			}
+		}
+
+		// Secondary values
+		if (saveOld) {
+			axis.oldTransA = transA;
+		}
+		axis.translationSlope = axis.transA = transA = axis.len / ((range + pointRangePadding) || 1);
+		axis.transB = axis.horiz ? axis.left : axis.bottom; // translation addend
+		axis.minPixelPadding = transA * minPointOffset;
+	},
+
+	/**
+	 * Set the tick positions to round values and optionally extend the extremes
+	 * to the nearest tick
+	 */
+	setTickInterval: function (secondPass) {
+		var axis = this,
+			chart = axis.chart,
+			options = axis.options,
+			isLog = axis.isLog,
+			isDatetimeAxis = axis.isDatetimeAxis,
+			isXAxis = axis.isXAxis,
+			isLinked = axis.isLinked,
+			maxPadding = options.maxPadding,
+			minPadding = options.minPadding,
+			length,
+			linkedParentExtremes,
+			tickIntervalOption = options.tickInterval,
+			minTickInterval,
+			tickPixelIntervalOption = options.tickPixelInterval,
+			categories = axis.categories;
+
+		if (!isDatetimeAxis && !categories && !isLinked) {
+			this.getTickAmount();
+		}
+
+		// linked axis gets the extremes from the parent axis
+		if (isLinked) {
+			axis.linkedParent = chart[axis.coll][options.linkedTo];
+			linkedParentExtremes = axis.linkedParent.getExtremes();
+			axis.min = pick(linkedParentExtremes.min, linkedParentExtremes.dataMin);
+			axis.max = pick(linkedParentExtremes.max, linkedParentExtremes.dataMax);
+			if (options.type !== axis.linkedParent.options.type) {
+				error(11, 1); // Can't link axes of different type
+			}
+		} else { // initial min and max from the extreme data values
+			axis.min = pick(axis.userMin, options.min, axis.dataMin);
+			axis.max = pick(axis.userMax, options.max, axis.dataMax);
+		}
+
+		if (isLog) {
+			if (!secondPass && mathMin(axis.min, pick(axis.dataMin, axis.min)) <= 0) { // #978
+				error(10, 1); // Can't plot negative values on log axis
+			}
+			axis.min = correctFloat(log2lin(axis.min)); // correctFloat cures #934
+			axis.max = correctFloat(log2lin(axis.max));
+		}
+
+		// handle zoomed range
+		if (axis.range && defined(axis.max)) {
+			axis.userMin = axis.min = mathMax(axis.min, axis.max - axis.range); // #618
+			axis.userMax = axis.max;
+
+			axis.range = null;  // don't use it when running setExtremes
+		}
+
+		// Hook for adjusting this.min and this.max. Used by bubble series.
+		if (axis.beforePadding) {
+			axis.beforePadding();
+		}
+
+		// adjust min and max for the minimum range
+		axis.adjustForMinRange();
+
+		// Pad the values to get clear of the chart's edges. To avoid tickInterval taking the padding
+		// into account, we do this after computing tick interval (#1337).
+		if (!categories && !axis.axisPointRange && !axis.usePercentage && !isLinked && defined(axis.min) && defined(axis.max)) {
+			length = axis.max - axis.min;
+			if (length) {
+				if (!defined(options.min) && !defined(axis.userMin) && minPadding && (axis.dataMin < 0 || !axis.ignoreMinPadding)) {
+					axis.min -= length * minPadding;
+				}
+				if (!defined(options.max) && !defined(axis.userMax)  && maxPadding && (axis.dataMax > 0 || !axis.ignoreMaxPadding)) {
+					axis.max += length * maxPadding;
+				}
+			}
+		}
+
+		// Stay within floor and ceiling
+		if (isNumber(options.floor)) {
+			axis.min = mathMax(axis.min, options.floor);
+		}
+		if (isNumber(options.ceiling)) {
+			axis.max = mathMin(axis.max, options.ceiling);
+		}
+
+		// get tickInterval
+		if (axis.min === axis.max || axis.min === undefined || axis.max === undefined) {
+			axis.tickInterval = 1;
+		} else if (isLinked && !tickIntervalOption &&
+				tickPixelIntervalOption === axis.linkedParent.options.tickPixelInterval) {
+			axis.tickInterval = tickIntervalOption = axis.linkedParent.tickInterval;
+		} else {
+			axis.tickInterval = pick(
+				tickIntervalOption,
+				this.tickAmount ? ((axis.max - axis.min) / mathMax(this.tickAmount - 1, 1)) : undefined,
+				categories ? // for categoried axis, 1 is default, for linear axis use tickPix
+					1 :
+					// don't let it be more than the data range
+					(axis.max - axis.min) * tickPixelIntervalOption / mathMax(axis.len, tickPixelIntervalOption)
+			);
+		}
+
+		// Now we're finished detecting min and max, crop and group series data. This
+		// is in turn needed in order to find tick positions in ordinal axes.
+		if (isXAxis && !secondPass) {
+			each(axis.series, function (series) {
+				series.processData(axis.min !== axis.oldMin || axis.max !== axis.oldMax);
+			});
+		}
+
+		// set the translation factor used in translate function
+		axis.setAxisTranslation(true);
+
+		// hook for ordinal axes and radial axes
+		if (axis.beforeSetTickPositions) {
+			axis.beforeSetTickPositions();
+		}
+
+		// hook for extensions, used in Highstock ordinal axes
+		if (axis.postProcessTickInterval) {
+			axis.tickInterval = axis.postProcessTickInterval(axis.tickInterval);
+		}
+
+		// In column-like charts, don't cramp in more ticks than there are points (#1943)
+		if (axis.pointRange) {
+			axis.tickInterval = mathMax(axis.pointRange, axis.tickInterval);
+		}
+
+		// Before normalizing the tick interval, handle minimum tick interval. This applies only if tickInterval is not defined.
+		minTickInterval = pick(options.minTickInterval, axis.isDatetimeAxis && axis.closestPointRange);
+		if (!tickIntervalOption && axis.tickInterval < minTickInterval) {
+			axis.tickInterval = minTickInterval;
+		}
+
+		// for linear axes, get magnitude and normalize the interval
+		if (!isDatetimeAxis && !isLog && !tickIntervalOption) {
+			axis.tickInterval = normalizeTickInterval(
+				axis.tickInterval, 
+				null, 
+				getMagnitude(axis.tickInterval), 
+				// If the tick interval is between 0.5 and 5 and the axis max is in the order of
+				// thousands, chances are we are dealing with years. Don't allow decimals. #3363.
+				pick(options.allowDecimals, !(axis.tickInterval > 0.5 && axis.tickInterval < 5 && axis.max > 1000 && axis.max < 9999)),
+				!!this.tickAmount
+			);
+		}
+		
+		// Prevent ticks from getting so close that we can't draw the labels
+		if (!this.tickAmount && this.len) { // Color axis with disabled legend has no length
+			axis.tickInterval = axis.unsquish();
+		}
+
+		this.setTickPositions();
+	},
+
+	/**
+	 * Now we have computed the normalized tickInterval, get the tick positions
+	 */
+	setTickPositions: function () {
+
+		var options = this.options,
+			tickPositions,
+			tickPositionsOption = options.tickPositions,
+			tickPositioner = options.tickPositioner,
+			startOnTick = options.startOnTick,
+			endOnTick = options.endOnTick,
+			single;
+
+		// Set the tickmarkOffset
+		this.tickmarkOffset = (this.categories && options.tickmarkPlacement === 'between' && 
+			this.tickInterval === 1) ? 0.5 : 0; // #3202
+
+
+		// get minorTickInterval
+		this.minorTickInterval = options.minorTickInterval === 'auto' && this.tickInterval ?
+			this.tickInterval / 5 : options.minorTickInterval;
+
+		// Find the tick positions
+		this.tickPositions = tickPositions = tickPositionsOption && tickPositionsOption.slice(); // Work on a copy (#1565)
+		if (!tickPositions) {
+
+			if (this.isDatetimeAxis) {
+				tickPositions = this.getTimeTicks(
+					this.normalizeTimeTickInterval(this.tickInterval, options.units),
+					this.min,
+					this.max,
+					options.startOfWeek,
+					this.ordinalPositions,
+					this.closestPointRange,
+					true
+				);
+			} else if (this.isLog) {
+				tickPositions = this.getLogTickPositions(this.tickInterval, this.min, this.max);
+			} else {
+				tickPositions = this.getLinearTickPositions(this.tickInterval, this.min, this.max);
+			}
+
+			this.tickPositions = tickPositions;
+
+			// Run the tick positioner callback, that allows modifying auto tick positions.
+			if (tickPositioner) {
+				tickPositioner = tickPositioner.apply(this, [this.min, this.max]);
+				if (tickPositioner) {
+					this.tickPositions = tickPositions = tickPositioner;
+				}
+			}
+
+		}
+
+		if (!this.isLinked) {
+
+			// reset min/max or remove extremes based on start/end on tick
+			this.trimTicks(tickPositions, startOnTick, endOnTick);
+
+			// When there is only one point, or all points have the same value on this axis, then min
+			// and max are equal and tickPositions.length is 0 or 1. In this case, add some padding
+			// in order to center the point, but leave it with one tick. #1337.
+			if (this.min === this.max && defined(this.min) && !this.tickAmount) {
+				// Substract half a unit (#2619, #2846, #2515, #3390)
+				single = true;
+				this.min -= 0.5;
+				this.max += 0.5;
+			}
+			this.single = single;
+
+			if (!tickPositionsOption && !tickPositioner) {
+				this.adjustTickAmount();
+			}
+		}
+	},
+
+	/**
+	 * Handle startOnTick and endOnTick by either adapting to padding min/max or rounded min/max
+	 */
+	trimTicks: function (tickPositions, startOnTick, endOnTick) {
+		var roundedMin = tickPositions[0],
+			roundedMax = tickPositions[tickPositions.length - 1],
+			minPointOffset = this.minPointOffset || 0;
+			
+		if (startOnTick) {
+			this.min = roundedMin;
+		} else if (this.min - minPointOffset > roundedMin) {
+			tickPositions.shift();
+		}
+
+		if (endOnTick) {
+			this.max = roundedMax;
+		} else if (this.max + minPointOff
