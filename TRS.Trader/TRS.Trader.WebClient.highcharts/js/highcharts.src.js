@@ -7547,4 +7547,425 @@ Axis.prototype = {
 
 		if (endOnTick) {
 			this.max = roundedMax;
-		} else if (this.max + minPointOff
+		} else if (this.max + minPointOffset < roundedMax) {
+			tickPositions.pop();
+		}
+
+		// If no tick are left, set one tick in the middle (#3195) 
+		if (tickPositions.length === 0 && defined(roundedMin)) {
+			tickPositions.push((roundedMax + roundedMin) / 2);
+		}		
+	},
+
+	/**
+	 * Set the max ticks of either the x and y axis collection
+	 */
+	getTickAmount: function () {
+		var others = {}, // Whether there is another axis to pair with this one
+			hasOther,
+			options = this.options,
+			tickAmount = options.tickAmount,
+			tickPixelInterval = options.tickPixelInterval;
+
+		if (!defined(options.tickInterval) && this.len < tickPixelInterval && !this.isRadial &&
+				!this.isLog && options.startOnTick && options.endOnTick) {
+			tickAmount = 2;
+		}
+
+		if (!tickAmount && this.chart.options.chart.alignTicks !== false && options.alignTicks !== false) {
+			// Check if there are multiple axes in the same pane
+			each(this.chart[this.coll], function (axis) {
+				var options = axis.options,
+					horiz = axis.horiz,
+					key = [horiz ? options.left : options.top, horiz ? options.width : options.height, options.pane].join(',');
+				
+				if (others[key]) {
+					if (axis.series.length) {
+						hasOther = true; // #4201
+					}
+				} else {
+					others[key] = 1;
+				}
+			});
+
+			if (hasOther) {
+				// Add 1 because 4 tick intervals require 5 ticks (including first and last)
+				tickAmount = mathCeil(this.len / tickPixelInterval) + 1;
+			}
+		}
+
+		// For tick amounts of 2 and 3, compute five ticks and remove the intermediate ones. This
+		// prevents the axis from adding ticks that are too far away from the data extremes.
+		if (tickAmount < 4) {
+			this.finalTickAmt = tickAmount;
+			tickAmount = 5;
+		}
+		
+		this.tickAmount = tickAmount;
+	},
+
+	/**
+	 * When using multiple axes, adjust the number of ticks to match the highest
+	 * number of ticks in that group
+	 */
+	adjustTickAmount: function () {
+		var tickInterval = this.tickInterval,
+			tickPositions = this.tickPositions,
+			tickAmount = this.tickAmount,
+			finalTickAmt = this.finalTickAmt,
+			currentTickAmount = tickPositions && tickPositions.length,
+			i,
+			len;
+
+		if (currentTickAmount < tickAmount) { // TODO: Check #3411
+			while (tickPositions.length < tickAmount) {
+				tickPositions.push(correctFloat(
+					tickPositions[tickPositions.length - 1] + tickInterval
+				));
+			}
+			this.transA *= (currentTickAmount - 1) / (tickAmount - 1);
+			this.max = tickPositions[tickPositions.length - 1];
+
+		// We have too many ticks, run second pass to try to reduce ticks
+		} else if (currentTickAmount > tickAmount) {
+			this.tickInterval *= 2;
+			this.setTickPositions();
+		}
+
+		// The finalTickAmt property is set in getTickAmount
+		if (defined(finalTickAmt)) {
+			i = len = tickPositions.length;
+			while (i--) {
+				if (
+					(finalTickAmt === 3 && i % 2 === 1) || // Remove every other tick
+					(finalTickAmt <= 2 && i > 0 && i < len - 1) // Remove all but first and last
+				) {
+					tickPositions.splice(i, 1);
+				}	
+			}
+			this.finalTickAmt = UNDEFINED;
+		}
+	},
+
+	/**
+	 * Set the scale based on data min and max, user set min and max or options
+	 *
+	 */
+	setScale: function () {
+		var axis = this,
+			stacks = axis.stacks,
+			type,
+			i,
+			isDirtyData,
+			isDirtyAxisLength;
+
+		axis.oldMin = axis.min;
+		axis.oldMax = axis.max;
+		axis.oldAxisLength = axis.len;
+
+		// set the new axisLength
+		axis.setAxisSize();
+		//axisLength = horiz ? axisWidth : axisHeight;
+		isDirtyAxisLength = axis.len !== axis.oldAxisLength;
+
+		// is there new data?
+		each(axis.series, function (series) {
+			if (series.isDirtyData || series.isDirty ||
+					series.xAxis.isDirty) { // when x axis is dirty, we need new data extremes for y as well
+				isDirtyData = true;
+			}
+		});
+
+		// do we really need to go through all this?
+		if (isDirtyAxisLength || isDirtyData || axis.isLinked || axis.forceRedraw ||
+			axis.userMin !== axis.oldUserMin || axis.userMax !== axis.oldUserMax) {
+
+			// reset stacks
+			if (!axis.isXAxis) {
+				for (type in stacks) {
+					for (i in stacks[type]) {
+						stacks[type][i].total = null;
+						stacks[type][i].cum = 0;
+					}
+				}
+			}
+
+			axis.forceRedraw = false;
+
+			// get data extremes if needed
+			axis.getSeriesExtremes();
+
+			// get fixed positions based on tickInterval
+			axis.setTickInterval();
+
+			// record old values to decide whether a rescale is necessary later on (#540)
+			axis.oldUserMin = axis.userMin;
+			axis.oldUserMax = axis.userMax;
+
+			// Mark as dirty if it is not already set to dirty and extremes have changed. #595.
+			if (!axis.isDirty) {
+				axis.isDirty = isDirtyAxisLength || axis.min !== axis.oldMin || axis.max !== axis.oldMax;
+			}
+		} else if (!axis.isXAxis) {
+			if (axis.oldStacks) {
+				stacks = axis.stacks = axis.oldStacks;
+			}
+
+			// reset stacks
+			for (type in stacks) {
+				for (i in stacks[type]) {
+					stacks[type][i].cum = stacks[type][i].total;
+				}
+			}
+		}
+	},
+
+	/**
+	 * Set the extremes and optionally redraw
+	 * @param {Number} newMin
+	 * @param {Number} newMax
+	 * @param {Boolean} redraw
+	 * @param {Boolean|Object} animation Whether to apply animation, and optionally animation
+	 *    configuration
+	 * @param {Object} eventArguments
+	 *
+	 */
+	setExtremes: function (newMin, newMax, redraw, animation, eventArguments) {
+		var axis = this,
+			chart = axis.chart;
+
+		redraw = pick(redraw, true); // defaults to true
+
+		each(axis.series, function (serie) {
+			delete serie.kdTree;
+		});
+
+		// Extend the arguments with min and max
+		eventArguments = extend(eventArguments, {
+			min: newMin,
+			max: newMax
+		});
+
+		// Fire the event
+		fireEvent(axis, 'setExtremes', eventArguments, function () { // the default event handler
+
+			axis.userMin = newMin;
+			axis.userMax = newMax;
+			axis.eventArgs = eventArguments;
+
+			// Mark for running afterSetExtremes
+			axis.isDirtyExtremes = true;
+
+			// redraw
+			if (redraw) {
+				chart.redraw(animation);
+			}
+		});
+	},
+
+	/**
+	 * Overridable method for zooming chart. Pulled out in a separate method to allow overriding
+	 * in stock charts.
+	 */
+	zoom: function (newMin, newMax) {
+		var dataMin = this.dataMin,
+			dataMax = this.dataMax,
+			options = this.options;
+
+		// Prevent pinch zooming out of range. Check for defined is for #1946. #1734.
+		if (!this.allowZoomOutside) {
+			if (defined(dataMin) && newMin <= mathMin(dataMin, pick(options.min, dataMin))) {
+				newMin = UNDEFINED;
+			}
+			if (defined(dataMax) && newMax >= mathMax(dataMax, pick(options.max, dataMax))) {
+				newMax = UNDEFINED;
+			}
+		}
+
+		// In full view, displaying the reset zoom button is not required
+		this.displayBtn = newMin !== UNDEFINED || newMax !== UNDEFINED;
+
+		// Do it
+		this.setExtremes(
+			newMin,
+			newMax,
+			false,
+			UNDEFINED,
+			{ trigger: 'zoom' }
+		);
+		return true;
+	},
+
+	/**
+	 * Update the axis metrics
+	 */
+	setAxisSize: function () {
+		var chart = this.chart,
+			options = this.options,
+			offsetLeft = options.offsetLeft || 0,
+			offsetRight = options.offsetRight || 0,
+			horiz = this.horiz,
+			width = pick(options.width, chart.plotWidth - offsetLeft + offsetRight),
+			height = pick(options.height, chart.plotHeight),
+			top = pick(options.top, chart.plotTop),
+			left = pick(options.left, chart.plotLeft + offsetLeft),
+			percentRegex = /%$/;
+
+		// Check for percentage based input values
+		if (percentRegex.test(height)) {
+			height = parseFloat(height) / 100 * chart.plotHeight;
+		}
+		if (percentRegex.test(top)) {
+			top = parseFloat(top) / 100 * chart.plotHeight + chart.plotTop;
+		}
+
+		// Expose basic values to use in Series object and navigator
+		this.left = left;
+		this.top = top;
+		this.width = width;
+		this.height = height;
+		this.bottom = chart.chartHeight - height - top;
+		this.right = chart.chartWidth - width - left;
+
+		// Direction agnostic properties
+		this.len = mathMax(horiz ? width : height, 0); // mathMax fixes #905
+		this.pos = horiz ? left : top; // distance from SVG origin
+	},
+
+	/**
+	 * Get the actual axis extremes
+	 */
+	getExtremes: function () {
+		var axis = this,
+			isLog = axis.isLog;
+
+		return {
+			min: isLog ? correctFloat(lin2log(axis.min)) : axis.min,
+			max: isLog ? correctFloat(lin2log(axis.max)) : axis.max,
+			dataMin: axis.dataMin,
+			dataMax: axis.dataMax,
+			userMin: axis.userMin,
+			userMax: axis.userMax
+		};
+	},
+
+	/**
+	 * Get the zero plane either based on zero or on the min or max value.
+	 * Used in bar and area plots
+	 */
+	getThreshold: function (threshold) {
+		var axis = this,
+			isLog = axis.isLog,
+			realMin = isLog ? lin2log(axis.min) : axis.min,
+			realMax = isLog ? lin2log(axis.max) : axis.max;
+
+		// With a threshold of null, make the columns/areas rise from the top or bottom 
+		// depending on the value, assuming an actual threshold of 0 (#4233).
+		if (threshold === null) {
+			threshold = realMax < 0 ? realMax : realMin;
+		} else if (realMin > threshold) {
+			threshold = realMin;
+		} else if (realMax < threshold) {
+			threshold = realMax;
+		}
+
+		return axis.translate(threshold, 0, 1, 0, 1);
+	},
+
+	/**
+	 * Compute auto alignment for the axis label based on which side the axis is on
+	 * and the given rotation for the label
+	 */
+	autoLabelAlign: function (rotation) {
+		var ret,
+			angle = (pick(rotation, 0) - (this.side * 90) + 720) % 360;
+
+		if (angle > 15 && angle < 165) {
+			ret = 'right';
+		} else if (angle > 195 && angle < 345) {
+			ret = 'left';
+		} else {
+			ret = 'center';
+		}
+		return ret;
+	},
+
+	/**
+	 * Prevent the ticks from getting so close we can't draw the labels. On a horizontal
+	 * axis, this is handled by rotating the labels, removing ticks and adding ellipsis. 
+	 * On a vertical axis remove ticks and add ellipsis.
+	 */
+	unsquish: function () {
+		var chart = this.chart,
+			ticks = this.ticks,
+			labelOptions = this.options.labels,
+			horiz = this.horiz,
+			tickInterval = this.tickInterval,
+			newTickInterval = tickInterval,
+			slotSize = this.len / (((this.categories ? 1 : 0) + this.max - this.min) / tickInterval),
+			rotation,
+			rotationOption = labelOptions.rotation,
+			labelMetrics = chart.renderer.fontMetrics(labelOptions.style.fontSize, ticks[0] && ticks[0].label),
+			step,
+			bestScore = Number.MAX_VALUE,
+			autoRotation,
+			// Return the multiple of tickInterval that is needed to avoid collision
+			getStep = function (spaceNeeded) {
+				var step = spaceNeeded / (slotSize || 1);
+				step = step > 1 ? mathCeil(step) : 1;
+				return step * tickInterval;
+			};
+		
+		if (horiz) {
+			autoRotation = defined(rotationOption) ? 
+				[rotationOption] :
+				slotSize < pick(labelOptions.autoRotationLimit, 80) && !labelOptions.staggerLines && !labelOptions.step && labelOptions.autoRotation;
+
+			if (autoRotation) {
+
+				// Loop over the given autoRotation options, and determine which gives the best score. The 
+				// best score is that with the lowest number of steps and a rotation closest to horizontal.
+				each(autoRotation, function (rot) {
+					var score;
+
+					if (rot === rotationOption || (rot && rot >= -90 && rot <= 90)) { // #3891
+					
+						step = getStep(mathAbs(labelMetrics.h / mathSin(deg2rad * rot)));
+
+						score = step + mathAbs(rot / 360);
+
+						if (score < bestScore) {
+							bestScore = score;
+							rotation = rot;
+							newTickInterval = step;
+						}
+					}
+				});
+			}
+
+		} else {
+			newTickInterval = getStep(labelMetrics.h);
+		}
+
+		this.autoRotation = autoRotation;
+		this.labelRotation = rotation;
+
+		return newTickInterval;
+	},
+
+	renderUnsquish: function () {
+		var chart = this.chart,
+			renderer = chart.renderer,
+			tickPositions = this.tickPositions,
+			ticks = this.ticks,
+			labelOptions = this.options.labels,
+			horiz = this.horiz,
+			margin = chart.margin,
+			slotCount = this.categories ? tickPositions.length : tickPositions.length - 1,
+			slotWidth = this.slotWidth = (horiz && !labelOptions.step && !labelOptions.rotation &&
+				((this.staggerLines || 1) * chart.plotWidth) / slotCount) ||
+				(!horiz && ((margin[3] && (margin[3] - chart.spacing[3])) || chart.chartWidth * 0.33)), // #1580, #1931,
+			innerWidth = mathMax(1, mathRound(slotWidth - 2 * (labelOptions.padding || 5))),
+			attr = {},
+			labelMetrics = renderer.fontMetrics(labelOptions.style.fontSize, ticks[0] && ticks[0].label),
+			textOverflow
