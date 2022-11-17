@@ -8401,4 +8401,462 @@ Axis.prototype = {
 		} // end if hasData
 
 		// Remove inactive ticks
-		each([ticks, minorTicks, alternateBands
+		each([ticks, minorTicks, alternateBands], function (coll) {
+			var pos,
+				i,
+				forDestruction = [],
+				delay = globalAnimation ? globalAnimation.duration || 500 : 0,
+				destroyInactiveItems = function () {
+					i = forDestruction.length;
+					while (i--) {
+						// When resizing rapidly, the same items may be destroyed in different timeouts,
+						// or the may be reactivated
+						if (coll[forDestruction[i]] && !coll[forDestruction[i]].isActive) {
+							coll[forDestruction[i]].destroy();
+							delete coll[forDestruction[i]];
+						}
+					}
+
+				};
+
+			for (pos in coll) {
+
+				if (!coll[pos].isActive) {
+					// Render to zero opacity
+					coll[pos].render(pos, false, 0);
+					coll[pos].isActive = false;
+					forDestruction.push(pos);
+				}
+			}
+
+			// When the objects are finished fading out, destroy them
+			if (coll === alternateBands || !chart.hasRendered || !delay) {
+				destroyInactiveItems();
+			} else if (delay) {
+				setTimeout(destroyInactiveItems, delay);
+			}
+		});
+
+		// Static items. As the axis group is cleared on subsequent calls
+		// to render, these items are added outside the group.
+		// axis line
+		if (lineWidth) {
+			linePath = axis.getLinePath(lineWidth);
+			if (!axis.axisLine) {
+				axis.axisLine = renderer.path(linePath)
+					.attr({
+						stroke: options.lineColor,
+						'stroke-width': lineWidth,
+						zIndex: 7
+					})
+					.add(axis.axisGroup);
+			} else {
+				axis.axisLine.animate({ d: linePath });
+			}
+
+			// show or hide the line depending on options.showEmpty
+			axis.axisLine[showAxis ? 'show' : 'hide']();
+		}
+
+		if (axisTitle && showAxis) {
+
+			axisTitle[axisTitle.isNew ? 'attr' : 'animate'](
+				axis.getTitlePosition()
+			);
+			axisTitle.isNew = false;
+		}
+
+		// Stacked totals:
+		if (stackLabelOptions && stackLabelOptions.enabled) {
+			axis.renderStackTotals();
+		}
+		// End stacked totals
+
+		axis.isDirty = false;
+	},
+
+	/**
+	 * Redraw the axis to reflect changes in the data or axis extremes
+	 */
+	redraw: function () {
+		
+		// render the axis
+		this.render();
+
+		// move plot lines and bands
+		each(this.plotLinesAndBands, function (plotLine) {
+			plotLine.render();
+		});
+
+		// mark associated series as dirty and ready for redraw
+		each(this.series, function (series) {
+			series.isDirty = true;
+		});
+
+	},
+
+	/**
+	 * Destroys an Axis instance.
+	 */
+	destroy: function (keepEvents) {
+		var axis = this,
+			stacks = axis.stacks,
+			stackKey,
+			plotLinesAndBands = axis.plotLinesAndBands,
+			i;
+
+		// Remove the events
+		if (!keepEvents) {
+			removeEvent(axis);
+		}
+
+		// Destroy each stack total
+		for (stackKey in stacks) {
+			destroyObjectProperties(stacks[stackKey]);
+
+			stacks[stackKey] = null;
+		}
+
+		// Destroy collections
+		each([axis.ticks, axis.minorTicks, axis.alternateBands], function (coll) {
+			destroyObjectProperties(coll);
+		});
+		i = plotLinesAndBands.length;
+		while (i--) { // #1975
+			plotLinesAndBands[i].destroy();
+		}
+
+		// Destroy local variables
+		each(['stackTotalGroup', 'axisLine', 'axisTitle', 'axisGroup', 'cross', 'gridGroup', 'labelGroup'], function (prop) {
+			if (axis[prop]) {
+				axis[prop] = axis[prop].destroy();
+			}
+		});
+
+		// Destroy crosshair
+		if (this.cross) {
+			this.cross.destroy();
+		}
+	},
+
+	/**
+	 * Draw the crosshair
+	 */
+	drawCrosshair: function (e, point) { // docs: Missing docs for Axis.crosshair. Also for properties.
+
+		var path,
+			options = this.crosshair,
+			animation = options.animation,
+			pos,
+			attribs,
+			categorized;
+		
+		if (
+			// Disabled in options
+			!this.crosshair || 
+			// Snap
+			((defined(point) || !pick(this.crosshair.snap, true)) === false) || 
+			// Not on this axis (#4095, #2888)
+			(point && point.series && point.series[this.coll] !== this)
+		) {
+			this.hideCrosshair();
+		
+		} else {			
+
+			// Get the path
+			if (!pick(options.snap, true)) {
+				pos = (this.horiz ? e.chartX - this.pos : this.len - e.chartY + this.pos);
+			} else if (defined(point)) {
+				/*jslint eqeq: true*/
+				pos = this.isXAxis ? point.plotX : this.len - point.plotY; // #3834
+				/*jslint eqeq: false*/
+			}
+
+			if (this.isRadial) {
+				path = this.getPlotLinePath(this.isXAxis ? point.x : pick(point.stackY, point.y)) || null; // #3189
+			} else {
+				path = this.getPlotLinePath(null, null, null, null, pos) || null; // #3189
+			}
+
+			if (path === null) {
+				this.hideCrosshair();
+				return;
+			}
+
+			// Draw the cross
+			if (this.cross) {
+				this.cross
+					.attr({ visibility: VISIBLE })[animation ? 'animate' : 'attr']({ d: path }, animation);
+			} else {
+				categorized = this.categories && !this.isRadial;
+				attribs = {
+					'stroke-width': options.width || (categorized ? this.transA : 1),
+					stroke: options.color || (categorized ? 'rgba(155,200,255,0.2)' : '#C0C0C0'),
+					zIndex: options.zIndex || 2
+				};
+				if (options.dashStyle) {
+					attribs.dashstyle = options.dashStyle;
+				}
+				this.cross = this.chart.renderer.path(path).attr(attribs).add();
+			}
+
+		}
+
+	},
+
+	/**
+	 *	Hide the crosshair.
+	 */
+	hideCrosshair: function () {
+		if (this.cross) {
+			this.cross.hide();
+		}
+	}
+}; // end Axis
+
+extend(Axis.prototype, AxisPlotLineOrBandExtension);
+
+/**
+ * Set the tick positions to a time unit that makes sense, for example
+ * on the first of each month or on every Monday. Return an array
+ * with the time positions. Used in datetime axes as well as for grouping
+ * data on a datetime axis.
+ *
+ * @param {Object} normalizedInterval The interval in axis values (ms) and the count
+ * @param {Number} min The minimum in axis values
+ * @param {Number} max The maximum in axis values
+ * @param {Number} startOfWeek
+ */
+Axis.prototype.getTimeTicks = function (normalizedInterval, min, max, startOfWeek) {
+	var tickPositions = [],
+		i,
+		higherRanks = {},
+		useUTC = defaultOptions.global.useUTC,
+		minYear, // used in months and years as a basis for Date.UTC()
+		minDate = new Date(min - getTZOffset(min)),
+		interval = normalizedInterval.unitRange,
+		count = normalizedInterval.count;
+
+	if (defined(min)) { // #1300
+		minDate[setMilliseconds](interval >= timeUnits.second ? 0 : // #3935
+			count * mathFloor(minDate.getMilliseconds() / count)); // #3652, #3654
+
+		if (interval >= timeUnits.second) { // second
+			minDate[setSeconds](interval >= timeUnits.minute ? 0 : // #3935
+				count * mathFloor(minDate.getSeconds() / count));
+		}
+	
+		if (interval >= timeUnits.minute) { // minute
+			minDate[setMinutes](interval >= timeUnits.hour ? 0 :
+				count * mathFloor(minDate[getMinutes]() / count));
+		}
+	
+		if (interval >= timeUnits.hour) { // hour
+			minDate[setHours](interval >= timeUnits.day ? 0 :
+				count * mathFloor(minDate[getHours]() / count));
+		}
+	
+		if (interval >= timeUnits.day) { // day
+			minDate[setDate](interval >= timeUnits.month ? 1 :
+				count * mathFloor(minDate[getDate]() / count));
+		}
+	
+		if (interval >= timeUnits.month) { // month
+			minDate[setMonth](interval >= timeUnits.year ? 0 :
+				count * mathFloor(minDate[getMonth]() / count));
+			minYear = minDate[getFullYear]();
+		}
+	
+		if (interval >= timeUnits.year) { // year
+			minYear -= minYear % count;
+			minDate[setFullYear](minYear);
+		}
+	
+		// week is a special case that runs outside the hierarchy
+		if (interval === timeUnits.week) {
+			// get start of current week, independent of count
+			minDate[setDate](minDate[getDate]() - minDate[getDay]() +
+				pick(startOfWeek, 1));
+		}
+	
+	
+		// get tick positions
+		i = 1;
+		if (timezoneOffset || getTimezoneOffset) {
+			minDate = minDate.getTime();
+			minDate = new Date(minDate + getTZOffset(minDate));
+		}
+		minYear = minDate[getFullYear]();
+		var time = minDate.getTime(),
+			minMonth = minDate[getMonth](),
+			minDateDate = minDate[getDate](),
+			localTimezoneOffset = (timeUnits.day + 
+					(useUTC ? getTZOffset(minDate) : minDate.getTimezoneOffset() * 60 * 1000)
+				) % timeUnits.day; // #950, #3359
+	
+		// iterate and add tick positions at appropriate values
+		while (time < max) {
+			tickPositions.push(time);
+	
+			// if the interval is years, use Date.UTC to increase years
+			if (interval === timeUnits.year) {
+				time = makeTime(minYear + i * count, 0);
+	
+			// if the interval is months, use Date.UTC to increase months
+			} else if (interval === timeUnits.month) {
+				time = makeTime(minYear, minMonth + i * count);
+	
+			// if we're using global time, the interval is not fixed as it jumps
+			// one hour at the DST crossover
+			} else if (!useUTC && (interval === timeUnits.day || interval === timeUnits.week)) {
+				time = makeTime(minYear, minMonth, minDateDate +
+					i * count * (interval === timeUnits.day ? 1 : 7));
+	
+			// else, the interval is fixed and we use simple addition
+			} else {
+				time += interval * count;
+			}
+	
+			i++;
+		}
+	
+		// push the last time
+		tickPositions.push(time);
+
+
+		// mark new days if the time is dividible by day (#1649, #1760)
+		each(grep(tickPositions, function (time) {
+			return interval <= timeUnits.hour && time % timeUnits.day === localTimezoneOffset;
+		}), function (time) {
+			higherRanks[time] = 'day';
+		});
+	}
+
+
+	// record information on the chosen unit - for dynamic label formatter
+	tickPositions.info = extend(normalizedInterval, {
+		higherRanks: higherRanks,
+		totalRange: interval * count
+	});
+
+	return tickPositions;
+};
+
+/**
+ * Get a normalized tick interval for dates. Returns a configuration object with
+ * unit range (interval), count and name. Used to prepare data for getTimeTicks. 
+ * Previously this logic was part of getTimeTicks, but as getTimeTicks now runs
+ * of segments in stock charts, the normalizing logic was extracted in order to 
+ * prevent it for running over again for each segment having the same interval. 
+ * #662, #697.
+ */
+Axis.prototype.normalizeTimeTickInterval = function (tickInterval, unitsOption) {
+	var units = unitsOption || [[
+				'millisecond', // unit name
+				[1, 2, 5, 10, 20, 25, 50, 100, 200, 500] // allowed multiples
+			], [
+				'second',
+				[1, 2, 5, 10, 15, 30]
+			], [
+				'minute',
+				[1, 2, 5, 10, 15, 30]
+			], [
+				'hour',
+				[1, 2, 3, 4, 6, 8, 12]
+			], [
+				'day',
+				[1, 2]
+			], [
+				'week',
+				[1, 2]
+			], [
+				'month',
+				[1, 2, 3, 4, 6]
+			], [
+				'year',
+				null
+			]],
+		unit = units[units.length - 1], // default unit is years
+		interval = timeUnits[unit[0]],
+		multiples = unit[1],
+		count,
+		i;
+		
+	// loop through the units to find the one that best fits the tickInterval
+	for (i = 0; i < units.length; i++) {
+		unit = units[i];
+		interval = timeUnits[unit[0]];
+		multiples = unit[1];
+
+
+		if (units[i + 1]) {
+			// lessThan is in the middle between the highest multiple and the next unit.
+			var lessThan = (interval * multiples[multiples.length - 1] +
+						timeUnits[units[i + 1][0]]) / 2;
+
+			// break and keep the current unit
+			if (tickInterval <= lessThan) {
+				break;
+			}
+		}
+	}
+
+	// prevent 2.5 years intervals, though 25, 250 etc. are allowed
+	if (interval === timeUnits.year && tickInterval < 5 * interval) {
+		multiples = [1, 2, 5];
+	}
+
+	// get the count
+	count = normalizeTickInterval(
+		tickInterval / interval, 
+		multiples,
+		unit[0] === 'year' ? mathMax(getMagnitude(tickInterval / interval), 1) : 1 // #1913, #2360
+	);
+	
+	return {
+		unitRange: interval,
+		count: count,
+		unitName: unit[0]
+	};
+};/**
+ * Methods defined on the Axis prototype
+ */
+
+/**
+ * Set the tick positions of a logarithmic axis
+ */
+Axis.prototype.getLogTickPositions = function (interval, min, max, minor) {
+	var axis = this,
+		options = axis.options,
+		axisLength = axis.len,
+		// Since we use this method for both major and minor ticks,
+		// use a local variable and return the result
+		positions = []; 
+	
+	// Reset
+	if (!minor) {
+		axis._minorAutoInterval = null;
+	}
+	
+	// First case: All ticks fall on whole logarithms: 1, 10, 100 etc.
+	if (interval >= 0.5) {
+		interval = mathRound(interval);
+		positions = axis.getLinearTickPositions(interval, min, max);
+		
+	// Second case: We need intermediary ticks. For example 
+	// 1, 2, 4, 6, 8, 10, 20, 40 etc. 
+	} else if (interval >= 0.08) {
+		var roundedMin = mathFloor(min),
+			intermediate,
+			i,
+			j,
+			len,
+			pos,
+			lastPos,
+			break2;
+			
+		if (interval > 0.3) {
+			intermediate = [1, 2, 4];
+		} else if (interval > 0.15) { // 0.2 equals five minor ticks per 1, 10, 100 etc
+			intermediate = [1, 2, 4, 6, 8];
+		} else { // 0.1 equals ten minor ticks per
