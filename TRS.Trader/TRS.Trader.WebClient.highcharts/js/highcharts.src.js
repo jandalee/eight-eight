@@ -7968,4 +7968,437 @@ Axis.prototype = {
 			innerWidth = mathMax(1, mathRound(slotWidth - 2 * (labelOptions.padding || 5))),
 			attr = {},
 			labelMetrics = renderer.fontMetrics(labelOptions.style.fontSize, ticks[0] && ticks[0].label),
-			textOverflow
+			textOverflowOption = labelOptions.style.textOverflow,
+			css,
+			labelLength = 0,
+			label,
+			i,
+			pos;
+
+		// Set rotation option unless it is "auto", like in gauges
+		if (!isString(labelOptions.rotation)) {
+			attr.rotation = labelOptions.rotation;
+		}
+		
+		// Handle auto rotation on horizontal axis
+		if (this.autoRotation) {
+
+			// Get the longest label length
+			each(tickPositions, function (tick) {
+				tick = ticks[tick];
+				if (tick && tick.labelLength > labelLength) {
+					labelLength = tick.labelLength;
+				}
+			});
+			
+			// Apply rotation only if the label is too wide for the slot, and
+			// the label is wider than its height.
+			if (labelLength > innerWidth && labelLength > labelMetrics.h) {
+				attr.rotation = this.labelRotation;
+			} else {
+				this.labelRotation = 0;
+			}
+
+		// Handle word-wrap or ellipsis on vertical axis
+		} else if (slotWidth) {
+			// For word-wrap or ellipsis
+			css = { width: innerWidth + PX };
+
+			if (!textOverflowOption) {
+				css.textOverflow = 'clip';
+
+				// On vertical axis, only allow word wrap if there is room for more lines.
+				i = tickPositions.length;
+				while (!horiz && i--) {
+					pos = tickPositions[i];
+					label = ticks[pos].label;
+					if (label) {
+						// Reset ellipsis in order to get the correct bounding box (#4070)
+						if (label.styles.textOverflow === 'ellipsis') {
+							label.css({ textOverflow: 'clip' });
+						}
+						if (label.getBBox().height > this.len / tickPositions.length - (labelMetrics.h - labelMetrics.f)) {
+							label.specCss = { textOverflow: 'ellipsis' };
+						}
+					}
+				}
+			}
+		}
+
+
+		// Add ellipsis if the label length is significantly longer than ideal
+		if (attr.rotation) {
+			css = { 
+				width: (labelLength > chart.chartHeight * 0.5 ? chart.chartHeight * 0.33 : chart.chartHeight) + PX
+			};
+			if (!textOverflowOption) {
+				css.textOverflow = 'ellipsis';
+			}
+		}
+
+		// Set the explicit or automatic label alignment
+		this.labelAlign = attr.align = labelOptions.align || this.autoLabelAlign(this.labelRotation);
+
+		// Apply general and specific CSS
+		each(tickPositions, function (pos) {
+			var tick = ticks[pos],
+				label = tick && tick.label;
+			if (label) {
+				if (css) {
+					label.css(merge(css, label.specCss));
+				}
+				delete label.specCss;
+				label.attr(attr);
+				tick.rotation = attr.rotation;
+			}
+		});
+
+		// TODO: Why not part of getLabelPosition?
+		this.tickRotCorr = renderer.rotCorr(labelMetrics.b, this.labelRotation || 0, this.side === 2);
+	},
+
+	/**
+	 * Return true if the axis has associated data
+	 */
+	hasData: function () {
+		return this.hasVisibleSeries || (defined(this.min) && defined(this.max) && !!this.tickPositions);
+	},
+
+	/**
+	 * Render the tick labels to a preliminary position to get their sizes
+	 */
+	getOffset: function () {
+		var axis = this,
+			chart = axis.chart,
+			renderer = chart.renderer,
+			options = axis.options,
+			tickPositions = axis.tickPositions,
+			ticks = axis.ticks,
+			horiz = axis.horiz,
+			side = axis.side,
+			invertedSide = chart.inverted ? [1, 0, 3, 2][side] : side,
+			hasData,
+			showAxis,
+			titleOffset = 0,
+			titleOffsetOption,
+			titleMargin = 0,
+			axisTitleOptions = options.title,
+			labelOptions = options.labels,
+			labelOffset = 0, // reset
+			labelOffsetPadded,
+			axisOffset = chart.axisOffset,
+			clipOffset = chart.clipOffset,
+			clip,
+			directionFactor = [-1, 1, 1, -1][side],
+			n,
+			lineHeightCorrection;
+
+		// For reuse in Axis.render
+		hasData = axis.hasData();
+		axis.showAxis = showAxis = hasData || pick(options.showEmpty, true);
+
+		// Set/reset staggerLines
+		axis.staggerLines = axis.horiz && labelOptions.staggerLines;
+
+		// Create the axisGroup and gridGroup elements on first iteration
+		if (!axis.axisGroup) {
+			axis.gridGroup = renderer.g('grid')
+				.attr({ zIndex: options.gridZIndex || 1 })
+				.add();
+			axis.axisGroup = renderer.g('axis')
+				.attr({ zIndex: options.zIndex || 2 })
+				.add();
+			axis.labelGroup = renderer.g('axis-labels')
+				.attr({ zIndex: labelOptions.zIndex || 7 })
+				.addClass(PREFIX + axis.coll.toLowerCase() + '-labels')
+				.add();
+		}
+
+		if (hasData || axis.isLinked) {
+			
+			// Generate ticks
+			each(tickPositions, function (pos) {
+				if (!ticks[pos]) {
+					ticks[pos] = new Tick(axis, pos);
+				} else {
+					ticks[pos].addLabel(); // update labels depending on tick interval
+				}
+			});
+
+			axis.renderUnsquish();
+
+			each(tickPositions, function (pos) {
+				// left side must be align: right and right side must have align: left for labels
+				if (side === 0 || side === 2 || { 1: 'left', 3: 'right' }[side] === axis.labelAlign) {
+
+					// get the highest offset
+					labelOffset = mathMax(
+						ticks[pos].getLabelSize(),
+						labelOffset
+					);
+				}
+			});
+
+			if (axis.staggerLines) {
+				labelOffset *= axis.staggerLines;
+				axis.labelOffset = labelOffset;
+			}
+
+
+		} else { // doesn't have data
+			for (n in ticks) {
+				ticks[n].destroy();
+				delete ticks[n];
+			}
+		}
+
+		if (axisTitleOptions && axisTitleOptions.text && axisTitleOptions.enabled !== false) {
+			if (!axis.axisTitle) {
+				axis.axisTitle = renderer.text(
+					axisTitleOptions.text,
+					0,
+					0,
+					axisTitleOptions.useHTML
+				)
+				.attr({
+					zIndex: 7,
+					rotation: axisTitleOptions.rotation || 0,
+					align:
+						axisTitleOptions.textAlign ||
+						{ low: 'left', middle: 'center', high: 'right' }[axisTitleOptions.align]
+				})
+				.addClass(PREFIX + this.coll.toLowerCase() + '-title')
+				.css(axisTitleOptions.style)
+				.add(axis.axisGroup);
+				axis.axisTitle.isNew = true;
+			}
+
+			if (showAxis) {
+				titleOffset = axis.axisTitle.getBBox()[horiz ? 'height' : 'width'];
+				titleOffsetOption = axisTitleOptions.offset;
+				titleMargin = defined(titleOffsetOption) ? 0 : pick(axisTitleOptions.margin, horiz ? 5 : 10);
+			}
+
+			// hide or show the title depending on whether showEmpty is set
+			axis.axisTitle[showAxis ? 'show' : 'hide']();
+		}
+
+		// handle automatic or user set offset
+		axis.offset = directionFactor * pick(options.offset, axisOffset[side]);
+
+		axis.tickRotCorr = axis.tickRotCorr || { x: 0, y: 0 }; // polar
+		lineHeightCorrection = side === 2 ? axis.tickRotCorr.y : 0;
+		labelOffsetPadded = labelOffset + titleMargin +
+			(labelOffset && (directionFactor * (horiz ? pick(labelOptions.y, axis.tickRotCorr.y + 8) : labelOptions.x) - lineHeightCorrection));
+		axis.axisTitleMargin = pick(titleOffsetOption, labelOffsetPadded);
+
+		axisOffset[side] = mathMax(
+			axisOffset[side],
+			axis.axisTitleMargin + titleOffset + directionFactor * axis.offset,
+			labelOffsetPadded // #3027
+		);
+
+		// Decide the clipping needed to keep the graph inside the plot area and axis lines
+		clip = mathFloor(options.lineWidth / 2) * 2;
+		if (options.offset) {
+			clip = mathMax(0, clip - options.offset);		
+		}
+		clipOffset[invertedSide] = mathMax(clipOffset[invertedSide], clip);
+	},
+
+	/**
+	 * Get the path for the axis line
+	 */
+	getLinePath: function (lineWidth) {
+		var chart = this.chart,
+			opposite = this.opposite,
+			offset = this.offset,
+			horiz = this.horiz,
+			lineLeft = this.left + (opposite ? this.width : 0) + offset,
+			lineTop = chart.chartHeight - this.bottom - (opposite ? this.height : 0) + offset;
+
+		if (opposite) {
+			lineWidth *= -1; // crispify the other way - #1480, #1687
+		}
+
+		return chart.renderer.crispLine([
+				M,
+				horiz ?
+					this.left :
+					lineLeft,
+				horiz ?
+					lineTop :
+					this.top,
+				L,
+				horiz ?
+					chart.chartWidth - this.right :
+					lineLeft,
+				horiz ?
+					lineTop :
+					chart.chartHeight - this.bottom
+			], lineWidth);
+	},
+
+	/**
+	 * Position the title
+	 */
+	getTitlePosition: function () {
+		// compute anchor points for each of the title align options
+		var horiz = this.horiz,
+			axisLeft = this.left,
+			axisTop = this.top,
+			axisLength = this.len,
+			axisTitleOptions = this.options.title,
+			margin = horiz ? axisLeft : axisTop,
+			opposite = this.opposite,
+			offset = this.offset,
+			xOption = axisTitleOptions.x || 0,
+			yOption = axisTitleOptions.y || 0,
+			fontSize = pInt(axisTitleOptions.style.fontSize || 12),
+
+			// the position in the length direction of the axis
+			alongAxis = {
+				low: margin + (horiz ? 0 : axisLength),
+				middle: margin + axisLength / 2,
+				high: margin + (horiz ? axisLength : 0)
+			}[axisTitleOptions.align],
+
+			// the position in the perpendicular direction of the axis
+			offAxis = (horiz ? axisTop + this.height : axisLeft) +
+				(horiz ? 1 : -1) * // horizontal axis reverses the margin
+				(opposite ? -1 : 1) * // so does opposite axes
+				this.axisTitleMargin +
+				(this.side === 2 ? fontSize : 0);
+
+		return {
+			x: horiz ?
+				alongAxis + xOption :
+				offAxis + (opposite ? this.width : 0) + offset + xOption,
+			y: horiz ?
+				offAxis + yOption - (opposite ? this.height : 0) + offset :
+				alongAxis + yOption
+		};
+	},
+
+	/**
+	 * Render the axis
+	 */
+	render: function () {
+		var axis = this,
+			chart = axis.chart,
+			renderer = chart.renderer,
+			options = axis.options,
+			isLog = axis.isLog,
+			isLinked = axis.isLinked,
+			tickPositions = axis.tickPositions,
+			axisTitle = axis.axisTitle,			
+			ticks = axis.ticks,
+			minorTicks = axis.minorTicks,
+			alternateBands = axis.alternateBands,
+			stackLabelOptions = options.stackLabels,
+			alternateGridColor = options.alternateGridColor,
+			tickmarkOffset = axis.tickmarkOffset,
+			lineWidth = options.lineWidth,
+			linePath,
+			hasRendered = chart.hasRendered,
+			slideInTicks = hasRendered && defined(axis.oldMin) && !isNaN(axis.oldMin),
+			showAxis = axis.showAxis,
+			from,
+			to;
+
+		// Reset
+		axis.labelEdge.length = 0;
+		//axis.justifyToPlot = overflow === 'justify';
+		axis.overlap = false;
+
+		// Mark all elements inActive before we go over and mark the active ones
+		each([ticks, minorTicks, alternateBands], function (coll) {
+			var pos;
+			for (pos in coll) {
+				coll[pos].isActive = false;
+			}
+		});
+
+		// If the series has data draw the ticks. Else only the line and title
+		if (axis.hasData() || isLinked) {
+
+			// minor ticks
+			if (axis.minorTickInterval && !axis.categories) {
+				each(axis.getMinorTickPositions(), function (pos) {
+					if (!minorTicks[pos]) {
+						minorTicks[pos] = new Tick(axis, pos, 'minor');
+					}
+
+					// render new ticks in old position
+					if (slideInTicks && minorTicks[pos].isNew) {
+						minorTicks[pos].render(null, true);
+					}
+
+					minorTicks[pos].render(null, false, 1);
+				});
+			}
+
+			// Major ticks. Pull out the first item and render it last so that
+			// we can get the position of the neighbour label. #808.
+			if (tickPositions.length) { // #1300
+				each(tickPositions, function (pos, i) {
+
+					// linked axes need an extra check to find out if
+					if (!isLinked || (pos >= axis.min && pos <= axis.max)) {
+
+						if (!ticks[pos]) {
+							ticks[pos] = new Tick(axis, pos);
+						}
+
+						// render new ticks in old position
+						if (slideInTicks && ticks[pos].isNew) {
+							ticks[pos].render(i, true, 0.1);
+						}
+
+						ticks[pos].render(i);
+					}
+
+				});
+				// In a categorized axis, the tick marks are displayed between labels. So
+				// we need to add a tick mark and grid line at the left edge of the X axis.
+				if (tickmarkOffset && (axis.min === 0 || axis.single)) {
+					if (!ticks[-1]) {
+						ticks[-1] = new Tick(axis, -1, null, true);
+					}
+					ticks[-1].render(-1);
+				}
+
+			}
+
+			// alternate grid color
+			if (alternateGridColor) {
+				each(tickPositions, function (pos, i) {
+					if (i % 2 === 0 && pos < axis.max) {
+						if (!alternateBands[pos]) {
+							alternateBands[pos] = new Highcharts.PlotLineOrBand(axis);
+						}
+						from = pos + tickmarkOffset; // #949
+						to = tickPositions[i + 1] !== UNDEFINED ? tickPositions[i + 1] + tickmarkOffset : axis.max;
+						alternateBands[pos].options = {
+							from: isLog ? lin2log(from) : from,
+							to: isLog ? lin2log(to) : to,
+							color: alternateGridColor
+						};
+						alternateBands[pos].render();
+						alternateBands[pos].isActive = true;
+					}
+				});
+			}
+
+			// custom plot lines and bands
+			if (!axis._addedPlotLB) { // only first time
+				each((options.plotLines || []).concat(options.plotBands || []), function (plotLineOptions) {
+					axis.addPlotBandOrLine(plotLineOptions);
+				});
+				axis._addedPlotLB = true;
+			}
+
+		} // end if hasData
+
+		// Remove inactive ticks
+		each([ticks, minorTicks, alternateBands
