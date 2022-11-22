@@ -9757,4 +9757,439 @@ Pointer.prototype = {
 			seriesAttribs;
 
 		// Scale each series
-		each(chart.series, function (series
+		each(chart.series, function (series) {
+			seriesAttribs = attribs || series.getPlotBox(); // #1701
+			if (series.xAxis && series.xAxis.zoomEnabled) {
+				series.group.attr(seriesAttribs);
+				if (series.markerGroup) {
+					series.markerGroup.attr(seriesAttribs);
+					series.markerGroup.clip(clip ? chart.clipRect : null);
+				}
+				if (series.dataLabelsGroup) {
+					series.dataLabelsGroup.attr(seriesAttribs);
+				}
+			}
+		});
+		
+		// Clip
+		chart.clipRect.attr(clip || chart.clipBox);
+	},
+
+	/**
+	 * Start a drag operation
+	 */
+	dragStart: function (e) {
+		var chart = this.chart;
+
+		// Record the start position
+		chart.mouseIsDown = e.type;
+		chart.cancelClick = false;
+		chart.mouseDownX = this.mouseDownX = e.chartX;
+		chart.mouseDownY = this.mouseDownY = e.chartY;
+	},
+
+	/**
+	 * Perform a drag operation in response to a mousemove event while the mouse is down
+	 */
+	drag: function (e) {
+
+		var chart = this.chart,
+			chartOptions = chart.options.chart,
+			chartX = e.chartX,
+			chartY = e.chartY,
+			zoomHor = this.zoomHor,
+			zoomVert = this.zoomVert,
+			plotLeft = chart.plotLeft,
+			plotTop = chart.plotTop,
+			plotWidth = chart.plotWidth,
+			plotHeight = chart.plotHeight,
+			clickedInside,
+			size,
+			mouseDownX = this.mouseDownX,
+			mouseDownY = this.mouseDownY,
+			panKey = chartOptions.panKey && e[chartOptions.panKey + 'Key'];
+
+		// If the mouse is outside the plot area, adjust to cooordinates
+		// inside to prevent the selection marker from going outside
+		if (chartX < plotLeft) {
+			chartX = plotLeft;
+		} else if (chartX > plotLeft + plotWidth) {
+			chartX = plotLeft + plotWidth;
+		}
+
+		if (chartY < plotTop) {
+			chartY = plotTop;
+		} else if (chartY > plotTop + plotHeight) {
+			chartY = plotTop + plotHeight;
+		}
+		
+		// determine if the mouse has moved more than 10px
+		this.hasDragged = Math.sqrt(
+			Math.pow(mouseDownX - chartX, 2) +
+			Math.pow(mouseDownY - chartY, 2)
+		);
+		
+		if (this.hasDragged > 10) {
+			clickedInside = chart.isInsidePlot(mouseDownX - plotLeft, mouseDownY - plotTop);
+
+			// make a selection
+			if (chart.hasCartesianSeries && (this.zoomX || this.zoomY) && clickedInside && !panKey) {
+				if (!this.selectionMarker) {
+					this.selectionMarker = chart.renderer.rect(
+						plotLeft,
+						plotTop,
+						zoomHor ? 1 : plotWidth,
+						zoomVert ? 1 : plotHeight,
+						0
+					)
+					.attr({
+						fill: chartOptions.selectionMarkerFill || 'rgba(69,114,167,0.25)',
+						zIndex: 7
+					})
+					.add();
+				}
+			}
+
+			// adjust the width of the selection marker
+			if (this.selectionMarker && zoomHor) {
+				size = chartX - mouseDownX;
+				this.selectionMarker.attr({
+					width: mathAbs(size),
+					x: (size > 0 ? 0 : size) + mouseDownX
+				});
+			}
+			// adjust the height of the selection marker
+			if (this.selectionMarker && zoomVert) {
+				size = chartY - mouseDownY;
+				this.selectionMarker.attr({
+					height: mathAbs(size),
+					y: (size > 0 ? 0 : size) + mouseDownY
+				});
+			}
+
+			// panning
+			if (clickedInside && !this.selectionMarker && chartOptions.panning) {
+				chart.pan(e, chartOptions.panning);
+			}
+		}
+	},
+
+	/**
+	 * On mouse up or touch end across the entire document, drop the selection.
+	 */
+	drop: function (e) {
+		var pointer = this,
+			chart = this.chart,
+			hasPinched = this.hasPinched;
+
+		if (this.selectionMarker) {
+			var selectionData = {
+					xAxis: [],
+					yAxis: [],
+					originalEvent: e.originalEvent || e
+				},
+				selectionBox = this.selectionMarker,
+				selectionLeft = selectionBox.attr ? selectionBox.attr('x') : selectionBox.x,
+				selectionTop = selectionBox.attr ? selectionBox.attr('y') : selectionBox.y,
+				selectionWidth = selectionBox.attr ? selectionBox.attr('width') : selectionBox.width,
+				selectionHeight = selectionBox.attr ? selectionBox.attr('height') : selectionBox.height,
+				runZoom;
+
+			// a selection has been made
+			if (this.hasDragged || hasPinched) {
+
+				// record each axis' min and max
+				each(chart.axes, function (axis) {
+					if (axis.zoomEnabled && defined(axis.min) && (hasPinched || pointer[{ xAxis: 'zoomX', yAxis: 'zoomY' }[axis.coll]])) { // #859, #3569
+						var horiz = axis.horiz,
+							minPixelPadding = e.type === 'touchend' ? axis.minPixelPadding: 0, // #1207, #3075
+							selectionMin = axis.toValue((horiz ? selectionLeft : selectionTop) + minPixelPadding),
+							selectionMax = axis.toValue((horiz ? selectionLeft + selectionWidth : selectionTop + selectionHeight) - minPixelPadding);
+
+						selectionData[axis.coll].push({
+							axis: axis,
+							min: mathMin(selectionMin, selectionMax), // for reversed axes
+							max: mathMax(selectionMin, selectionMax)
+						});
+						runZoom = true;
+					}
+				});
+				if (runZoom) {
+					fireEvent(chart, 'selection', selectionData, function (args) { 
+						chart.zoom(extend(args, hasPinched ? { animation: false } : null)); 
+					});
+				}
+
+			}
+			this.selectionMarker = this.selectionMarker.destroy();
+
+			// Reset scaling preview
+			if (hasPinched) {
+				this.scaleGroups();
+			}
+		}
+
+		// Reset all
+		if (chart) { // it may be destroyed on mouse up - #877
+			css(chart.container, { cursor: chart._cursor });
+			chart.cancelClick = this.hasDragged > 10; // #370
+			chart.mouseIsDown = this.hasDragged = this.hasPinched = false;
+			this.pinchDown = [];
+		}
+	},
+
+	onContainerMouseDown: function (e) {
+
+		e = this.normalize(e);
+
+		// issue #295, dragging not always working in Firefox
+		if (e.preventDefault) {
+			e.preventDefault();
+		}
+		
+		this.dragStart(e);
+	},
+
+	
+
+	onDocumentMouseUp: function (e) {
+		if (charts[hoverChartIndex]) {
+			charts[hoverChartIndex].pointer.drop(e);
+		}
+	},
+
+	/**
+	 * Special handler for mouse move that will hide the tooltip when the mouse leaves the plotarea.
+	 * Issue #149 workaround. The mouseleave event does not always fire. 
+	 */
+	onDocumentMouseMove: function (e) {
+		var chart = this.chart,
+			chartPosition = this.chartPosition;
+
+		e = this.normalize(e, chartPosition);
+
+		// If we're outside, hide the tooltip
+		if (chartPosition && !this.inClass(e.target, 'highcharts-tracker') &&
+				!chart.isInsidePlot(e.chartX - chart.plotLeft, e.chartY - chart.plotTop)) {
+			this.reset();
+		}
+	},
+
+	/**
+	 * When mouse leaves the container, hide the tooltip.
+	 */
+	onContainerMouseLeave: function () {
+		var chart = charts[hoverChartIndex];
+		if (chart) {
+			chart.pointer.reset();
+			chart.pointer.chartPosition = null; // also reset the chart position, used in #149 fix
+		}
+	},
+
+	// The mousemove, touchmove and touchstart event handler
+	onContainerMouseMove: function (e) {
+
+		var chart = this.chart;
+
+		hoverChartIndex = chart.index;
+
+		e = this.normalize(e);		
+		e.returnValue = false; // #2251, #3224
+		
+		if (chart.mouseIsDown === 'mousedown') {
+			this.drag(e);
+		} 
+		
+		// Show the tooltip and run mouse over events (#977)
+		if ((this.inClass(e.target, 'highcharts-tracker') || 
+				chart.isInsidePlot(e.chartX - chart.plotLeft, e.chartY - chart.plotTop)) && !chart.openMenu) {
+			this.runPointActions(e);
+		}
+	},
+
+	/**
+	 * Utility to detect whether an element has, or has a parent with, a specific
+	 * class name. Used on detection of tracker objects and on deciding whether
+	 * hovering the tooltip should cause the active series to mouse out.
+	 */
+	inClass: function (element, className) {
+		var elemClassName;
+		while (element) {
+			elemClassName = attr(element, 'class');
+			if (elemClassName) {
+				if (elemClassName.indexOf(className) !== -1) {
+					return true;
+				} else if (elemClassName.indexOf(PREFIX + 'container') !== -1) {
+					return false;
+				}
+			}
+			element = element.parentNode;
+		}		
+	},
+
+	onTrackerMouseOut: function (e) {
+		var series = this.chart.hoverSeries,
+			relatedTarget = e.relatedTarget || e.toElement,
+			relatedSeries = relatedTarget && relatedTarget.point && relatedTarget.point.series; // #2499
+		
+		if (series && !series.options.stickyTracking && !this.inClass(relatedTarget, PREFIX + 'tooltip') &&
+				relatedSeries !== series) {
+			series.onMouseOut();
+		}
+	},
+
+	onContainerClick: function (e) {
+		var chart = this.chart,
+			hoverPoint = chart.hoverPoint, 
+			plotLeft = chart.plotLeft,
+			plotTop = chart.plotTop;
+		
+		e = this.normalize(e);
+		e.originalEvent = e; // #3913
+
+		if (!chart.cancelClick) {
+			
+			// On tracker click, fire the series and point events. #783, #1583
+			if (hoverPoint && this.inClass(e.target, PREFIX + 'tracker')) {
+
+				// the series click event
+				fireEvent(hoverPoint.series, 'click', extend(e, {
+					point: hoverPoint
+				}));
+
+				// the point click event
+				if (chart.hoverPoint) { // it may be destroyed (#1844)
+					hoverPoint.firePointEvent('click', e);
+				}
+
+			// When clicking outside a tracker, fire a chart event
+			} else {
+				extend(e, this.getCoordinates(e));
+
+				// fire a click event in the chart
+				if (chart.isInsidePlot(e.chartX - plotLeft, e.chartY - plotTop)) {
+					fireEvent(chart, 'click', e);
+				}
+			}
+
+
+		}
+	},
+
+	/**
+	 * Set the JS DOM events on the container and document. This method should contain
+	 * a one-to-one assignment between methods and their handlers. Any advanced logic should
+	 * be moved to the handler reflecting the event's name.
+	 */
+	setDOMEvents: function () {
+
+		var pointer = this,
+			container = pointer.chart.container;
+
+		container.onmousedown = function (e) {
+			pointer.onContainerMouseDown(e);
+		};
+		container.onmousemove = function (e) {
+			pointer.onContainerMouseMove(e);
+		};
+		container.onclick = function (e) {
+			pointer.onContainerClick(e);
+		};
+		addEvent(container, 'mouseleave', pointer.onContainerMouseLeave);
+		if (chartCount === 1) {
+			addEvent(doc, 'mouseup', pointer.onDocumentMouseUp);
+		}
+		if (hasTouch) {
+			container.ontouchstart = function (e) {
+				pointer.onContainerTouchStart(e);
+			};
+			container.ontouchmove = function (e) {
+				pointer.onContainerTouchMove(e);
+			};
+			if (chartCount === 1) {
+				addEvent(doc, 'touchend', pointer.onDocumentTouchEnd);
+			}
+		}
+		
+	},
+
+	/**
+	 * Destroys the Pointer object and disconnects DOM events.
+	 */
+	destroy: function () {
+		var prop;
+
+		removeEvent(this.chart.container, 'mouseleave', this.onContainerMouseLeave);
+		if (!chartCount) {
+			removeEvent(doc, 'mouseup', this.onDocumentMouseUp);
+			removeEvent(doc, 'touchend', this.onDocumentTouchEnd);
+		}
+
+		// memory and CPU leak
+		clearInterval(this.tooltipTimeout);
+
+		for (prop in this) {
+			this[prop] = null;
+		}
+	}
+};
+
+
+/* Support for touch devices */
+extend(Highcharts.Pointer.prototype, {
+
+	/**
+	 * Run translation operations
+	 */
+	pinchTranslate: function (pinchDown, touches, transform, selectionMarker, clip, lastValidTouch) {
+		if (this.zoomHor || this.pinchHor) {
+			this.pinchTranslateDirection(true, pinchDown, touches, transform, selectionMarker, clip, lastValidTouch);
+		}
+		if (this.zoomVert || this.pinchVert) {
+			this.pinchTranslateDirection(false, pinchDown, touches, transform, selectionMarker, clip, lastValidTouch);
+		}
+	},
+
+	/**
+	 * Run translation operations for each direction (horizontal and vertical) independently
+	 */
+	pinchTranslateDirection: function (horiz, pinchDown, touches, transform, selectionMarker, clip, lastValidTouch, forcedScale) {
+		var chart = this.chart,
+			xy = horiz ? 'x' : 'y',
+			XY = horiz ? 'X' : 'Y',
+			sChartXY = 'chart' + XY,
+			wh = horiz ? 'width' : 'height',
+			plotLeftTop = chart['plot' + (horiz ? 'Left' : 'Top')],
+			selectionWH,
+			selectionXY,
+			clipXY,
+			scale = forcedScale || 1,
+			inverted = chart.inverted,
+			bounds = chart.bounds[horiz ? 'h' : 'v'],
+			singleTouch = pinchDown.length === 1,
+			touch0Start = pinchDown[0][sChartXY],
+			touch0Now = touches[0][sChartXY],
+			touch1Start = !singleTouch && pinchDown[1][sChartXY],
+			touch1Now = !singleTouch && touches[1][sChartXY],
+			outOfBounds,
+			transformScale,
+			scaleKey,
+			setScale = function () {
+				if (!singleTouch && mathAbs(touch0Start - touch1Start) > 20) { // Don't zoom if fingers are too close on this axis
+					scale = forcedScale || mathAbs(touch0Now - touch1Now) / mathAbs(touch0Start - touch1Start); 
+				}
+				
+				clipXY = ((plotLeftTop - touch0Now) / scale) + touch0Start;
+				selectionWH = chart['plot' + (horiz ? 'Width' : 'Height')] / scale;
+			};
+
+		// Set the scale, first pass
+		setScale();
+
+		selectionXY = clipXY; // the clip position (x or y) is altered if out of bounds, the selection position is not
+
+		// Out of bounds
+		if (selectionXY < bounds.min) {
+			selectionXY = bounds.min;
+			outOfBounds = true;
+		} else if (selectionXY + selectionWH > bounds
