@@ -10192,4 +10192,458 @@ extend(Highcharts.Pointer.prototype, {
 		if (selectionXY < bounds.min) {
 			selectionXY = bounds.min;
 			outOfBounds = true;
-		} else if (selectionXY + selectionWH > bounds
+		} else if (selectionXY + selectionWH > bounds.max) {
+			selectionXY = bounds.max - selectionWH;
+			outOfBounds = true;
+		}
+		
+		// Is the chart dragged off its bounds, determined by dataMin and dataMax?
+		if (outOfBounds) {
+
+			// Modify the touchNow position in order to create an elastic drag movement. This indicates
+			// to the user that the chart is responsive but can't be dragged further.
+			touch0Now -= 0.8 * (touch0Now - lastValidTouch[xy][0]);
+			if (!singleTouch) {
+				touch1Now -= 0.8 * (touch1Now - lastValidTouch[xy][1]);
+			}
+
+			// Set the scale, second pass to adapt to the modified touchNow positions
+			setScale();
+
+		} else {
+			lastValidTouch[xy] = [touch0Now, touch1Now];
+		}
+
+		// Set geometry for clipping, selection and transformation
+		if (!inverted) { // TODO: implement clipping for inverted charts
+			clip[xy] = clipXY - plotLeftTop;
+			clip[wh] = selectionWH;
+		}
+		scaleKey = inverted ? (horiz ? 'scaleY' : 'scaleX') : 'scale' + XY;
+		transformScale = inverted ? 1 / scale : scale;
+
+		selectionMarker[wh] = selectionWH;
+		selectionMarker[xy] = selectionXY;
+		transform[scaleKey] = scale;
+		transform['translate' + XY] = (transformScale * plotLeftTop) + (touch0Now - (transformScale * touch0Start));
+	},
+	
+	/**
+	 * Handle touch events with two touches
+	 */
+	pinch: function (e) {
+
+		var self = this,
+			chart = self.chart,
+			pinchDown = self.pinchDown,
+			touches = e.touches,
+			touchesLength = touches.length,
+			lastValidTouch = self.lastValidTouch,
+			hasZoom = self.hasZoom,
+			selectionMarker = self.selectionMarker,
+			transform = {},
+			fireClickEvent = touchesLength === 1 && ((self.inClass(e.target, PREFIX + 'tracker') && 
+				chart.runTrackerClick) || self.runChartClick),
+			clip = {};
+
+		// Don't initiate panning until the user has pinched. This prevents us from 
+		// blocking page scrolling as users scroll down a long page (#4210).
+		if (touchesLength > 1) {
+			self.initiated = true;
+		}
+
+		// On touch devices, only proceed to trigger click if a handler is defined
+		if (hasZoom && self.initiated && !fireClickEvent) {
+			e.preventDefault();
+		}
+		
+		// Normalize each touch
+		map(touches, function (e) {
+			return self.normalize(e);
+		});
+		
+		// Register the touch start position
+		if (e.type === 'touchstart') {
+			each(touches, function (e, i) {
+				pinchDown[i] = { chartX: e.chartX, chartY: e.chartY };
+			});
+			lastValidTouch.x = [pinchDown[0].chartX, pinchDown[1] && pinchDown[1].chartX];
+			lastValidTouch.y = [pinchDown[0].chartY, pinchDown[1] && pinchDown[1].chartY];
+
+			// Identify the data bounds in pixels
+			each(chart.axes, function (axis) {
+				if (axis.zoomEnabled) {
+					var bounds = chart.bounds[axis.horiz ? 'h' : 'v'],
+						minPixelPadding = axis.minPixelPadding,
+						min = axis.toPixels(pick(axis.options.min, axis.dataMin)),
+						max = axis.toPixels(pick(axis.options.max, axis.dataMax)),
+						absMin = mathMin(min, max),
+						absMax = mathMax(min, max);
+
+					// Store the bounds for use in the touchmove handler
+					bounds.min = mathMin(axis.pos, absMin - minPixelPadding);
+					bounds.max = mathMax(axis.pos + axis.len, absMax + minPixelPadding);
+				}
+			});
+			self.res = true; // reset on next move
+		
+		// Event type is touchmove, handle panning and pinching
+		} else if (pinchDown.length) { // can be 0 when releasing, if touchend fires first
+			
+
+			// Set the marker
+			if (!selectionMarker) {
+				self.selectionMarker = selectionMarker = extend({
+					destroy: noop
+				}, chart.plotBox);
+			}
+			
+			self.pinchTranslate(pinchDown, touches, transform, selectionMarker, clip, lastValidTouch);
+
+			self.hasPinched = hasZoom;
+
+			// Scale and translate the groups to provide visual feedback during pinching
+			self.scaleGroups(transform, clip);
+			
+			// Optionally move the tooltip on touchmove
+			if (!hasZoom && self.followTouchMove && touchesLength === 1) {
+				this.runPointActions(self.normalize(e));
+			} else if (self.res) {
+				self.res = false;
+				this.reset(false, 0);
+			}
+		}
+	},
+
+	/**
+	 * General touch handler shared by touchstart and touchmove.
+	 */
+	touch: function (e, start) {
+		var chart = this.chart;
+
+		hoverChartIndex = chart.index;
+
+		if (e.touches.length === 1) {
+
+			e = this.normalize(e);
+
+			if (chart.isInsidePlot(e.chartX - chart.plotLeft, e.chartY - chart.plotTop) && !chart.openMenu) {
+
+				// Run mouse events and display tooltip etc
+				if (start) {
+					this.runPointActions(e);
+				}
+
+				this.pinch(e);
+
+			} else if (start) {
+				// Hide the tooltip on touching outside the plot area (#1203)
+				this.reset();
+			}
+
+		} else if (e.touches.length === 2) {
+			this.pinch(e);
+		}
+	},
+
+	onContainerTouchStart: function (e) {
+		this.touch(e, true);
+	},
+
+	onContainerTouchMove: function (e) {
+		this.touch(e);
+	},
+
+	onDocumentTouchEnd: function (e) {
+		if (charts[hoverChartIndex]) {
+			charts[hoverChartIndex].pointer.drop(e);
+		}
+	}
+
+});
+if (win.PointerEvent || win.MSPointerEvent) {
+	
+	// The touches object keeps track of the points being touched at all times
+	var touches = {},
+		hasPointerEvent = !!win.PointerEvent,
+		getWebkitTouches = function () {
+			var key, fake = [];
+			fake.item = function (i) { return this[i]; };
+			for (key in touches) {
+				if (touches.hasOwnProperty(key)) {
+					fake.push({
+						pageX: touches[key].pageX,
+						pageY: touches[key].pageY,
+						target: touches[key].target
+					});
+				}
+			}
+			return fake;
+		},
+		translateMSPointer = function (e, method, wktype, callback) {
+			var p;
+			e = e.originalEvent || e;
+			if ((e.pointerType === 'touch' || e.pointerType === e.MSPOINTER_TYPE_TOUCH) && charts[hoverChartIndex]) {
+				callback(e);
+				p = charts[hoverChartIndex].pointer;
+				p[method]({
+					type: wktype,
+					target: e.currentTarget,
+					preventDefault: noop,
+					touches: getWebkitTouches()
+				});				
+			}
+		};
+
+	/**
+	 * Extend the Pointer prototype with methods for each event handler and more
+	 */
+	extend(Pointer.prototype, {
+		onContainerPointerDown: function (e) {
+			translateMSPointer(e, 'onContainerTouchStart', 'touchstart', function (e) {
+				touches[e.pointerId] = { pageX: e.pageX, pageY: e.pageY, target: e.currentTarget };
+			});
+		},
+		onContainerPointerMove: function (e) {
+			translateMSPointer(e, 'onContainerTouchMove', 'touchmove', function (e) {
+				touches[e.pointerId] = { pageX: e.pageX, pageY: e.pageY };
+				if (!touches[e.pointerId].target) {
+					touches[e.pointerId].target = e.currentTarget;
+				}
+			});
+		},
+		onDocumentPointerUp: function (e) {
+			translateMSPointer(e, 'onDocumentTouchEnd', 'touchend', function (e) {
+				delete touches[e.pointerId];
+			});
+		},
+
+		/**
+		 * Add or remove the MS Pointer specific events
+		 */
+		batchMSEvents: function (fn) {
+			fn(this.chart.container, hasPointerEvent ? 'pointerdown' : 'MSPointerDown', this.onContainerPointerDown);
+			fn(this.chart.container, hasPointerEvent ? 'pointermove' : 'MSPointerMove', this.onContainerPointerMove);
+			fn(doc, hasPointerEvent ? 'pointerup' : 'MSPointerUp', this.onDocumentPointerUp);
+		}
+	});
+
+	// Disable default IE actions for pinch and such on chart element
+	wrap(Pointer.prototype, 'init', function (proceed, chart, options) {
+		proceed.call(this, chart, options);
+		if (this.hasZoom) { // #4014
+			css(chart.container, {
+				'-ms-touch-action': NONE,
+				'touch-action': NONE
+			});
+		}
+	});
+
+	// Add IE specific touch events to chart
+	wrap(Pointer.prototype, 'setDOMEvents', function (proceed) {
+		proceed.apply(this);
+		if (this.hasZoom || this.followTouchMove) {
+			this.batchMSEvents(addEvent);
+		}
+	});
+	// Destroy MS events also
+	wrap(Pointer.prototype, 'destroy', function (proceed) {
+		this.batchMSEvents(removeEvent);
+		proceed.call(this);
+	});
+}
+/**
+ * The overview of the chart's series
+ */
+var Legend = Highcharts.Legend = function (chart, options) {
+	this.init(chart, options);
+};
+
+Legend.prototype = {
+	
+	/**
+	 * Initialize the legend
+	 */
+	init: function (chart, options) {
+		
+		var legend = this,
+			itemStyle = options.itemStyle,
+			padding,
+			itemMarginTop = options.itemMarginTop || 0;
+	
+		this.options = options;
+
+		if (!options.enabled) {
+			return;
+		}
+	
+		legend.itemStyle = itemStyle;
+		legend.itemHiddenStyle = merge(itemStyle, options.itemHiddenStyle);
+		legend.itemMarginTop = itemMarginTop;
+		legend.padding = padding = pick(options.padding, 8);
+		legend.initialItemX = padding;
+		legend.initialItemY = padding - 5; // 5 is the number of pixels above the text
+		legend.maxItemWidth = 0;
+		legend.chart = chart;
+		legend.itemHeight = 0;
+		legend.symbolWidth = pick(options.symbolWidth, 16);
+		legend.pages = [];
+
+
+		// Render it
+		legend.render();
+
+		// move checkboxes
+		addEvent(legend.chart, 'endResize', function () { 
+			legend.positionCheckboxes();
+		});
+
+	},
+
+	/**
+	 * Set the colors for the legend item
+	 * @param {Object} item A Series or Point instance
+	 * @param {Object} visible Dimmed or colored
+	 */
+	colorizeItem: function (item, visible) {
+		var legend = this,
+			options = legend.options,
+			legendItem = item.legendItem,
+			legendLine = item.legendLine,
+			legendSymbol = item.legendSymbol,
+			hiddenColor = legend.itemHiddenStyle.color,
+			textColor = visible ? options.itemStyle.color : hiddenColor,
+			symbolColor = visible ? (item.legendColor || item.color || '#CCC') : hiddenColor,
+			markerOptions = item.options && item.options.marker,
+			symbolAttr = { fill: symbolColor },
+			key,
+			val;
+		
+		if (legendItem) {
+			legendItem.css({ fill: textColor, color: textColor }); // color for #1553, oldIE
+		}
+		if (legendLine) {
+			legendLine.attr({ stroke: symbolColor });
+		}
+		
+		if (legendSymbol) {
+			
+			// Apply marker options
+			if (markerOptions && legendSymbol.isMarker) { // #585
+				symbolAttr.stroke = symbolColor;
+				markerOptions = item.convertAttribs(markerOptions);
+				for (key in markerOptions) {
+					val = markerOptions[key];
+					if (val !== UNDEFINED) {
+						symbolAttr[key] = val;
+					}
+				}
+			}
+
+			legendSymbol.attr(symbolAttr);
+		}
+	},
+
+	/**
+	 * Position the legend item
+	 * @param {Object} item A Series or Point instance
+	 */
+	positionItem: function (item) {
+		var legend = this,
+			options = legend.options,
+			symbolPadding = options.symbolPadding,
+			ltr = !options.rtl,
+			legendItemPos = item._legendItemPos,
+			itemX = legendItemPos[0],
+			itemY = legendItemPos[1],
+			checkbox = item.checkbox,
+			legendGroup = item.legendGroup;
+
+		if (legendGroup && legendGroup.element) {
+			legendGroup.translate(
+				ltr ? itemX : legend.legendWidth - itemX - 2 * symbolPadding - 4,
+				itemY
+			);
+		}
+
+		if (checkbox) {
+			checkbox.x = itemX;
+			checkbox.y = itemY;
+		}
+	},
+
+	/**
+	 * Destroy a single legend item
+	 * @param {Object} item The series or point
+	 */
+	destroyItem: function (item) {
+		var checkbox = item.checkbox;
+
+		// destroy SVG elements
+		each(['legendItem', 'legendLine', 'legendSymbol', 'legendGroup'], function (key) {
+			if (item[key]) {
+				item[key] = item[key].destroy();
+			}
+		});
+
+		if (checkbox) {
+			discardElement(item.checkbox);
+		}
+	},
+
+	/**
+	 * Destroys the legend.
+	 */
+	destroy: function () {
+		var legend = this,
+			legendGroup = legend.group,
+			box = legend.box;
+
+		if (box) {
+			legend.box = box.destroy();
+		}
+
+		if (legendGroup) {
+			legend.group = legendGroup.destroy();
+		}
+	},
+
+	/**
+	 * Position the checkboxes after the width is determined
+	 */
+	positionCheckboxes: function (scrollOffset) {
+		var alignAttr = this.group.alignAttr,
+			translateY,
+			clipHeight = this.clipHeight || this.legendHeight;
+
+		if (alignAttr) {
+			translateY = alignAttr.translateY;
+			each(this.allItems, function (item) {
+				var checkbox = item.checkbox,
+					top;
+				
+				if (checkbox) {
+					top = (translateY + checkbox.y + (scrollOffset || 0) + 3);
+					css(checkbox, {
+						left: (alignAttr.translateX + item.checkboxOffset + checkbox.x - 20) + PX,
+						top: top + PX,
+						display: top > translateY - 6 && top < translateY + clipHeight - 6 ? '' : NONE
+					});
+				}
+			});
+		}
+	},
+	
+	/**
+	 * Render the legend title on top of the legend
+	 */
+	renderTitle: function () {
+		var options = this.options,
+			padding = this.padding,
+			titleOptions = options.title,
+			titleHeight = 0,
+			bBox;
+		
+		if (titleOptions.text) {
+			if (!this.title) {
+				this.title = this.chart.renderer.label(titleOptions.text, padding - 3, pa
