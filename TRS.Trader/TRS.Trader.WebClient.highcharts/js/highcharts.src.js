@@ -10646,4 +10646,422 @@ Legend.prototype = {
 		
 		if (titleOptions.text) {
 			if (!this.title) {
-				this.title = this.chart.renderer.label(titleOptions.text, padding - 3, pa
+				this.title = this.chart.renderer.label(titleOptions.text, padding - 3, padding - 4, null, null, null, null, null, 'legend-title')
+					.attr({ zIndex: 1 })
+					.css(titleOptions.style)
+					.add(this.group);
+			}
+			bBox = this.title.getBBox();
+			titleHeight = bBox.height;
+			this.offsetWidth = bBox.width; // #1717
+			this.contentGroup.attr({ translateY: titleHeight });
+		}
+		this.titleHeight = titleHeight;
+	},
+
+	/**
+	 * Set the legend item text
+	 */
+	setText: function (item) {
+		var options = this.options;
+		item.legendItem.attr({
+			text: options.labelFormat ? format(options.labelFormat, item) : options.labelFormatter.call(item)
+		});
+	},
+
+	/**
+	 * Render a single specific legend item
+	 * @param {Object} item A series or point
+	 */
+	renderItem: function (item) {
+		var legend = this,
+			chart = legend.chart,
+			renderer = chart.renderer,
+			options = legend.options,
+			horizontal = options.layout === 'horizontal',
+			symbolWidth = legend.symbolWidth,
+			symbolPadding = options.symbolPadding,
+			itemStyle = legend.itemStyle,
+			itemHiddenStyle = legend.itemHiddenStyle,
+			padding = legend.padding,
+			itemDistance = horizontal ? pick(options.itemDistance, 20) : 0,
+			ltr = !options.rtl,
+			itemHeight,
+			widthOption = options.width,
+			itemMarginBottom = options.itemMarginBottom || 0,
+			itemMarginTop = legend.itemMarginTop,
+			initialItemX = legend.initialItemX,
+			bBox,
+			itemWidth,
+			li = item.legendItem,
+			series = item.series && item.series.drawLegendSymbol ? item.series : item,
+			seriesOptions = series.options,
+			showCheckbox = legend.createCheckboxForItem && seriesOptions && seriesOptions.showCheckbox,
+			useHTML = options.useHTML;
+
+		if (!li) { // generate it once, later move it
+
+			// Generate the group box
+			// A group to hold the symbol and text. Text is to be appended in Legend class.
+			item.legendGroup = renderer.g('legend-item')
+				.attr({ zIndex: 1 })
+				.add(legend.scrollGroup);
+
+			// Generate the list item text and add it to the group
+			item.legendItem = li = renderer.text(
+					'',
+					ltr ? symbolWidth + symbolPadding : -symbolPadding,
+					legend.baseline || 0,
+					useHTML
+				)
+				.css(merge(item.visible ? itemStyle : itemHiddenStyle)) // merge to prevent modifying original (#1021)
+				.attr({
+					align: ltr ? 'left' : 'right',
+					zIndex: 2
+				})
+				.add(item.legendGroup);
+
+			// Get the baseline for the first item - the font size is equal for all
+			if (!legend.baseline) {
+				legend.fontMetrics = renderer.fontMetrics(itemStyle.fontSize, li);
+				legend.baseline = legend.fontMetrics.f + 3 + itemMarginTop;
+				li.attr('y', legend.baseline);
+			}
+
+			// Draw the legend symbol inside the group box
+			series.drawLegendSymbol(legend, item);
+
+			if (legend.setItemEvents) {
+				legend.setItemEvents(item, li, useHTML, itemStyle, itemHiddenStyle);
+			}			
+
+			// Colorize the items
+			legend.colorizeItem(item, item.visible);
+
+			// add the HTML checkbox on top
+			if (showCheckbox) {
+				legend.createCheckboxForItem(item);				
+			}
+		}
+
+		// Always update the text
+		legend.setText(item);
+
+		// calculate the positions for the next line
+		bBox = li.getBBox();
+
+		itemWidth = item.checkboxOffset = 
+			options.itemWidth || 
+			item.legendItemWidth || 
+			symbolWidth + symbolPadding + bBox.width + itemDistance + (showCheckbox ? 20 : 0);
+		legend.itemHeight = itemHeight = mathRound(item.legendItemHeight || bBox.height);
+
+		// if the item exceeds the width, start a new line
+		if (horizontal && legend.itemX - initialItemX + itemWidth >
+				(widthOption || (chart.chartWidth - 2 * padding - initialItemX - options.x))) {
+			legend.itemX = initialItemX;
+			legend.itemY += itemMarginTop + legend.lastLineHeight + itemMarginBottom;
+			legend.lastLineHeight = 0; // reset for next line (#915, #3976)
+		}
+
+		// If the item exceeds the height, start a new column
+		/*if (!horizontal && legend.itemY + options.y + itemHeight > chart.chartHeight - spacingTop - spacingBottom) {
+			legend.itemY = legend.initialItemY;
+			legend.itemX += legend.maxItemWidth;
+			legend.maxItemWidth = 0;
+		}*/
+
+		// Set the edge positions
+		legend.maxItemWidth = mathMax(legend.maxItemWidth, itemWidth);
+		legend.lastItemY = itemMarginTop + legend.itemY + itemMarginBottom;
+		legend.lastLineHeight = mathMax(itemHeight, legend.lastLineHeight); // #915
+
+		// cache the position of the newly generated or reordered items
+		item._legendItemPos = [legend.itemX, legend.itemY];
+
+		// advance
+		if (horizontal) {
+			legend.itemX += itemWidth;
+
+		} else {
+			legend.itemY += itemMarginTop + itemHeight + itemMarginBottom;
+			legend.lastLineHeight = itemHeight;
+		}
+
+		// the width of the widest item
+		legend.offsetWidth = widthOption || mathMax(
+			(horizontal ? legend.itemX - initialItemX - itemDistance : itemWidth) + padding,
+			legend.offsetWidth
+		);
+	},
+
+	/**
+	 * Get all items, which is one item per series for normal series and one item per point
+	 * for pie series.
+	 */
+	getAllItems: function () {
+		var allItems = [];
+		each(this.chart.series, function (series) {
+			var seriesOptions = series.options;
+
+			// Handle showInLegend. If the series is linked to another series, defaults to false.
+			if (!pick(seriesOptions.showInLegend, !defined(seriesOptions.linkedTo) ? UNDEFINED : false, true)) {
+				return;
+			}
+
+			// use points or series for the legend item depending on legendType
+			allItems = allItems.concat(
+					series.legendItems ||
+					(seriesOptions.legendType === 'point' ?
+							series.data :
+							series)
+			);
+		});
+		return allItems;
+	},
+
+	/**
+	 * Adjust the chart margins by reserving space for the legend on only one side
+	 * of the chart. If the position is set to a corner, top or bottom is reserved
+	 * for horizontal legends and left or right for vertical ones.
+	 */
+	adjustMargins: function (margin, spacing) {
+		var chart = this.chart, 
+			options = this.options,
+			// Use the first letter of each alignment option in order to detect the side 
+			alignment = options.align[0] + options.verticalAlign[0] + options.layout[0];
+			
+		if (this.display && !options.floating) {
+
+			each([
+				/(lth|ct|rth)/,
+				/(rtv|rm|rbv)/,
+				/(rbh|cb|lbh)/,
+				/(lbv|lm|ltv)/
+			], function (alignments, side) {
+				if (alignments.test(alignment) && !defined(margin[side])) {
+					// Now we have detected on which side of the chart we should reserve space for the legend
+					chart[marginNames[side]] = mathMax(
+						chart[marginNames[side]],
+						chart.legend[(side + 1) % 2 ? 'legendHeight' : 'legendWidth'] + 
+							[1, -1, -1, 1][side] * options[(side % 2) ? 'x' : 'y'] + 
+							pick(options.margin, 12) +
+							spacing[side]
+					);
+				}
+			});
+		}
+	},
+
+	/**
+	 * Render the legend. This method can be called both before and after
+	 * chart.render. If called after, it will only rearrange items instead
+	 * of creating new ones.
+	 */
+	render: function () {
+		var legend = this,
+			chart = legend.chart,
+			renderer = chart.renderer,
+			legendGroup = legend.group,
+			allItems,
+			display,
+			legendWidth,
+			legendHeight,
+			box = legend.box,
+			options = legend.options,
+			padding = legend.padding,
+			legendBorderWidth = options.borderWidth,
+			legendBackgroundColor = options.backgroundColor;
+
+		legend.itemX = legend.initialItemX;
+		legend.itemY = legend.initialItemY;
+		legend.offsetWidth = 0;
+		legend.lastItemY = 0;
+
+		if (!legendGroup) {
+			legend.group = legendGroup = renderer.g('legend')
+				.attr({ zIndex: 7 }) 
+				.add();
+			legend.contentGroup = renderer.g()
+				.attr({ zIndex: 1 }) // above background
+				.add(legendGroup);
+			legend.scrollGroup = renderer.g()
+				.add(legend.contentGroup);
+		}
+		
+		legend.renderTitle();
+
+		// add each series or point
+		allItems = legend.getAllItems();
+
+		// sort by legendIndex
+		stableSort(allItems, function (a, b) {
+			return ((a.options && a.options.legendIndex) || 0) - ((b.options && b.options.legendIndex) || 0);
+		});
+
+		// reversed legend
+		if (options.reversed) {
+			allItems.reverse();
+		}
+
+		legend.allItems = allItems;
+		legend.display = display = !!allItems.length;
+
+		// render the items
+		legend.lastLineHeight = 0;
+		each(allItems, function (item) {
+			legend.renderItem(item); 
+		});
+
+		// Get the box
+		legendWidth = (options.width || legend.offsetWidth) + padding;
+		legendHeight = legend.lastItemY + legend.lastLineHeight + legend.titleHeight;
+		legendHeight = legend.handleOverflow(legendHeight);
+		legendHeight += padding;
+
+		// Draw the border and/or background
+		if (legendBorderWidth || legendBackgroundColor) {
+
+			if (!box) {
+				legend.box = box = renderer.rect(
+					0,
+					0,
+					legendWidth,
+					legendHeight,
+					options.borderRadius,
+					legendBorderWidth || 0
+				).attr({
+					stroke: options.borderColor,
+					'stroke-width': legendBorderWidth || 0,
+					fill: legendBackgroundColor || NONE
+				})
+				.add(legendGroup)
+				.shadow(options.shadow);
+				box.isNew = true;
+
+			} else if (legendWidth > 0 && legendHeight > 0) {
+				box[box.isNew ? 'attr' : 'animate'](
+					box.crisp({ width: legendWidth, height: legendHeight })
+				);
+				box.isNew = false;
+			}
+
+			// hide the border if no items
+			box[display ? 'show' : 'hide']();
+		}
+		
+		legend.legendWidth = legendWidth;
+		legend.legendHeight = legendHeight;
+
+		// Now that the legend width and height are established, put the items in the 
+		// final position
+		each(allItems, function (item) {
+			legend.positionItem(item);
+		});
+
+		// 1.x compatibility: positioning based on style
+		/*var props = ['left', 'right', 'top', 'bottom'],
+			prop,
+			i = 4;
+		while (i--) {
+			prop = props[i];
+			if (options.style[prop] && options.style[prop] !== 'auto') {
+				options[i < 2 ? 'align' : 'verticalAlign'] = prop;
+				options[i < 2 ? 'x' : 'y'] = pInt(options.style[prop]) * (i % 2 ? -1 : 1);
+			}
+		}*/
+
+		if (display) {
+			legendGroup.align(extend({
+				width: legendWidth,
+				height: legendHeight
+			}, options), true, 'spacingBox');
+		}
+
+		if (!chart.isResizing) {
+			this.positionCheckboxes();
+		}
+	},
+	
+	/**
+	 * Set up the overflow handling by adding navigation with up and down arrows below the
+	 * legend.
+	 */
+	handleOverflow: function (legendHeight) {
+		var legend = this,
+			chart = this.chart,
+			renderer = chart.renderer,
+			options = this.options,
+			optionsY = options.y,
+			alignTop = options.verticalAlign === 'top',
+			spaceHeight = chart.spacingBox.height + (alignTop ? -optionsY : optionsY) - this.padding,
+			maxHeight = options.maxHeight,
+			clipHeight,
+			clipRect = this.clipRect,
+			navOptions = options.navigation,
+			animation = pick(navOptions.animation, true),
+			arrowSize = navOptions.arrowSize || 12,
+			nav = this.nav,
+			pages = this.pages,
+			padding = this.padding,
+			lastY,
+			allItems = this.allItems,
+			clipToHeight = function (height) {
+				clipRect.attr({
+					height: height
+				});
+
+				// useHTML
+				if (legend.contentGroup.div) {
+					legend.contentGroup.div.style.clip = 'rect(' + padding + 'px,9999px,' + (padding + height) + 'px,0)';
+				}
+			};
+
+			
+		// Adjust the height
+		if (options.layout === 'horizontal') {
+			spaceHeight /= 2;
+		}
+		if (maxHeight) {
+			spaceHeight = mathMin(spaceHeight, maxHeight);
+		}
+		
+		// Reset the legend height and adjust the clipping rectangle
+		pages.length = 0;
+		if (legendHeight > spaceHeight) {
+
+			this.clipHeight = clipHeight = mathMax(spaceHeight - 20 - this.titleHeight - padding, 0);
+			this.currentPage = pick(this.currentPage, 1);
+			this.fullHeight = legendHeight;
+			
+			// Fill pages with Y positions so that the top of each a legend item defines
+			// the scroll top for each page (#2098)
+			each(allItems, function (item, i) {
+				var y = item._legendItemPos[1],
+					h = mathRound(item.legendItem.getBBox().height),
+					len = pages.length;
+				
+				if (!len || (y - pages[len - 1] > clipHeight && (lastY || y) !== pages[len - 1])) {
+					pages.push(lastY || y);
+					len++;
+				}
+				
+				if (i === allItems.length - 1 && y + h - pages[len - 1] > clipHeight) {
+					pages.push(y);
+				}
+				if (y !== lastY) {
+					lastY = y;
+				}
+			});
+
+			// Only apply clipping if needed. Clipping causes blurred legend in PDF export (#1787)
+			if (!clipRect) {
+				clipRect = legend.clipRect = renderer.clipRect(0, padding, 9999, 0);
+				legend.contentGroup.clip(clipRect);
+			}
+				
+			clipToHeight(clipHeight);
+
+			// Add navigation elements
+			if (!nav) {
+				this.nav
