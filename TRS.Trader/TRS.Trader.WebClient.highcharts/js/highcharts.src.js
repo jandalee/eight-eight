@@ -11064,4 +11064,510 @@ Legend.prototype = {
 
 			// Add navigation elements
 			if (!nav) {
-				this.nav
+				this.nav = nav = renderer.g().attr({ zIndex: 1 }).add(this.group);
+				this.up = renderer.symbol('triangle', 0, 0, arrowSize, arrowSize)
+					.on('click', function () {
+						legend.scroll(-1, animation);
+					})
+					.add(nav);
+				this.pager = renderer.text('', 15, 10)
+					.css(navOptions.style)
+					.add(nav);
+				this.down = renderer.symbol('triangle-down', 0, 0, arrowSize, arrowSize)
+					.on('click', function () {
+						legend.scroll(1, animation);
+					})
+					.add(nav);
+			}
+			
+			// Set initial position
+			legend.scroll(0);
+			
+			legendHeight = spaceHeight;
+			
+		} else if (nav) {
+			clipToHeight(chart.chartHeight);
+			nav.hide();
+			this.scrollGroup.attr({
+				translateY: 1
+			});
+			this.clipHeight = 0; // #1379
+		}
+		
+		return legendHeight;
+	},
+	
+	/**
+	 * Scroll the legend by a number of pages
+	 * @param {Object} scrollBy
+	 * @param {Object} animation
+	 */
+	scroll: function (scrollBy, animation) {
+		var pages = this.pages,
+			pageCount = pages.length,
+			currentPage = this.currentPage + scrollBy,
+			clipHeight = this.clipHeight,
+			navOptions = this.options.navigation,
+			activeColor = navOptions.activeColor,
+			inactiveColor = navOptions.inactiveColor,
+			pager = this.pager,
+			padding = this.padding,
+			scrollOffset;
+		
+		// When resizing while looking at the last page
+		if (currentPage > pageCount) {
+			currentPage = pageCount;
+		}
+		
+		if (currentPage > 0) {
+			
+			if (animation !== UNDEFINED) {
+				setAnimation(animation, this.chart);
+			}
+			
+			this.nav.attr({
+				translateX: padding,
+				translateY: clipHeight + this.padding + 7 + this.titleHeight,
+				visibility: VISIBLE
+			});
+			this.up.attr({
+					fill: currentPage === 1 ? inactiveColor : activeColor
+				})
+				.css({
+					cursor: currentPage === 1 ? 'default' : 'pointer'
+				});
+			pager.attr({
+				text: currentPage + '/' + pageCount
+			});
+			this.down.attr({
+					x: 18 + this.pager.getBBox().width, // adjust to text width
+					fill: currentPage === pageCount ? inactiveColor : activeColor
+				})
+				.css({
+					cursor: currentPage === pageCount ? 'default' : 'pointer'
+				});
+			
+			scrollOffset = -pages[currentPage - 1] + this.initialItemY;
+
+			this.scrollGroup.animate({
+				translateY: scrollOffset
+			});			
+			
+			this.currentPage = currentPage;
+			this.positionCheckboxes(scrollOffset);
+		}
+			
+	}
+	
+};
+
+/*
+ * LegendSymbolMixin
+ */ 
+
+var LegendSymbolMixin = Highcharts.LegendSymbolMixin = {
+
+	/**
+	 * Get the series' symbol in the legend
+	 * 
+	 * @param {Object} legend The legend object
+	 * @param {Object} item The series (this) or point
+	 */
+	drawRectangle: function (legend, item) {
+		var symbolHeight = legend.options.symbolHeight || legend.fontMetrics.f;
+
+		item.legendSymbol = this.chart.renderer.rect(
+			0,
+			legend.baseline - symbolHeight + 1, // #3988
+			legend.symbolWidth,
+			symbolHeight,
+			legend.options.symbolRadius || 0
+		).attr({
+			zIndex: 3
+		}).add(item.legendGroup);		
+		
+	},
+
+	/**
+	 * Get the series' symbol in the legend. This method should be overridable to create custom 
+	 * symbols through Highcharts.seriesTypes[type].prototype.drawLegendSymbols.
+	 * 
+	 * @param {Object} legend The legend object
+	 */
+	drawLineMarker: function (legend) {
+
+		var options = this.options,
+			markerOptions = options.marker,
+			radius,
+			legendSymbol,
+			symbolWidth = legend.symbolWidth,
+			renderer = this.chart.renderer,
+			legendItemGroup = this.legendGroup,
+			verticalCenter = legend.baseline - mathRound(legend.fontMetrics.b * 0.3),
+			attr;
+
+		// Draw the line
+		if (options.lineWidth) {
+			attr = {
+				'stroke-width': options.lineWidth
+			};
+			if (options.dashStyle) {
+				attr.dashstyle = options.dashStyle;
+			}
+			this.legendLine = renderer.path([
+				M,
+				0,
+				verticalCenter,
+				L,
+				symbolWidth,
+				verticalCenter
+			])
+			.attr(attr)
+			.add(legendItemGroup);
+		}
+		
+		// Draw the marker
+		if (markerOptions && markerOptions.enabled !== false) {
+			radius = markerOptions.radius;
+			this.legendSymbol = legendSymbol = renderer.symbol(
+				this.symbol,
+				(symbolWidth / 2) - radius,
+				verticalCenter - radius,
+				2 * radius,
+				2 * radius
+			)
+			.add(legendItemGroup);
+			legendSymbol.isMarker = true;
+		}
+	}
+};
+
+// Workaround for #2030, horizontal legend items not displaying in IE11 Preview,
+// and for #2580, a similar drawing flaw in Firefox 26.
+// TODO: Explore if there's a general cause for this. The problem may be related 
+// to nested group elements, as the legend item texts are within 4 group elements.
+if (/Trident\/7\.0/.test(userAgent) || isFirefox) {
+	wrap(Legend.prototype, 'positionItem', function (proceed, item) {
+		var legend = this,
+			runPositionItem = function () { // If chart destroyed in sync, this is undefined (#2030)
+				if (item._legendItemPos) {
+					proceed.call(legend, item);
+				}
+			};
+
+		// Do it now, for export and to get checkbox placement
+		runPositionItem();
+		
+		// Do it after to work around the core issue
+		setTimeout(runPositionItem);
+	});
+}
+/**
+ * The chart class
+ * @param {Object} options
+ * @param {Function} callback Function to run when the chart has loaded
+ */
+var Chart = Highcharts.Chart = function () {
+	this.init.apply(this, arguments);
+};
+
+Chart.prototype = {
+
+	/**
+	 * Hook for modules
+	 */
+	callbacks: [],
+
+	/**
+	 * Initialize the chart
+	 */
+	init: function (userOptions, callback) {
+
+		// Handle regular options
+		var options,
+			seriesOptions = userOptions.series; // skip merging data points to increase performance
+
+		userOptions.series = null;
+		options = merge(defaultOptions, userOptions); // do the merge
+		options.series = userOptions.series = seriesOptions; // set back the series data
+		this.userOptions = userOptions;
+
+		var optionsChart = options.chart;
+		
+		// Create margin & spacing array
+		this.margin = this.splashArray('margin', optionsChart);
+		this.spacing = this.splashArray('spacing', optionsChart);
+
+		var chartEvents = optionsChart.events;
+
+		//this.runChartClick = chartEvents && !!chartEvents.click;
+		this.bounds = { h: {}, v: {} }; // Pixel data bounds for touch zoom
+
+		this.callback = callback;
+		this.isResizing = 0;
+		this.options = options;
+		//chartTitleOptions = UNDEFINED;
+		//chartSubtitleOptions = UNDEFINED;
+
+		this.axes = [];
+		this.series = [];
+		this.hasCartesianSeries = optionsChart.showAxes;
+		//this.axisOffset = UNDEFINED;
+		//this.maxTicks = UNDEFINED; // handle the greatest amount of ticks on grouped axes
+		//this.inverted = UNDEFINED;
+		//this.loadingShown = UNDEFINED;
+		//this.container = UNDEFINED;
+		//this.chartWidth = UNDEFINED;
+		//this.chartHeight = UNDEFINED;
+		//this.marginRight = UNDEFINED;
+		//this.marginBottom = UNDEFINED;
+		//this.containerWidth = UNDEFINED;
+		//this.containerHeight = UNDEFINED;
+		//this.oldChartWidth = UNDEFINED;
+		//this.oldChartHeight = UNDEFINED;
+
+		//this.renderTo = UNDEFINED;
+		//this.renderToClone = UNDEFINED;
+
+		//this.spacingBox = UNDEFINED
+
+		//this.legend = UNDEFINED;
+
+		// Elements
+		//this.chartBackground = UNDEFINED;
+		//this.plotBackground = UNDEFINED;
+		//this.plotBGImage = UNDEFINED;
+		//this.plotBorder = UNDEFINED;
+		//this.loadingDiv = UNDEFINED;
+		//this.loadingSpan = UNDEFINED;
+
+		var chart = this,
+			eventType;
+
+		// Add the chart to the global lookup
+		chart.index = charts.length;
+		charts.push(chart);
+		chartCount++;
+
+		// Set up auto resize
+		if (optionsChart.reflow !== false) {
+			addEvent(chart, 'load', function () {
+				chart.initReflow();
+			});
+		}
+
+		// Chart event handlers
+		if (chartEvents) {
+			for (eventType in chartEvents) {
+				addEvent(chart, eventType, chartEvents[eventType]);
+			}
+		}
+
+		chart.xAxis = [];
+		chart.yAxis = [];
+
+		// Expose methods and variables
+		chart.animation = useCanVG ? false : pick(optionsChart.animation, true);
+		chart.pointCount = chart.colorCounter = chart.symbolCounter = 0;
+
+		chart.firstRender();
+	},
+
+	/**
+	 * Initialize an individual series, called internally before render time
+	 */
+	initSeries: function (options) {
+		var chart = this,
+			optionsChart = chart.options.chart,
+			type = options.type || optionsChart.type || optionsChart.defaultSeriesType,
+			series,
+			constr = seriesTypes[type];
+
+		// No such series type
+		if (!constr) {
+			error(17, true);
+		}
+
+		series = new constr();
+		series.init(this, options);
+		return series;
+	},
+
+	/**
+	 * Check whether a given point is within the plot area
+	 *
+	 * @param {Number} plotX Pixel x relative to the plot area
+	 * @param {Number} plotY Pixel y relative to the plot area
+	 * @param {Boolean} inverted Whether the chart is inverted
+	 */
+	isInsidePlot: function (plotX, plotY, inverted) {
+		var x = inverted ? plotY : plotX,
+			y = inverted ? plotX : plotY;
+			
+		return x >= 0 &&
+			x <= this.plotWidth &&
+			y >= 0 &&
+			y <= this.plotHeight;
+	},
+
+	/**
+	 * Redraw legend, axes or series based on updated data
+	 *
+	 * @param {Boolean|Object} animation Whether to apply animation, and optionally animation
+	 *    configuration
+	 */
+	redraw: function (animation) {
+		var chart = this,
+			axes = chart.axes,
+			series = chart.series,
+			pointer = chart.pointer,
+			legend = chart.legend,
+			redrawLegend = chart.isDirtyLegend,
+			hasStackedSeries,
+			hasDirtyStacks,
+			hasCartesianSeries = chart.hasCartesianSeries,
+			isDirtyBox = chart.isDirtyBox, // todo: check if it has actually changed?
+			seriesLength = series.length,
+			i = seriesLength,
+			serie,
+			renderer = chart.renderer,
+			isHiddenChart = renderer.isHidden(),
+			afterRedraw = [];
+			
+		setAnimation(animation, chart);
+		
+		if (isHiddenChart) {
+			chart.cloneRenderTo();
+		}
+
+		// Adjust title layout (reflow multiline text)
+		chart.layOutTitles();
+
+		// link stacked series
+		while (i--) {
+			serie = series[i];
+
+			if (serie.options.stacking) {
+				hasStackedSeries = true;
+				
+				if (serie.isDirty) {
+					hasDirtyStacks = true;
+					break;
+				}
+			}
+		}
+		if (hasDirtyStacks) { // mark others as dirty
+			i = seriesLength;
+			while (i--) {
+				serie = series[i];
+				if (serie.options.stacking) {
+					serie.isDirty = true;
+				}
+			}
+		}
+
+		// Handle updated data in the series
+		each(series, function (serie) {
+			if (serie.isDirty) {
+				if (serie.options.legendType === 'point') {
+					if (serie.updateTotals) {
+						serie.updateTotals();
+					}
+					redrawLegend = true;
+				}
+			}
+		});
+
+		// handle added or removed series
+		if (redrawLegend && legend.options.enabled) { // series or pie points are added or removed
+			// draw legend graphics
+			legend.render();
+
+			chart.isDirtyLegend = false;
+		}
+
+		// reset stacks
+		if (hasStackedSeries) {
+			chart.getStacks();
+		}
+
+
+		if (hasCartesianSeries) {
+			if (!chart.isResizing) {
+
+				// reset maxTicks
+				chart.maxTicks = null;
+
+				// set axes scales
+				each(axes, function (axis) {
+					axis.setScale();
+				});
+			}
+		}
+
+		chart.getMargins(); // #3098
+
+		if (hasCartesianSeries) {
+			// If one axis is dirty, all axes must be redrawn (#792, #2169)
+			each(axes, function (axis) {
+				if (axis.isDirty) {
+					isDirtyBox = true;
+				}
+			});
+
+			// redraw axes
+			each(axes, function (axis) {
+				
+				// Fire 'afterSetExtremes' only if extremes are set
+				if (axis.isDirtyExtremes) { // #821
+					axis.isDirtyExtremes = false;
+					afterRedraw.push(function () { // prevent a recursive call to chart.redraw() (#1119)
+						fireEvent(axis, 'afterSetExtremes', extend(axis.eventArgs, axis.getExtremes())); // #747, #751
+						delete axis.eventArgs;
+					});
+				}
+				
+				if (isDirtyBox || hasStackedSeries) {
+					axis.redraw();
+				}
+			});
+		}
+		
+		// the plot areas size has changed
+		if (isDirtyBox) {
+			chart.drawChartBox();
+		}
+
+
+		// redraw affected series
+		each(series, function (serie) {
+			if (serie.isDirty && serie.visible &&
+					(!serie.isCartesian || serie.xAxis)) { // issue #153
+				serie.redraw();
+			}
+		});
+
+		// move tooltip or reset
+		if (pointer) {
+			pointer.reset(true);
+		}
+
+		// redraw if canvas
+		renderer.draw();
+
+		// fire the event
+		fireEvent(chart, 'redraw'); // jQuery breaks this when calling it from addEvent. Overwrites chart.redraw
+		
+		if (isHiddenChart) {
+			chart.cloneRenderTo(true);
+		}
+		
+		// Fire callbacks that are put on hold until after the redraw
+		each(afterRedraw, function (callback) {
+			callback.call();
+		});
+	},
+
+	/**
+	 * Get an axis, series or point object by id.
+	 * @
