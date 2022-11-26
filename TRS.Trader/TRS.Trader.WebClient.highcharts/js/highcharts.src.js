@@ -11570,4 +11570,441 @@ Chart.prototype = {
 
 	/**
 	 * Get an axis, series or point object by id.
-	 * @
+	 * @param id {String} The id as given in the configuration options
+	 */
+	get: function (id) {
+		var chart = this,
+			axes = chart.axes,
+			series = chart.series;
+
+		var i,
+			j,
+			points;
+
+		// search axes
+		for (i = 0; i < axes.length; i++) {
+			if (axes[i].options.id === id) {
+				return axes[i];
+			}
+		}
+
+		// search series
+		for (i = 0; i < series.length; i++) {
+			if (series[i].options.id === id) {
+				return series[i];
+			}
+		}
+
+		// search points
+		for (i = 0; i < series.length; i++) {
+			points = series[i].points || [];
+			for (j = 0; j < points.length; j++) {
+				if (points[j].id === id) {
+					return points[j];
+				}
+			}
+		}
+		return null;
+	},
+
+	/**
+	 * Create the Axis instances based on the config options
+	 */
+	getAxes: function () {
+		var chart = this,
+			options = this.options,
+			xAxisOptions = options.xAxis = splat(options.xAxis || {}),
+			yAxisOptions = options.yAxis = splat(options.yAxis || {}),
+			optionsArray,
+			axis;
+
+		// make sure the options are arrays and add some members
+		each(xAxisOptions, function (axis, i) {
+			axis.index = i;
+			axis.isX = true;
+		});
+
+		each(yAxisOptions, function (axis, i) {
+			axis.index = i;
+		});
+
+		// concatenate all axis options into one array
+		optionsArray = xAxisOptions.concat(yAxisOptions);
+
+		each(optionsArray, function (axisOptions) {
+			axis = new Axis(chart, axisOptions);
+		});
+	},
+
+
+	/**
+	 * Get the currently selected points from all series
+	 */
+	getSelectedPoints: function () {
+		var points = [];
+		each(this.series, function (serie) {
+			points = points.concat(grep(serie.points || [], function (point) {
+				return point.selected;
+			}));
+		});
+		return points;
+	},
+
+	/**
+	 * Get the currently selected series
+	 */
+	getSelectedSeries: function () {
+		return grep(this.series, function (serie) {
+			return serie.selected;
+		});
+	},
+
+	/**
+	 * Generate stacks for each series and calculate stacks total values
+	 */
+	getStacks: function () {
+		var chart = this;
+
+		// reset stacks for each yAxis
+		each(chart.yAxis, function (axis) {
+			if (axis.stacks && axis.hasVisibleSeries) {
+				axis.oldStacks = axis.stacks;
+			}
+		});
+
+		each(chart.series, function (series) {
+			if (series.options.stacking && (series.visible === true || chart.options.chart.ignoreHiddenSeries === false)) {
+				series.stackKey = series.type + pick(series.options.stack, '');
+			}
+		});
+	},	
+
+	/**
+	 * Show the title and subtitle of the chart
+	 *
+	 * @param titleOptions {Object} New title options
+	 * @param subtitleOptions {Object} New subtitle options
+	 *
+	 */
+	setTitle: function (titleOptions, subtitleOptions, redraw) {
+		var chart = this,
+			options = chart.options,
+			chartTitleOptions,
+			chartSubtitleOptions;
+
+		chartTitleOptions = options.title = merge(options.title, titleOptions);
+		chartSubtitleOptions = options.subtitle = merge(options.subtitle, subtitleOptions);
+
+		// add title and subtitle
+		each([
+			['title', titleOptions, chartTitleOptions],
+			['subtitle', subtitleOptions, chartSubtitleOptions]
+		], function (arr) {
+			var name = arr[0],
+				title = chart[name],
+				titleOptions = arr[1],
+				chartTitleOptions = arr[2];
+
+			if (title && titleOptions) {
+				chart[name] = title = title.destroy(); // remove old
+			}
+			
+			if (chartTitleOptions && chartTitleOptions.text && !title) {
+				chart[name] = chart.renderer.text(
+					chartTitleOptions.text,
+					0,
+					0,
+					chartTitleOptions.useHTML
+				)
+				.attr({
+					align: chartTitleOptions.align,
+					'class': PREFIX + name,
+					zIndex: chartTitleOptions.zIndex || 4
+				})
+				.css(chartTitleOptions.style)
+				.add();
+			}	
+		});
+		chart.layOutTitles(redraw);
+	},
+
+	/**
+	 * Lay out the chart titles and cache the full offset height for use in getMargins
+	 */
+	layOutTitles: function (redraw) {
+		var titleOffset = 0,
+			title = this.title,
+			subtitle = this.subtitle,
+			options = this.options,
+			titleOptions = options.title,
+			subtitleOptions = options.subtitle,
+			requiresDirtyBox,
+			renderer = this.renderer,
+			autoWidth = this.spacingBox.width - 44; // 44 makes room for default context button
+
+		if (title) {
+			title
+				.css({ width: (titleOptions.width || autoWidth) + PX })
+				.align(extend({ 
+					y: renderer.fontMetrics(titleOptions.style.fontSize, title).b - 3
+				}, titleOptions), false, 'spacingBox');
+			
+			if (!titleOptions.floating && !titleOptions.verticalAlign) {
+				titleOffset = title.getBBox().height;
+			}
+		}
+		if (subtitle) {
+			subtitle
+				.css({ width: (subtitleOptions.width || autoWidth) + PX })
+				.align(extend({ 
+					y: titleOffset + (titleOptions.margin - 13) + renderer.fontMetrics(titleOptions.style.fontSize, subtitle).b 
+				}, subtitleOptions), false, 'spacingBox');
+			
+			if (!subtitleOptions.floating && !subtitleOptions.verticalAlign) {
+				titleOffset = mathCeil(titleOffset + subtitle.getBBox().height);
+			}
+		}
+
+		requiresDirtyBox = this.titleOffset !== titleOffset;				
+		this.titleOffset = titleOffset; // used in getMargins
+
+		if (!this.isDirtyBox && requiresDirtyBox) {
+			this.isDirtyBox = requiresDirtyBox;
+			// Redraw if necessary (#2719, #2744)		
+			if (this.hasRendered && pick(redraw, true) && this.isDirtyBox) {
+				this.redraw();
+			}
+		}
+	},
+
+	/**
+	 * Get chart width and height according to options and container size
+	 */
+	getChartSize: function () {
+		var chart = this,
+			optionsChart = chart.options.chart,
+			widthOption = optionsChart.width,
+			heightOption = optionsChart.height,
+			renderTo = chart.renderToClone || chart.renderTo;
+
+		// get inner width and height from jQuery (#824)
+		if (!defined(widthOption)) {
+			chart.containerWidth = adapterRun(renderTo, 'width');
+		}
+		if (!defined(heightOption)) {
+			chart.containerHeight = adapterRun(renderTo, 'height');
+		}
+		
+		chart.chartWidth = mathMax(0, widthOption || chart.containerWidth || 600); // #1393, 1460
+		chart.chartHeight = mathMax(0, pick(heightOption,
+			// the offsetHeight of an empty container is 0 in standard browsers, but 19 in IE7:
+			chart.containerHeight > 19 ? chart.containerHeight : 400));
+	},
+
+	/**
+	 * Create a clone of the chart's renderTo div and place it outside the viewport to allow
+	 * size computation on chart.render and chart.redraw
+	 */
+	cloneRenderTo: function (revert) {
+		var clone = this.renderToClone,
+			container = this.container;
+		
+		// Destroy the clone and bring the container back to the real renderTo div
+		if (revert) {
+			if (clone) {
+				this.renderTo.appendChild(container);
+				discardElement(clone);
+				delete this.renderToClone;
+			}
+		
+		// Set up the clone
+		} else {
+			if (container && container.parentNode === this.renderTo) {
+				this.renderTo.removeChild(container); // do not clone this
+			}
+			this.renderToClone = clone = this.renderTo.cloneNode(0);
+			css(clone, {
+				position: ABSOLUTE,
+				top: '-9999px',
+				display: 'block' // #833
+			});
+			if (clone.style.setProperty) { // #2631
+				clone.style.setProperty('display', 'block', 'important');
+			}
+			doc.body.appendChild(clone);
+			if (container) {
+				clone.appendChild(container);
+			}
+		}
+	},
+
+	/**
+	 * Get the containing element, determine the size and create the inner container
+	 * div to hold the chart
+	 */
+	getContainer: function () {
+		var chart = this,
+			container,
+			optionsChart = chart.options.chart,
+			chartWidth,
+			chartHeight,
+			renderTo,
+			indexAttrName = 'data-highcharts-chart',
+			oldChartIndex,
+			containerId;
+
+		chart.renderTo = renderTo = optionsChart.renderTo;
+		containerId = PREFIX + idCounter++;
+
+		if (isString(renderTo)) {
+			chart.renderTo = renderTo = doc.getElementById(renderTo);
+		}
+		
+		// Display an error if the renderTo is wrong
+		if (!renderTo) {
+			error(13, true);
+		}
+		
+		// If the container already holds a chart, destroy it. The check for hasRendered is there
+		// because web pages that are saved to disk from the browser, will preserve the data-highcharts-chart
+		// attribute and the SVG contents, but not an interactive chart. So in this case,
+		// charts[oldChartIndex] will point to the wrong chart if any (#2609).
+		oldChartIndex = pInt(attr(renderTo, indexAttrName));
+		if (!isNaN(oldChartIndex) && charts[oldChartIndex] && charts[oldChartIndex].hasRendered) {
+			charts[oldChartIndex].destroy();
+		}		
+		
+		// Make a reference to the chart from the div
+		attr(renderTo, indexAttrName, chart.index);
+
+		// remove previous chart
+		renderTo.innerHTML = '';
+
+		// If the container doesn't have an offsetWidth, it has or is a child of a node
+		// that has display:none. We need to temporarily move it out to a visible
+		// state to determine the size, else the legend and tooltips won't render
+		// properly. The allowClone option is used in sparklines as a micro optimization,
+		// saving about 1-2 ms each chart.
+		if (!optionsChart.skipClone && !renderTo.offsetWidth) {
+			chart.cloneRenderTo();
+		}
+
+		// get the width and height
+		chart.getChartSize();
+		chartWidth = chart.chartWidth;
+		chartHeight = chart.chartHeight;
+
+		// create the inner container
+		chart.container = container = createElement(DIV, {
+				className: PREFIX + 'container' +
+					(optionsChart.className ? ' ' + optionsChart.className : ''),
+				id: containerId
+			}, extend({
+				position: RELATIVE,
+				overflow: HIDDEN, // needed for context menu (avoid scrollbars) and
+					// content overflow in IE
+				width: chartWidth + PX,
+				height: chartHeight + PX,
+				textAlign: 'left',
+				lineHeight: 'normal', // #427
+				zIndex: 0, // #1072
+				'-webkit-tap-highlight-color': 'rgba(0,0,0,0)'
+			}, optionsChart.style),
+			chart.renderToClone || renderTo
+		);
+
+		// cache the cursor (#1650)
+		chart._cursor = container.style.cursor;
+
+		// Initialize the renderer
+		chart.renderer =
+			optionsChart.forExport ? // force SVG, used for SVG export
+				new SVGRenderer(container, chartWidth, chartHeight, optionsChart.style, true) :
+				new Renderer(container, chartWidth, chartHeight, optionsChart.style);
+
+		if (useCanVG) {
+			// If we need canvg library, extend and configure the renderer
+			// to get the tracker for translating mouse events
+			chart.renderer.create(chart, container, chartWidth, chartHeight);
+		}
+		// Add a reference to the charts index
+		chart.renderer.chartIndex = chart.index;
+	},
+
+	/**
+	 * Calculate margins by rendering axis labels in a preliminary position. Title,
+	 * subtitle and legend have already been rendered at this stage, but will be
+	 * moved into their final positions
+	 */
+	getMargins: function (skipAxes) {
+		var chart = this,
+			spacing = chart.spacing,
+			margin = chart.margin,
+			titleOffset = chart.titleOffset;
+
+		chart.resetMargins();
+
+		// Adjust for title and subtitle
+		if (titleOffset && !defined(margin[0])) {
+			chart.plotTop = mathMax(chart.plotTop, titleOffset + chart.options.title.margin + spacing[0]);
+		}
+		
+		// Adjust for legend
+		chart.legend.adjustMargins(margin, spacing);
+
+		// adjust for scroller
+		if (chart.extraBottomMargin) {
+			chart.marginBottom += chart.extraBottomMargin;
+		}
+		if (chart.extraTopMargin) {
+			chart.plotTop += chart.extraTopMargin;
+		}
+		if (!skipAxes) {
+			this.getAxisMargins();
+		}
+	},
+
+	getAxisMargins: function () {
+
+		var chart = this,
+			axisOffset = chart.axisOffset = [0, 0, 0, 0], // top, right, bottom, left
+			margin = chart.margin;
+		
+		// pre-render axes to get labels offset width
+		if (chart.hasCartesianSeries) {
+			each(chart.axes, function (axis) {
+				axis.getOffset();
+			});
+		}
+
+		// Add the axis offsets
+		each(marginNames, function (m, side) {
+			if (!defined(margin[side])) {
+				chart[m] += axisOffset[side];
+			}		
+		});
+
+		chart.setChartSize();
+
+	},
+
+	/**
+	 * Resize the chart to its container if size is not explicitly set
+	 */
+	reflow: function (e) {
+		var chart = this,
+			optionsChart = chart.options.chart,
+			renderTo = chart.renderTo,
+			width = optionsChart.width || adapterRun(renderTo, 'width'),
+			height = optionsChart.height || adapterRun(renderTo, 'height'),
+			target = e ? e.target : win, // #805 - MooTools doesn't supply e
+			doReflow = function () {
+				if (chart.container) { // It may have been destroyed in the meantime (#1257)
+					chart.setSize(width, height, false);
+					chart.hasUserSize = null;
+				}
+			};
+			
+		// Width and height checks for display:none. Target is doc in IE8 and Opera,
+		// win in Firefox, Chrome and IE9.
+		if (!chart.hasUserSize && !chart.isPrinting && width && height && (target === win || target === doc)) { // #10
