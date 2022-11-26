@@ -12007,4 +12007,481 @@ Chart.prototype = {
 			
 		// Width and height checks for display:none. Target is doc in IE8 and Opera,
 		// win in Firefox, Chrome and IE9.
-		if (!chart.hasUserSize && !chart.isPrinting && width && height && (target === win || target === doc)) { // #10
+		if (!chart.hasUserSize && !chart.isPrinting && width && height && (target === win || target === doc)) { // #1093
+			if (width !== chart.containerWidth || height !== chart.containerHeight) {
+				clearTimeout(chart.reflowTimeout);
+				if (e) { // Called from window.resize
+					chart.reflowTimeout = setTimeout(doReflow, 100);
+				} else { // Called directly (#2224)
+					doReflow();
+				}
+			}
+			chart.containerWidth = width;
+			chart.containerHeight = height;
+		}
+	},
+
+	/**
+	 * Add the event handlers necessary for auto resizing
+	 */
+	initReflow: function () {
+		var chart = this,
+			reflow = function (e) {
+				chart.reflow(e);
+			};
+			
+		
+		addEvent(win, 'resize', reflow);
+		addEvent(chart, 'destroy', function () {
+			removeEvent(win, 'resize', reflow);
+		});
+	},
+
+	/**
+	 * Resize the chart to a given width and height
+	 * @param {Number} width
+	 * @param {Number} height
+	 * @param {Object|Boolean} animation
+	 */
+	setSize: function (width, height, animation) {
+		var chart = this,
+			chartWidth,
+			chartHeight,
+			fireEndResize;
+
+		// Handle the isResizing counter
+		chart.isResizing += 1;
+		fireEndResize = function () {
+			if (chart) {
+				fireEvent(chart, 'endResize', null, function () {
+					chart.isResizing -= 1;
+				});
+			}
+		};
+
+		// set the animation for the current process
+		setAnimation(animation, chart);
+
+		chart.oldChartHeight = chart.chartHeight;
+		chart.oldChartWidth = chart.chartWidth;
+		if (defined(width)) {
+			chart.chartWidth = chartWidth = mathMax(0, mathRound(width));
+			chart.hasUserSize = !!chartWidth;
+		}
+		if (defined(height)) {
+			chart.chartHeight = chartHeight = mathMax(0, mathRound(height));
+		}
+
+		// Resize the container with the global animation applied if enabled (#2503)
+		(globalAnimation ? animate : css)(chart.container, {
+			width: chartWidth + PX,
+			height: chartHeight + PX
+		}, globalAnimation);
+
+		chart.setChartSize(true);
+		chart.renderer.setSize(chartWidth, chartHeight, animation);
+
+		// handle axes
+		chart.maxTicks = null;
+		each(chart.axes, function (axis) {
+			axis.isDirty = true;
+			axis.setScale();
+		});
+
+		// make sure non-cartesian series are also handled
+		each(chart.series, function (serie) {
+			serie.isDirty = true;
+		});
+
+		chart.isDirtyLegend = true; // force legend redraw
+		chart.isDirtyBox = true; // force redraw of plot and chart border
+
+		chart.layOutTitles(); // #2857
+		chart.getMargins();
+
+		chart.redraw(animation);
+
+
+		chart.oldChartHeight = null;
+		fireEvent(chart, 'resize');
+
+		// fire endResize and set isResizing back
+		// If animation is disabled, fire without delay
+		if (globalAnimation === false) {
+			fireEndResize();
+		} else { // else set a timeout with the animation duration
+			setTimeout(fireEndResize, (globalAnimation && globalAnimation.duration) || 500);
+		}
+	},
+
+	/**
+	 * Set the public chart properties. This is done before and after the pre-render
+	 * to determine margin sizes
+	 */
+	setChartSize: function (skipAxes) {
+		var chart = this,
+			inverted = chart.inverted,
+			renderer = chart.renderer,
+			chartWidth = chart.chartWidth,
+			chartHeight = chart.chartHeight,
+			optionsChart = chart.options.chart,
+			spacing = chart.spacing,
+			clipOffset = chart.clipOffset,
+			clipX,
+			clipY,
+			plotLeft,
+			plotTop,
+			plotWidth,
+			plotHeight,
+			plotBorderWidth;
+
+		chart.plotLeft = plotLeft = mathRound(chart.plotLeft);
+		chart.plotTop = plotTop = mathRound(chart.plotTop);
+		chart.plotWidth = plotWidth = mathMax(0, mathRound(chartWidth - plotLeft - chart.marginRight));
+		chart.plotHeight = plotHeight = mathMax(0, mathRound(chartHeight - plotTop - chart.marginBottom));
+
+		chart.plotSizeX = inverted ? plotHeight : plotWidth;
+		chart.plotSizeY = inverted ? plotWidth : plotHeight;
+		
+		chart.plotBorderWidth = optionsChart.plotBorderWidth || 0;
+
+		// Set boxes used for alignment
+		chart.spacingBox = renderer.spacingBox = {
+			x: spacing[3],
+			y: spacing[0],
+			width: chartWidth - spacing[3] - spacing[1],
+			height: chartHeight - spacing[0] - spacing[2]
+		};
+		chart.plotBox = renderer.plotBox = {
+			x: plotLeft,
+			y: plotTop,
+			width: plotWidth,
+			height: plotHeight
+		};
+
+		plotBorderWidth = 2 * mathFloor(chart.plotBorderWidth / 2);
+		clipX = mathCeil(mathMax(plotBorderWidth, clipOffset[3]) / 2);
+		clipY = mathCeil(mathMax(plotBorderWidth, clipOffset[0]) / 2);
+		chart.clipBox = {
+			x: clipX, 
+			y: clipY, 
+			width: mathFloor(chart.plotSizeX - mathMax(plotBorderWidth, clipOffset[1]) / 2 - clipX), 
+			height: mathMax(0, mathFloor(chart.plotSizeY - mathMax(plotBorderWidth, clipOffset[2]) / 2 - clipY))
+		};
+
+		if (!skipAxes) {
+			each(chart.axes, function (axis) {
+				axis.setAxisSize();
+				axis.setAxisTranslation();
+			});
+		}
+	},
+
+	/**
+	 * Initial margins before auto size margins are applied
+	 */
+	resetMargins: function () {
+		var chart = this;
+
+		each(marginNames, function (m, side) {
+			chart[m] = pick(chart.margin[side], chart.spacing[side]);
+		});
+		chart.axisOffset = [0, 0, 0, 0]; // top, right, bottom, left
+		chart.clipOffset = [0, 0, 0, 0];
+	},
+
+	/**
+	 * Draw the borders and backgrounds for chart and plot area
+	 */
+	drawChartBox: function () {
+		var chart = this,
+			optionsChart = chart.options.chart,
+			renderer = chart.renderer,
+			chartWidth = chart.chartWidth,
+			chartHeight = chart.chartHeight,
+			chartBackground = chart.chartBackground,
+			plotBackground = chart.plotBackground,
+			plotBorder = chart.plotBorder,
+			plotBGImage = chart.plotBGImage,
+			chartBorderWidth = optionsChart.borderWidth || 0,
+			chartBackgroundColor = optionsChart.backgroundColor,
+			plotBackgroundColor = optionsChart.plotBackgroundColor,
+			plotBackgroundImage = optionsChart.plotBackgroundImage,
+			plotBorderWidth = optionsChart.plotBorderWidth || 0,
+			mgn,
+			bgAttr,
+			plotLeft = chart.plotLeft,
+			plotTop = chart.plotTop,
+			plotWidth = chart.plotWidth,
+			plotHeight = chart.plotHeight,
+			plotBox = chart.plotBox,
+			clipRect = chart.clipRect,
+			clipBox = chart.clipBox;
+
+		// Chart area
+		mgn = chartBorderWidth + (optionsChart.shadow ? 8 : 0);
+
+		if (chartBorderWidth || chartBackgroundColor) {
+			if (!chartBackground) {
+				
+				bgAttr = {
+					fill: chartBackgroundColor || NONE
+				};
+				if (chartBorderWidth) { // #980
+					bgAttr.stroke = optionsChart.borderColor;
+					bgAttr['stroke-width'] = chartBorderWidth;
+				}
+				chart.chartBackground = renderer.rect(mgn / 2, mgn / 2, chartWidth - mgn, chartHeight - mgn,
+						optionsChart.borderRadius, chartBorderWidth)
+					.attr(bgAttr)
+					.addClass(PREFIX + 'background')
+					.add()
+					.shadow(optionsChart.shadow);
+
+			} else { // resize
+				chartBackground.animate(
+					chartBackground.crisp({ width: chartWidth - mgn, height: chartHeight - mgn })
+				);
+			}
+		}
+
+
+		// Plot background
+		if (plotBackgroundColor) {
+			if (!plotBackground) {
+				chart.plotBackground = renderer.rect(plotLeft, plotTop, plotWidth, plotHeight, 0)
+					.attr({
+						fill: plotBackgroundColor
+					})
+					.add()
+					.shadow(optionsChart.plotShadow);
+			} else {
+				plotBackground.animate(plotBox);
+			}
+		}
+		if (plotBackgroundImage) {
+			if (!plotBGImage) {
+				chart.plotBGImage = renderer.image(plotBackgroundImage, plotLeft, plotTop, plotWidth, plotHeight)
+					.add();
+			} else {
+				plotBGImage.animate(plotBox);
+			}
+		}
+		
+		// Plot clip
+		if (!clipRect) {
+			chart.clipRect = renderer.clipRect(clipBox);
+		} else {
+			clipRect.animate({
+				width: clipBox.width,
+				height: clipBox.height
+			});
+		}
+
+		// Plot area border
+		if (plotBorderWidth) {
+			if (!plotBorder) {
+				chart.plotBorder = renderer.rect(plotLeft, plotTop, plotWidth, plotHeight, 0, -plotBorderWidth)
+					.attr({
+						stroke: optionsChart.plotBorderColor,
+						'stroke-width': plotBorderWidth,
+						fill: NONE,
+						zIndex: 1
+					})
+					.add();
+			} else {
+				plotBorder.animate(
+					plotBorder.crisp({ x: plotLeft, y: plotTop, width: plotWidth, height: plotHeight, strokeWidth: -plotBorderWidth }) //#3282 plotBorder should be negative
+				);
+			}
+		}
+
+		// reset
+		chart.isDirtyBox = false;
+	},
+
+	/**
+	 * Detect whether a certain chart property is needed based on inspecting its options
+	 * and series. This mainly applies to the chart.invert property, and in extensions to 
+	 * the chart.angular and chart.polar properties.
+	 */
+	propFromSeries: function () {
+		var chart = this,
+			optionsChart = chart.options.chart,
+			klass,
+			seriesOptions = chart.options.series,
+			i,
+			value;
+			
+			
+		each(['inverted', 'angular', 'polar'], function (key) {
+			
+			// The default series type's class
+			klass = seriesTypes[optionsChart.type || optionsChart.defaultSeriesType];
+			
+			// Get the value from available chart-wide properties
+			value = (
+				chart[key] || // 1. it is set before
+				optionsChart[key] || // 2. it is set in the options
+				(klass && klass.prototype[key]) // 3. it's default series class requires it
+			);
+	
+			// 4. Check if any the chart's series require it
+			i = seriesOptions && seriesOptions.length;
+			while (!value && i--) {
+				klass = seriesTypes[seriesOptions[i].type];
+				if (klass && klass.prototype[key]) {
+					value = true;
+				}
+			}
+	
+			// Set the chart property
+			chart[key] = value;	
+		});
+		
+	},
+
+	/**
+	 * Link two or more series together. This is done initially from Chart.render,
+	 * and after Chart.addSeries and Series.remove.
+	 */
+	linkSeries: function () {
+		var chart = this,
+			chartSeries = chart.series;
+
+		// Reset links
+		each(chartSeries, function (series) {
+			series.linkedSeries.length = 0;
+		});
+
+		// Apply new links
+		each(chartSeries, function (series) {
+			var linkedTo = series.options.linkedTo;
+			if (isString(linkedTo)) {
+				if (linkedTo === ':previous') {
+					linkedTo = chart.series[series.index - 1];
+				} else {
+					linkedTo = chart.get(linkedTo);
+				}
+				if (linkedTo) {
+					linkedTo.linkedSeries.push(series);
+					series.linkedParent = linkedTo;
+				}
+			}
+		});
+	},
+
+	/**
+	 * Render series for the chart
+	 */
+	renderSeries: function () {
+		each(this.series, function (serie) {
+			serie.translate();
+			serie.render();
+		});
+	},
+		
+	/**
+	 * Render labels for the chart
+	 */
+	renderLabels: function () {
+		var chart = this,
+			labels = chart.options.labels;
+		if (labels.items) {
+			each(labels.items, function (label) {
+				var style = extend(labels.style, label.style),
+					x = pInt(style.left) + chart.plotLeft,
+					y = pInt(style.top) + chart.plotTop + 12;
+
+				// delete to prevent rewriting in IE
+				delete style.left;
+				delete style.top;
+
+				chart.renderer.text(
+					label.html,
+					x,
+					y
+				)
+				.attr({ zIndex: 2 })
+				.css(style)
+				.add();
+
+			});
+		}
+	},
+
+	/**
+	 * Render all graphics for the chart
+	 */
+	render: function () {
+		var chart = this,
+			axes = chart.axes,
+			renderer = chart.renderer,
+			options = chart.options,
+			tempWidth,
+			tempHeight,
+			redoHorizontal,
+			redoVertical;
+
+		// Title
+		chart.setTitle();
+
+
+		// Legend
+		chart.legend = new Legend(chart, options.legend);
+
+		chart.getStacks(); // render stacks
+
+		// Get chart margins
+		chart.getMargins(true);
+		chart.setChartSize();
+
+		// Record preliminary dimensions for later comparison
+		tempWidth = chart.plotWidth;
+		tempHeight = chart.plotHeight = chart.plotHeight - 13; // 13 is the most common height of X axis labels
+
+		// Get margins by pre-rendering axes
+		each(axes, function (axis) {
+			axis.setScale();
+		});
+		chart.getAxisMargins();
+
+		// If the plot area size has changed significantly, calculate tick positions again
+		redoHorizontal = tempWidth / chart.plotWidth > 1.1;
+		redoVertical = tempHeight / chart.plotHeight > 1.1;
+
+		if (redoHorizontal || redoVertical) {
+
+			chart.maxTicks = null; // reset for second pass
+			each(axes, function (axis) {
+				if ((axis.horiz && redoHorizontal) || (!axis.horiz && redoVertical)) {
+					axis.setTickInterval(true); // update to reflect the new margins
+				}
+			});
+			chart.getMargins(); // second pass to check for new labels
+		}
+
+		// Draw the borders and backgrounds
+		chart.drawChartBox();		
+
+
+		// Axes
+		if (chart.hasCartesianSeries) {
+			each(axes, function (axis) {
+				axis.render();
+			});
+		}
+
+		// The series
+		if (!chart.seriesGroup) {
+			chart.seriesGroup = renderer.g('series-group')
+				.attr({ zIndex: 3 })
+				.add();
+		}
+		chart.renderSeries();
+
+		// Labels
+		chart.renderLabels();
+
+		// Credits
+		chart.showCredits(op
