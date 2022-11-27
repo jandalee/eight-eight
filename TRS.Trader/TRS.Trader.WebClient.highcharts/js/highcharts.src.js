@@ -12484,4 +12484,476 @@ Chart.prototype = {
 		chart.renderLabels();
 
 		// Credits
-		chart.showCredits(op
+		chart.showCredits(options.credits);
+
+		// Set flag
+		chart.hasRendered = true;
+
+	},
+
+	/**
+	 * Show chart credits based on config options
+	 */
+	showCredits: function (credits) {
+		if (credits.enabled && !this.credits) {
+			this.credits = this.renderer.text(
+				credits.text,
+				0,
+				0
+			)
+			.on('click', function () {
+				if (credits.href) {
+					location.href = credits.href;
+				}
+			})
+			.attr({
+				align: credits.position.align,
+				zIndex: 8
+			})
+			.css(credits.style)
+			.add()
+			.align(credits.position);
+		}
+	},
+
+	/**
+	 * Clean up memory usage
+	 */
+	destroy: function () {
+		var chart = this,
+			axes = chart.axes,
+			series = chart.series,
+			container = chart.container,
+			i,
+			parentNode = container && container.parentNode;
+			
+		// fire the chart.destoy event
+		fireEvent(chart, 'destroy');
+		
+		// Delete the chart from charts lookup array
+		charts[chart.index] = UNDEFINED;
+		chartCount--;
+		chart.renderTo.removeAttribute('data-highcharts-chart');
+
+		// remove events
+		removeEvent(chart);
+
+		// ==== Destroy collections:
+		// Destroy axes
+		i = axes.length;
+		while (i--) {
+			axes[i] = axes[i].destroy();
+		}
+
+		// Destroy each series
+		i = series.length;
+		while (i--) {
+			series[i] = series[i].destroy();
+		}
+
+		// ==== Destroy chart properties:
+		each(['title', 'subtitle', 'chartBackground', 'plotBackground', 'plotBGImage', 
+				'plotBorder', 'seriesGroup', 'clipRect', 'credits', 'pointer', 'scroller', 
+				'rangeSelector', 'legend', 'resetZoomButton', 'tooltip', 'renderer'], function (name) {
+			var prop = chart[name];
+
+			if (prop && prop.destroy) {
+				chart[name] = prop.destroy();
+			}
+		});
+
+		// remove container and all SVG
+		if (container) { // can break in IE when destroyed before finished loading
+			container.innerHTML = '';
+			removeEvent(container);
+			if (parentNode) {
+				discardElement(container);
+			}
+
+		}
+
+		// clean it all up
+		for (i in chart) {
+			delete chart[i];
+		}
+
+	},
+
+
+	/**
+	 * VML namespaces can't be added until after complete. Listening
+	 * for Perini's doScroll hack is not enough.
+	 */
+	isReadyToRender: function () {
+		var chart = this;
+
+		// Note: in spite of JSLint's complaints, win == win.top is required
+		/*jslint eqeq: true*/
+		if ((!hasSVG && (win == win.top && doc.readyState !== 'complete')) || (useCanVG && !win.canvg)) {
+		/*jslint eqeq: false*/
+			if (useCanVG) {
+				// Delay rendering until canvg library is downloaded and ready
+				CanVGController.push(function () { chart.firstRender(); }, chart.options.global.canvasToolsURL);
+			} else {
+				doc.attachEvent('onreadystatechange', function () {
+					doc.detachEvent('onreadystatechange', chart.firstRender);
+					if (doc.readyState === 'complete') {
+						chart.firstRender();
+					}
+				});
+			}
+			return false;
+		}
+		return true;
+	},
+
+	/**
+	 * Prepare for first rendering after all data are loaded
+	 */
+	firstRender: function () {
+		var chart = this,
+			options = chart.options,
+			callback = chart.callback;
+
+		// Check whether the chart is ready to render
+		if (!chart.isReadyToRender()) {
+			return;
+		}
+
+		// Create the container
+		chart.getContainer();
+
+		// Run an early event after the container and renderer are established
+		fireEvent(chart, 'init');
+
+		
+		chart.resetMargins();
+		chart.setChartSize();
+
+		// Set the common chart properties (mainly invert) from the given series
+		chart.propFromSeries();
+
+		// get axes
+		chart.getAxes();
+
+		// Initialize the series
+		each(options.series || [], function (serieOptions) {
+			chart.initSeries(serieOptions);
+		});
+
+		chart.linkSeries();
+
+		// Run an event after axes and series are initialized, but before render. At this stage,
+		// the series data is indexed and cached in the xData and yData arrays, so we can access
+		// those before rendering. Used in Highstock. 
+		fireEvent(chart, 'beforeRender'); 
+
+		// depends on inverted and on margins being set
+		if (Highcharts.Pointer) {
+			chart.pointer = new Pointer(chart, options);
+		}
+
+		chart.render();
+
+		// add canvas
+		chart.renderer.draw();
+		// run callbacks
+		if (callback) {
+			callback.apply(chart, [chart]);
+		}
+		each(chart.callbacks, function (fn) {
+			if (chart.index !== UNDEFINED) { // Chart destroyed in its own callback (#3600)
+				fn.apply(chart, [chart]);
+			}
+		});
+		
+		// Fire the load event
+		fireEvent(chart, 'load');		
+		
+		// If the chart was rendered outside the top container, put it back in (#3679)
+		chart.cloneRenderTo(true);
+
+	},
+
+	/**
+	* Creates arrays for spacing and margin from given options.
+	*/
+	splashArray: function (target, options) {
+		var oVar = options[target],
+			tArray = isObject(oVar) ? oVar : [oVar, oVar, oVar, oVar];
+
+		return [pick(options[target + 'Top'], tArray[0]),
+				pick(options[target + 'Right'], tArray[1]),
+				pick(options[target + 'Bottom'], tArray[2]),
+				pick(options[target + 'Left'], tArray[3])];
+	}
+}; // end Chart
+
+var CenteredSeriesMixin = Highcharts.CenteredSeriesMixin = {
+	/**
+	 * Get the center of the pie based on the size and center options relative to the  
+	 * plot area. Borrowed by the polar and gauge series types.
+	 */
+	getCenter: function () {
+		
+		var options = this.options,
+			chart = this.chart,
+			slicingRoom = 2 * (options.slicedOffset || 0),
+			handleSlicingRoom,
+			plotWidth = chart.plotWidth - 2 * slicingRoom,
+			plotHeight = chart.plotHeight - 2 * slicingRoom,
+			centerOption = options.center,
+			positions = [pick(centerOption[0], '50%'), pick(centerOption[1], '50%'), options.size || '100%', options.innerSize || 0],
+			smallestSize = mathMin(plotWidth, plotHeight),
+			i,
+			value;
+
+		for (i = 0; i < 4; ++i) {
+			value = positions[i];
+			handleSlicingRoom = i < 2 || (i === 2 && /%$/.test(value));
+			
+			// i == 0: centerX, relative to width
+			// i == 1: centerY, relative to height
+			// i == 2: size, relative to smallestSize
+			// i == 3: innerSize, relative to size
+			positions[i] = relativeLength(value, [plotWidth, plotHeight, smallestSize, positions[2]][i]) +
+				(handleSlicingRoom ? slicingRoom : 0);
+
+		}
+		return positions;
+	}
+};
+
+/**
+ * The Point object and prototype. Inheritable and used as base for PiePoint
+ */
+var Point = function () {};
+Point.prototype = {
+
+	/**
+	 * Initialize the point
+	 * @param {Object} series The series object containing this point
+	 * @param {Object} options The data in either number, array or object format
+	 */
+	init: function (series, options, x) {
+
+		var point = this,
+			colors;
+		point.series = series;
+		point.color = series.color; // #3445
+		point.applyOptions(options, x);
+		point.pointAttr = {};
+
+		if (series.options.colorByPoint) {
+			colors = series.options.colors || series.chart.options.colors;
+			point.color = point.color || colors[series.colorCounter++];
+			// loop back to zero
+			if (series.colorCounter === colors.length) {
+				series.colorCounter = 0;
+			}
+		}
+
+		series.chart.pointCount++;
+		return point;
+	},
+	/**
+	 * Apply the options containing the x and y data and possible some extra properties.
+	 * This is called on point init or from point.update.
+	 *
+	 * @param {Object} options
+	 */
+	applyOptions: function (options, x) {
+		var point = this,
+			series = point.series,
+			pointValKey = series.options.pointValKey || series.pointValKey;
+
+		options = Point.prototype.optionsToObject.call(this, options);
+
+		// copy options directly to point
+		extend(point, options);
+		point.options = point.options ? extend(point.options, options) : options;
+
+		// For higher dimension series types. For instance, for ranges, point.y is mapped to point.low.
+		if (pointValKey) {
+			point.y = point[pointValKey];
+		}
+
+		// If no x is set by now, get auto incremented value. All points must have an
+		// x value, however the y value can be null to create a gap in the series
+		if (point.x === UNDEFINED && series) {
+			point.x = x === UNDEFINED ? series.autoIncrement() : x;
+		}
+
+		return point;
+	},
+
+	/**
+	 * Transform number or array configs into objects
+	 */
+	optionsToObject: function (options) {
+		var ret = {},
+			series = this.series,
+			keys = series.options.keys,
+			pointArrayMap = keys || series.pointArrayMap || ['y'],
+			valueCount = pointArrayMap.length,
+			firstItemType,
+			i = 0,
+			j = 0;
+
+		if (typeof options === 'number' || options === null) {
+			ret[pointArrayMap[0]] = options;
+
+		} else if (isArray(options)) {
+			// with leading x value
+			if (!keys && options.length > valueCount) {
+				firstItemType = typeof options[0];
+				if (firstItemType === 'string') {
+					ret.name = options[0];
+				} else if (firstItemType === 'number') {
+					ret.x = options[0];
+				}
+				i++;
+			}
+			while (j < valueCount) {
+				ret[pointArrayMap[j++]] = options[i++];
+			}
+		} else if (typeof options === 'object') {
+			ret = options;
+
+			// This is the fastest way to detect if there are individual point dataLabels that need
+			// to be considered in drawDataLabels. These can only occur in object configs.
+			if (options.dataLabels) {
+				series._hasPointLabels = true;
+			}
+
+			// Same approach as above for markers
+			if (options.marker) {
+				series._hasPointMarkers = true;
+			}
+		}
+		return ret;
+	},
+
+	/**
+	 * Destroy a point to clear memory. Its reference still stays in series.data.
+	 */
+	destroy: function () {
+		var point = this,
+			series = point.series,
+			chart = series.chart,
+			hoverPoints = chart.hoverPoints,
+			prop;
+
+		chart.pointCount--;
+
+		if (hoverPoints) {
+			point.setState();
+			erase(hoverPoints, point);
+			if (!hoverPoints.length) {
+				chart.hoverPoints = null;
+			}
+
+		}
+		if (point === chart.hoverPoint) {
+			point.onMouseOut();
+		}
+
+		// remove all events
+		if (point.graphic || point.dataLabel) { // removeEvent and destroyElements are performance expensive
+			removeEvent(point);
+			point.destroyElements();
+		}
+
+		if (point.legendItem) { // pies have legend items
+			chart.legend.destroyItem(point);
+		}
+
+		for (prop in point) {
+			point[prop] = null;
+		}
+
+
+	},
+
+	/**
+	 * Destroy SVG elements associated with the point
+	 */
+	destroyElements: function () {
+		var point = this,
+			props = ['graphic', 'dataLabel', 'dataLabelUpper', 'group', 'connector', 'shadowGroup'],
+			prop,
+			i = 6;
+		while (i--) {
+			prop = props[i];
+			if (point[prop]) {
+				point[prop] = point[prop].destroy();
+			}
+		}
+	},
+
+	/**
+	 * Return the configuration hash needed for the data label and tooltip formatters
+	 */
+	getLabelConfig: function () {
+		var point = this;
+		return {
+			x: point.category,
+			y: point.y,
+			key: point.name || point.category,
+			series: point.series,
+			point: point,
+			percentage: point.percentage,
+			total: point.total || point.stackTotal
+		};
+	},	
+
+	/**
+	 * Extendable method for formatting each point's tooltip line
+	 *
+	 * @return {String} A string to be concatenated in to the common tooltip text
+	 */
+	tooltipFormatter: function (pointFormat) {
+
+		// Insert options for valueDecimals, valuePrefix, and valueSuffix
+		var series = this.series,
+			seriesTooltipOptions = series.tooltipOptions,
+			valueDecimals = pick(seriesTooltipOptions.valueDecimals, ''),
+			valuePrefix = seriesTooltipOptions.valuePrefix || '',
+			valueSuffix = seriesTooltipOptions.valueSuffix || '';
+
+		// Loop over the point array map and replace unformatted values with sprintf formatting markup
+		each(series.pointArrayMap || ['y'], function (key) {
+			key = '{point.' + key; // without the closing bracket
+			if (valuePrefix || valueSuffix) {
+				pointFormat = pointFormat.replace(key + '}', valuePrefix + key + '}' + valueSuffix);
+			}
+			pointFormat = pointFormat.replace(key + '}', key + ':,.' + valueDecimals + 'f}');
+		});
+
+		return format(pointFormat, {
+			point: this,
+			series: this.series
+		});
+	},
+
+	/**
+	 * Fire an event on the Point object. Must not be renamed to fireEvent, as this
+	 * causes a name clash in MooTools
+	 * @param {String} eventType
+	 * @param {Object} eventArgs Additional event arguments
+	 * @param {Function} defaultFunction Default event handler
+	 */
+	firePointEvent: function (eventType, eventArgs, defaultFunction) {
+		var point = this,
+			series = this.series,
+			seriesOptions = series.options;
+
+		// load event handlers on demand to save time on mouseover/out
+		if (seriesOptions.point.events[eventType] || (point.options && point.options.events && point.options.events[eventType])) {
+			this.importEvents();
+		}
+
+		// add default handler if in selection mode
+		if (eventType === 'click' && seriesOptions.allowPointSelect) {
+			defaultFunction = function (event) {
+				// Control key is for Window
