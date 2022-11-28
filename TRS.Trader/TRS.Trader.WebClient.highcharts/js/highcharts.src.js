@@ -12956,4 +12956,414 @@ Point.prototype = {
 		// add default handler if in selection mode
 		if (eventType === 'click' && seriesOptions.allowPointSelect) {
 			defaultFunction = function (event) {
-				// Control key is for Window
+				// Control key is for Windows, meta (= Cmd key) for Mac, Shift for Opera
+				if (point.select) { // Could be destroyed by prior event handlers (#2911)
+					point.select(null, event.ctrlKey || event.metaKey || event.shiftKey);
+				}
+			};
+		}
+
+		fireEvent(this, eventType, eventArgs, defaultFunction);
+	}
+};/**
+ * @classDescription The base function which all other series types inherit from. The data in the series is stored
+ * in various arrays.
+ *
+ * - First, series.options.data contains all the original config options for
+ * each point whether added by options or methods like series.addPoint.
+ * - Next, series.data contains those values converted to points, but in case the series data length
+ * exceeds the cropThreshold, or if the data is grouped, series.data doesn't contain all the points. It
+ * only contains the points that have been created on demand.
+ * - Then there's series.points that contains all currently visible point objects. In case of cropping,
+ * the cropped-away points are not part of this array. The series.points array starts at series.cropStart
+ * compared to series.data and series.options.data. If however the series data is grouped, these can't
+ * be correlated one to one.
+ * - series.xData and series.processedXData contain clean x values, equivalent to series.data and series.points.
+ * - series.yData and series.processedYData contain clean x values, equivalent to series.data and series.points.
+ *
+ * @param {Object} chart
+ * @param {Object} options
+ */
+var Series = Highcharts.Series = function () {};
+
+Series.prototype = {
+
+	isCartesian: true,
+	type: 'line',
+	pointClass: Point,
+	sorted: true, // requires the data to be sorted
+	requireSorting: true,
+	pointAttrToOptions: { // mapping between SVG attributes and the corresponding options
+		stroke: 'lineColor',
+		'stroke-width': 'lineWidth',
+		fill: 'fillColor',
+		r: 'radius'
+	},
+	axisTypes: ['xAxis', 'yAxis'],
+	colorCounter: 0,
+	parallelArrays: ['x', 'y'], // each point's x and y values are stored in this.xData and this.yData
+	init: function (chart, options) {
+		var series = this,
+			eventType,
+			events,
+			chartSeries = chart.series,
+			sortByIndex = function (a, b) {
+				return pick(a.options.index, a._i) - pick(b.options.index, b._i);
+			};
+
+		series.chart = chart;
+		series.options = options = series.setOptions(options); // merge with plotOptions
+		series.linkedSeries = [];
+
+		// bind the axes
+		series.bindAxes();
+
+		// set some variables
+		extend(series, {
+			name: options.name,
+			state: NORMAL_STATE,
+			pointAttr: {},
+			visible: options.visible !== false, // true by default
+			selected: options.selected === true // false by default
+		});
+
+		// special
+		if (useCanVG) {
+			options.animation = false;
+		}
+
+		// register event listeners
+		events = options.events;
+		for (eventType in events) {
+			addEvent(series, eventType, events[eventType]);
+		}
+		if (
+			(events && events.click) ||
+			(options.point && options.point.events && options.point.events.click) ||
+			options.allowPointSelect
+		) {
+			chart.runTrackerClick = true;
+		}
+
+		series.getColor();
+		series.getSymbol();
+
+		// Set the data
+		each(series.parallelArrays, function (key) {
+			series[key + 'Data'] = [];
+		});
+		series.setData(options.data, false);
+
+		// Mark cartesian
+		if (series.isCartesian) {
+			chart.hasCartesianSeries = true;
+		}
+
+		// Register it in the chart
+		chartSeries.push(series);
+		series._i = chartSeries.length - 1;
+
+		// Sort series according to index option (#248, #1123, #2456)
+		stableSort(chartSeries, sortByIndex);
+		if (this.yAxis) {
+			stableSort(this.yAxis.series, sortByIndex);
+		}
+
+		each(chartSeries, function (series, i) {
+			series.index = i;
+			series.name = series.name || 'Series ' + (i + 1);
+		});
+
+	},
+
+	/**
+	 * Set the xAxis and yAxis properties of cartesian series, and register the series
+	 * in the axis.series array
+	 */
+	bindAxes: function () {
+		var series = this,
+			seriesOptions = series.options,
+			chart = series.chart,
+			axisOptions;
+
+		each(series.axisTypes || [], function (AXIS) { // repeat for xAxis and yAxis
+
+			each(chart[AXIS], function (axis) { // loop through the chart's axis objects
+				axisOptions = axis.options;
+
+				// apply if the series xAxis or yAxis option mathches the number of the
+				// axis, or if undefined, use the first axis
+				if ((seriesOptions[AXIS] === axisOptions.index) ||
+						(seriesOptions[AXIS] !== UNDEFINED && seriesOptions[AXIS] === axisOptions.id) ||
+						(seriesOptions[AXIS] === UNDEFINED && axisOptions.index === 0)) {
+
+					// register this series in the axis.series lookup
+					axis.series.push(series);
+
+					// set this series.xAxis or series.yAxis reference
+					series[AXIS] = axis;
+
+					// mark dirty for redraw
+					axis.isDirty = true;
+				}
+			});
+
+			// The series needs an X and an Y axis
+			if (!series[AXIS] && series.optionalAxis !== AXIS) {
+				error(18, true);
+			}
+
+		});
+	},
+
+	/**
+	 * For simple series types like line and column, the data values are held in arrays like
+	 * xData and yData for quick lookup to find extremes and more. For multidimensional series
+	 * like bubble and map, this can be extended with arrays like zData and valueData by
+	 * adding to the series.parallelArrays array.
+	 */
+	updateParallelArrays: function (point, i) {
+		var series = point.series,
+			args = arguments,
+			fn = typeof i === 'number' ?
+				 // Insert the value in the given position
+				function (key) {
+					var val = key === 'y' && series.toYData ? series.toYData(point) : point[key];
+					series[key + 'Data'][i] = val;
+				} :
+				// Apply the method specified in i with the following arguments as arguments
+				function (key) {
+					Array.prototype[i].apply(series[key + 'Data'], Array.prototype.slice.call(args, 2));
+				};
+
+		each(series.parallelArrays, fn);
+	},
+
+	/**
+	 * Return an auto incremented x value based on the pointStart and pointInterval options.
+	 * This is only used if an x value is not given for the point that calls autoIncrement.
+	 */
+	autoIncrement: function () {
+
+		var options = this.options,
+			xIncrement = this.xIncrement,
+			date,
+			pointInterval,
+			pointIntervalUnit = options.pointIntervalUnit;
+		
+		xIncrement = pick(xIncrement, options.pointStart, 0);
+		
+		this.pointInterval = pointInterval = pick(this.pointInterval, options.pointInterval, 1);
+		
+		// Added code for pointInterval strings
+		if (pointIntervalUnit === 'month' || pointIntervalUnit === 'year') {
+			date = new Date(xIncrement);
+			date = (pointIntervalUnit === 'month') ?
+				+date[setMonth](date[getMonth]() + pointInterval) :
+				+date[setFullYear](date[getFullYear]() + pointInterval);
+			pointInterval = date - xIncrement;
+		}
+		
+		this.xIncrement = xIncrement + pointInterval;
+		return xIncrement;
+	},
+
+	/**
+	 * Divide the series data into segments divided by null values.
+	 */
+	getSegments: function () {
+		var series = this,
+			lastNull = -1,
+			segments = [],
+			i,
+			points = series.points,
+			pointsLength = points.length;
+
+		if (pointsLength) { // no action required for []
+
+			// if connect nulls, just remove null points
+			if (series.options.connectNulls) {
+				i = pointsLength;
+				while (i--) {
+					if (points[i].y === null) {
+						points.splice(i, 1);
+					}
+				}
+				if (points.length) {
+					segments = [points];
+				}
+
+			// else, split on null points
+			} else {
+				each(points, function (point, i) {
+					if (point.y === null) {
+						if (i > lastNull + 1) {
+							segments.push(points.slice(lastNull + 1, i));
+						}
+						lastNull = i;
+					} else if (i === pointsLength - 1) { // last value
+						segments.push(points.slice(lastNull + 1, i + 1));
+					}
+				});
+			}
+		}
+
+		// register it
+		series.segments = segments;
+	},
+
+	/**
+	 * Set the series options by merging from the options tree
+	 * @param {Object} itemOptions
+	 */
+	setOptions: function (itemOptions) {
+		var chart = this.chart,
+			chartOptions = chart.options,
+			plotOptions = chartOptions.plotOptions,
+			userOptions = chart.userOptions || {},
+			userPlotOptions = userOptions.plotOptions || {},
+			typeOptions = plotOptions[this.type],
+			options,
+			zones;
+
+		this.userOptions = itemOptions;
+
+		// General series options take precedence over type options because otherwise, default
+		// type options like column.animation would be overwritten by the general option.
+		// But issues have been raised here (#3881), and the solution may be to distinguish 
+		// between default option and userOptions like in the tooltip below.
+		options = merge(
+			typeOptions,
+			plotOptions.series,
+			itemOptions
+		);
+
+		// The tooltip options are merged between global and series specific options
+		this.tooltipOptions = merge(
+			defaultOptions.tooltip,
+			defaultOptions.plotOptions[this.type].tooltip,
+			userOptions.tooltip,
+			userPlotOptions.series && userPlotOptions.series.tooltip,
+			userPlotOptions[this.type] && userPlotOptions[this.type].tooltip,
+			itemOptions.tooltip
+		);
+
+		// Delete marker object if not allowed (#1125)
+		if (typeOptions.marker === null) {
+			delete options.marker;
+		}
+
+		// Handle color zones
+		this.zoneAxis = options.zoneAxis;
+		zones = this.zones = (options.zones || []).slice();
+		if ((options.negativeColor || options.negativeFillColor) && !options.zones) {
+			zones.push({
+				value: options[this.zoneAxis + 'Threshold'] || options.threshold || 0,
+				color: options.negativeColor,
+				fillColor: options.negativeFillColor
+			});
+		}
+		if (zones.length) { // Push one extra zone for the rest
+			if (defined(zones[zones.length - 1].value)) {
+				zones.push({
+					color: this.color,
+					fillColor: this.fillColor
+				});
+			}
+		}
+		return options;
+	},
+
+	getCyclic: function (prop, value, defaults) {
+		var i,
+			userOptions = this.userOptions,
+			indexName = '_' + prop + 'Index',
+			counterName = prop + 'Counter';
+
+		if (!value) {
+			if (defined(userOptions[indexName])) { // after Series.update()
+				i = userOptions[indexName];
+			} else {
+				userOptions[indexName] = i = this.chart[counterName] % defaults.length;
+				this.chart[counterName] += 1;
+			}
+			value = defaults[i];
+		}
+		this[prop] = value;
+	},
+
+	/**
+	 * Get the series' color
+	 */
+	getColor: function () {
+		if (!this.options.colorByPoint) {
+			this.getCyclic('color', this.options.color || defaultPlotOptions[this.type].color, this.chart.options.colors);
+		}
+	},
+	/**
+	 * Get the series' symbol
+	 */
+	getSymbol: function () {
+		var seriesMarkerOption = this.options.marker;
+
+		this.getCyclic('symbol', seriesMarkerOption.symbol, this.chart.options.symbols);
+
+		// don't substract radius in image symbols (#604)
+		if (/^url/.test(this.symbol)) {
+			seriesMarkerOption.radius = 0;
+		}
+	},
+
+	drawLegendSymbol: LegendSymbolMixin.drawLineMarker,
+
+	/**
+	 * Replace the series data with a new set of data
+	 * @param {Object} data
+	 * @param {Object} redraw
+	 */
+	setData: function (data, redraw, animation, updatePoints) {
+		var series = this,
+			oldData = series.points,
+			oldDataLength = (oldData && oldData.length) || 0,
+			dataLength,
+			options = series.options,
+			chart = series.chart,
+			firstPoint = null,
+			xAxis = series.xAxis,
+			hasCategories = xAxis && !!xAxis.categories,
+			i,
+			turboThreshold = options.turboThreshold,
+			pt,
+			xData = this.xData,
+			yData = this.yData,
+			pointArrayMap = series.pointArrayMap,
+			valueCount = pointArrayMap && pointArrayMap.length;
+
+		data = data || [];
+		dataLength = data.length;
+		redraw = pick(redraw, true);
+
+		// If the point count is the same as is was, just run Point.update which is
+		// cheaper, allows animation, and keeps references to points.
+		if (updatePoints !== false && dataLength && oldDataLength === dataLength && !series.cropped && !series.hasGroupedData && series.visible) {
+			each(data, function (point, i) {
+				if (oldData[i].update) { // Linked, previously hidden series (#3709)
+					oldData[i].update(point, false, null, false);
+				}
+			});
+
+		} else {
+
+			// Reset properties
+			series.xIncrement = null;
+			series.pointRange = hasCategories ? 1 : options.pointRange;
+
+			series.colorCounter = 0; // for series with colorByPoint (#1547)
+			
+			// Update parallel arrays
+			each(this.parallelArrays, function (key) {
+				series[key + 'Data'].length = 0;
+			});
+
+			// In turbo mode, only one- or twodimensional arrays of numbers are allowed. The
+			// first value is tested, and we assume that all the rest a
