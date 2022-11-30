@@ -13796,4 +13796,408 @@ Series.prototype = {
 
 	/**
 	 * Set the clipping for the series. For animated series it is called twice, first to initiate
-	 * an
+	 * animating the clip then the second time without the animation to set the final clip.
+	 */
+	setClip: function (animation) {
+		var chart = this.chart,
+			renderer = chart.renderer,
+			inverted = chart.inverted,
+			seriesClipBox = this.clipBox,
+			clipBox = seriesClipBox || chart.clipBox,
+			sharedClipKey = this.sharedClipKey || ['_sharedClip', animation && animation.duration, animation && animation.easing, clipBox.height].join(','),
+			clipRect = chart[sharedClipKey],
+			markerClipRect = chart[sharedClipKey + 'm'];
+
+		// If a clipping rectangle with the same properties is currently present in the chart, use that.
+		if (!clipRect) {
+
+			// When animation is set, prepare the initial positions
+			if (animation) { 
+				clipBox.width = 0;
+
+				chart[sharedClipKey + 'm'] = markerClipRect = renderer.clipRect(
+					-99, // include the width of the first marker
+					inverted ? -chart.plotLeft : -chart.plotTop,
+					99,
+					inverted ? chart.chartWidth : chart.chartHeight
+				);
+			}
+			chart[sharedClipKey] = clipRect = renderer.clipRect(clipBox);
+			
+		}
+		if (animation) {
+			clipRect.count += 1;
+		}
+
+		if (this.options.clip !== false) {
+			this.group.clip(animation || seriesClipBox ? clipRect : chart.clipRect);
+			this.markerGroup.clip(markerClipRect);
+			this.sharedClipKey = sharedClipKey;
+		}
+
+		// Remove the shared clipping rectangle when all series are shown
+		if (!animation) {
+			clipRect.count -= 1;
+			if (clipRect.count <= 0 && sharedClipKey && chart[sharedClipKey]) {
+				if (!seriesClipBox) {
+					chart[sharedClipKey] = chart[sharedClipKey].destroy();
+				}
+				if (chart[sharedClipKey + 'm']) {
+					chart[sharedClipKey + 'm'] = chart[sharedClipKey + 'm'].destroy();
+				}
+			}
+		}
+	},
+
+	/**
+	 * Animate in the series
+	 */
+	animate: function (init) {
+		var series = this,
+			chart = series.chart,
+			clipRect,
+			animation = series.options.animation,
+			sharedClipKey;
+
+		// Animation option is set to true
+		if (animation && !isObject(animation)) {
+			animation = defaultPlotOptions[series.type].animation;
+		}
+
+		// Initialize the animation. Set up the clipping rectangle.
+		if (init) {
+
+			series.setClip(animation);
+
+		// Run the animation
+		} else {
+			sharedClipKey = this.sharedClipKey;
+			clipRect = chart[sharedClipKey];
+			if (clipRect) {
+				clipRect.animate({
+					width: chart.plotSizeX
+				}, animation);
+			}
+			if (chart[sharedClipKey + 'm']) {
+				chart[sharedClipKey + 'm'].animate({
+					width: chart.plotSizeX + 99
+				}, animation);
+			}
+
+			// Delete this function to allow it only once
+			series.animate = null;
+ 
+		}
+	},
+
+	/**
+	 * This runs after animation to land on the final plot clipping
+	 */
+	afterAnimate: function () {
+		this.setClip();
+		fireEvent(this, 'afterAnimate');
+	},
+
+	/**
+	 * Draw the markers
+	 */
+	drawPoints: function () {
+		var series = this,
+			pointAttr,
+			points = series.points,
+			chart = series.chart,
+			plotX,
+			plotY,
+			i,
+			point,
+			radius,
+			symbol,
+			isImage,
+			graphic,
+			options = series.options,
+			seriesMarkerOptions = options.marker,
+			seriesPointAttr = series.pointAttr[''],
+			pointMarkerOptions,
+			hasPointMarker,
+			enabled,
+			isInside,
+			markerGroup = series.markerGroup,
+			xAxis = series.xAxis,
+			globallyEnabled = pick(
+				seriesMarkerOptions.enabled, 
+				xAxis.isRadial,
+				series.closestPointRangePx > 2 * seriesMarkerOptions.radius
+			);
+
+		if (seriesMarkerOptions.enabled !== false || series._hasPointMarkers) {
+
+			i = points.length;
+			while (i--) {
+				point = points[i];
+				plotX = mathFloor(point.plotX); // #1843
+				plotY = point.plotY;
+				graphic = point.graphic;
+				pointMarkerOptions = point.marker || {};
+				hasPointMarker = !!point.marker;
+				enabled = (globallyEnabled && pointMarkerOptions.enabled === UNDEFINED) || pointMarkerOptions.enabled;
+				isInside = point.isInside;
+
+				// only draw the point if y is defined
+				if (enabled && plotY !== UNDEFINED && !isNaN(plotY) && point.y !== null) {
+
+					// shortcuts
+					pointAttr = point.pointAttr[point.selected ? SELECT_STATE : NORMAL_STATE] || seriesPointAttr;
+					radius = pointAttr.r;
+					symbol = pick(pointMarkerOptions.symbol, series.symbol);
+					isImage = symbol.indexOf('url') === 0;
+
+					if (graphic) { // update
+						graphic[isInside ? 'show' : 'hide'](true) // Since the marker group isn't clipped, each individual marker must be toggled
+							.animate(extend({
+								x: plotX - radius,
+								y: plotY - radius
+							}, graphic.symbolName ? { // don't apply to image symbols #507
+								width: 2 * radius,
+								height: 2 * radius
+							} : {}));
+					} else if (isInside && (radius > 0 || isImage)) {
+						point.graphic = graphic = chart.renderer.symbol(
+							symbol,
+							plotX - radius,
+							plotY - radius,
+							2 * radius,
+							2 * radius,
+							hasPointMarker ? pointMarkerOptions : seriesMarkerOptions
+						)
+						.attr(pointAttr)
+						.add(markerGroup);
+					}
+
+				} else if (graphic) {
+					point.graphic = graphic.destroy(); // #1269
+				}
+			}
+		}
+
+	},
+
+	/**
+	 * Convert state properties from API naming conventions to SVG attributes
+	 *
+	 * @param {Object} options API options object
+	 * @param {Object} base1 SVG attribute object to inherit from
+	 * @param {Object} base2 Second level SVG attribute object to inherit from
+	 */
+	convertAttribs: function (options, base1, base2, base3) {
+		var conversion = this.pointAttrToOptions,
+			attr,
+			option,
+			obj = {};
+
+		options = options || {};
+		base1 = base1 || {};
+		base2 = base2 || {};
+		base3 = base3 || {};
+
+		for (attr in conversion) {
+			option = conversion[attr];
+			obj[attr] = pick(options[option], base1[attr], base2[attr], base3[attr]);
+		}
+		return obj;
+	},
+
+	/**
+	 * Get the state attributes. Each series type has its own set of attributes
+	 * that are allowed to change on a point's state change. Series wide attributes are stored for
+	 * all series, and additionally point specific attributes are stored for all
+	 * points with individual marker options. If such options are not defined for the point,
+	 * a reference to the series wide attributes is stored in point.pointAttr.
+	 */
+	getAttribs: function () {
+		var series = this,
+			seriesOptions = series.options,
+			normalOptions = defaultPlotOptions[series.type].marker ? seriesOptions.marker : seriesOptions,
+			stateOptions = normalOptions.states,
+			stateOptionsHover = stateOptions[HOVER_STATE],
+			pointStateOptionsHover,
+			seriesColor = series.color,
+			seriesNegativeColor = series.options.negativeColor,
+			normalDefaults = {
+				stroke: seriesColor,
+				fill: seriesColor
+			},
+			points = series.points || [], // #927
+			i,
+			point,
+			seriesPointAttr = [],
+			pointAttr,
+			pointAttrToOptions = series.pointAttrToOptions,
+			hasPointSpecificOptions = series.hasPointSpecificOptions,
+			defaultLineColor = normalOptions.lineColor,
+			defaultFillColor = normalOptions.fillColor,
+			turboThreshold = seriesOptions.turboThreshold,
+			zones = series.zones,
+			zoneAxis = series.zoneAxis || 'y',
+			attr,
+			key;
+
+		// series type specific modifications
+		if (seriesOptions.marker) { // line, spline, area, areaspline, scatter
+
+			// if no hover radius is given, default to normal radius + 2
+			stateOptionsHover.radius = stateOptionsHover.radius || normalOptions.radius + stateOptionsHover.radiusPlus;
+			stateOptionsHover.lineWidth = stateOptionsHover.lineWidth || normalOptions.lineWidth + stateOptionsHover.lineWidthPlus;
+
+		} else { // column, bar, pie
+
+			// if no hover color is given, brighten the normal color
+			stateOptionsHover.color = stateOptionsHover.color ||
+				Color(stateOptionsHover.color || seriesColor)
+					.brighten(stateOptionsHover.brightness).get();
+
+			// if no hover negativeColor is given, brighten the normal negativeColor
+			stateOptionsHover.negativeColor = stateOptionsHover.negativeColor ||
+				Color(stateOptionsHover.negativeColor || seriesNegativeColor)
+					.brighten(stateOptionsHover.brightness).get();
+		}
+
+		// general point attributes for the series normal state
+		seriesPointAttr[NORMAL_STATE] = series.convertAttribs(normalOptions, normalDefaults);
+
+		// HOVER_STATE and SELECT_STATE states inherit from normal state except the default radius
+		each([HOVER_STATE, SELECT_STATE], function (state) {
+			seriesPointAttr[state] =
+					series.convertAttribs(stateOptions[state], seriesPointAttr[NORMAL_STATE]);
+		});
+
+		// set it
+		series.pointAttr = seriesPointAttr;
+
+
+		// Generate the point-specific attribute collections if specific point
+		// options are given. If not, create a referance to the series wide point
+		// attributes
+		i = points.length;
+		if (!turboThreshold || i < turboThreshold || hasPointSpecificOptions) {
+			while (i--) {
+				point = points[i];
+				normalOptions = (point.options && point.options.marker) || point.options;
+				if (normalOptions && normalOptions.enabled === false) {
+					normalOptions.radius = 0;
+				}
+
+				if (zones.length) {
+					var j = 0,
+						threshold = zones[j];
+					while (point[zoneAxis] >= threshold.value) {				
+						threshold = zones[++j];
+					}
+					
+					point.color = point.fillColor = threshold.color;
+				}
+
+				hasPointSpecificOptions = seriesOptions.colorByPoint || point.color; // #868
+
+				// check if the point has specific visual options
+				if (point.options) {
+					for (key in pointAttrToOptions) {
+						if (defined(normalOptions[pointAttrToOptions[key]])) {
+							hasPointSpecificOptions = true;
+						}
+					}
+				}
+
+				// a specific marker config object is defined for the individual point:
+				// create it's own attribute collection
+				if (hasPointSpecificOptions) {
+					normalOptions = normalOptions || {};
+					pointAttr = [];
+					stateOptions = normalOptions.states || {}; // reassign for individual point
+					pointStateOptionsHover = stateOptions[HOVER_STATE] = stateOptions[HOVER_STATE] || {};
+
+					// Handle colors for column and pies
+					if (!seriesOptions.marker) { // column, bar, point
+						// If no hover color is given, brighten the normal color. #1619, #2579
+						pointStateOptionsHover.color = pointStateOptionsHover.color || (!point.options.color && stateOptionsHover[(point.negative && seriesNegativeColor ? 'negativeColor' : 'color')]) ||
+							Color(point.color)
+								.brighten(pointStateOptionsHover.brightness || stateOptionsHover.brightness)
+								.get();
+					}
+
+					// normal point state inherits series wide normal state
+					attr = { color: point.color }; // #868
+					if (!defaultFillColor) { // Individual point color or negative color markers (#2219)
+						attr.fillColor = point.color;
+					}
+					if (!defaultLineColor) {
+						attr.lineColor = point.color; // Bubbles take point color, line markers use white
+					}
+					// Color is explicitly set to null or undefined (#1288, #4068)
+					if (normalOptions.hasOwnProperty('color') && !normalOptions.color) {
+						delete normalOptions.color;
+					}
+					pointAttr[NORMAL_STATE] = series.convertAttribs(extend(attr, normalOptions), seriesPointAttr[NORMAL_STATE]);
+
+					// inherit from point normal and series hover
+					pointAttr[HOVER_STATE] = series.convertAttribs(
+						stateOptions[HOVER_STATE],
+						seriesPointAttr[HOVER_STATE],
+						pointAttr[NORMAL_STATE]
+					);
+
+					// inherit from point normal and series hover
+					pointAttr[SELECT_STATE] = series.convertAttribs(
+						stateOptions[SELECT_STATE],
+						seriesPointAttr[SELECT_STATE],
+						pointAttr[NORMAL_STATE]
+					);
+
+
+				// no marker config object is created: copy a reference to the series-wide
+				// attribute collection
+				} else {
+					pointAttr = seriesPointAttr;
+				}
+
+				point.pointAttr = pointAttr;
+			}
+		}
+	},
+
+	/**
+	 * Clear DOM objects and free up memory
+	 */
+	destroy: function () {
+		var series = this,
+			chart = series.chart,
+			issue134 = /AppleWebKit\/533/.test(userAgent),
+			destroy,
+			i,
+			data = series.data || [],
+			point,
+			prop,
+			axis;
+
+		// add event hook
+		fireEvent(series, 'destroy');
+
+		// remove all events
+		removeEvent(series);
+
+		// erase from axes
+		each(series.axisTypes || [], function (AXIS) {
+			axis = series[AXIS];
+			if (axis) {
+				erase(axis.series, series);
+				axis.isDirty = axis.forceRedraw = true;
+			}
+		});
+
+		// remove legend items
+		if (series.legendItem) {
+			series.chart.legend.destroyItem(series);
+		}
+
+		// destroy all points with their elements
+		i = data.length;
+		while
