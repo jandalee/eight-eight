@@ -13366,4 +13366,434 @@ Series.prototype = {
 			});
 
 			// In turbo mode, only one- or twodimensional arrays of numbers are allowed. The
-			// first value is tested, and we assume that all the rest a
+			// first value is tested, and we assume that all the rest are defined the same
+			// way. Although the 'for' loops are similar, they are repeated inside each
+			// if-else conditional for max performance.
+			if (turboThreshold && dataLength > turboThreshold) {
+
+				// find the first non-null point
+				i = 0;
+				while (firstPoint === null && i < dataLength) {
+					firstPoint = data[i];
+					i++;
+				}
+
+
+				if (isNumber(firstPoint)) { // assume all points are numbers
+					var x = pick(options.pointStart, 0),
+						pointInterval = pick(options.pointInterval, 1);
+
+					for (i = 0; i < dataLength; i++) {
+						xData[i] = x;
+						yData[i] = data[i];
+						x += pointInterval;
+					}
+					series.xIncrement = x;
+				} else if (isArray(firstPoint)) { // assume all points are arrays
+					if (valueCount) { // [x, low, high] or [x, o, h, l, c]
+						for (i = 0; i < dataLength; i++) {
+							pt = data[i];
+							xData[i] = pt[0];
+							yData[i] = pt.slice(1, valueCount + 1);
+						}
+					} else { // [x, y]
+						for (i = 0; i < dataLength; i++) {
+							pt = data[i];
+							xData[i] = pt[0];
+							yData[i] = pt[1];
+						}
+					}
+				} else {
+					error(12); // Highcharts expects configs to be numbers or arrays in turbo mode
+				}
+			} else {
+				for (i = 0; i < dataLength; i++) {
+					if (data[i] !== UNDEFINED) { // stray commas in oldIE
+						pt = { series: series };
+						series.pointClass.prototype.applyOptions.apply(pt, [data[i]]);
+						series.updateParallelArrays(pt, i);
+						if (hasCategories && pt.name) {
+							xAxis.names[pt.x] = pt.name; // #2046
+						}
+					}
+				}
+			}
+
+			// Forgetting to cast strings to numbers is a common caveat when handling CSV or JSON
+			if (isString(yData[0])) {
+				error(14, true);
+			}
+
+			series.data = [];
+			series.options.data = data;
+			//series.zData = zData;
+
+			// destroy old points
+			i = oldDataLength;
+			while (i--) {
+				if (oldData[i] && oldData[i].destroy) {
+					oldData[i].destroy();
+				}
+			}
+
+			// reset minRange (#878)
+			if (xAxis) {
+				xAxis.minRange = xAxis.userMinRange;
+			}
+
+			// redraw
+			series.isDirty = series.isDirtyData = chart.isDirtyBox = true;
+			animation = false;
+		}
+
+		if (redraw) {
+			chart.redraw(animation);
+		}
+	},
+
+	/**
+	 * Process the data by cropping away unused data points if the series is longer
+	 * than the crop threshold. This saves computing time for lage series.
+	 */
+	processData: function (force) {
+		var series = this,
+			processedXData = series.xData, // copied during slice operation below
+			processedYData = series.yData,
+			dataLength = processedXData.length,
+			croppedData,
+			cropStart = 0,
+			cropped,
+			distance,
+			closestPointRange,
+			xAxis = series.xAxis,
+			i, // loop variable
+			options = series.options,
+			cropThreshold = options.cropThreshold,
+			isCartesian = series.isCartesian,
+			xExtremes,
+			min,
+			max;
+
+		// If the series data or axes haven't changed, don't go through this. Return false to pass
+		// the message on to override methods like in data grouping.
+		if (isCartesian && !series.isDirty && !xAxis.isDirty && !series.yAxis.isDirty && !force) {
+			return false;
+		}
+
+		if (xAxis) {
+			xExtremes = xAxis.getExtremes(); // corrected for log axis (#3053)
+			min = xExtremes.min;
+			max = xExtremes.max;
+		}
+
+		// optionally filter out points outside the plot area
+		if (isCartesian && series.sorted && (!cropThreshold || dataLength > cropThreshold || series.forceCrop)) {
+			
+			// it's outside current extremes
+			if (processedXData[dataLength - 1] < min || processedXData[0] > max) {
+				processedXData = [];
+				processedYData = [];
+
+			// only crop if it's actually spilling out
+			} else if (processedXData[0] < min || processedXData[dataLength - 1] > max) {
+				croppedData = this.cropData(series.xData, series.yData, min, max);
+				processedXData = croppedData.xData;
+				processedYData = croppedData.yData;
+				cropStart = croppedData.start;
+				cropped = true;
+			}
+		}
+
+
+		// Find the closest distance between processed points
+		for (i = processedXData.length - 1; i >= 0; i--) {
+			distance = processedXData[i] - processedXData[i - 1];
+			
+			if (distance > 0 && (closestPointRange === UNDEFINED || distance < closestPointRange)) {
+				closestPointRange = distance;
+
+			// Unsorted data is not supported by the line tooltip, as well as data grouping and
+			// navigation in Stock charts (#725) and width calculation of columns (#1900)
+			} else if (distance < 0 && series.requireSorting) {
+				error(15);
+			}
+		}
+
+		// Record the properties
+		series.cropped = cropped; // undefined or true
+		series.cropStart = cropStart;
+		series.processedXData = processedXData;
+		series.processedYData = processedYData;
+
+		if (options.pointRange === null) { // null means auto, as for columns, candlesticks and OHLC
+			series.pointRange = closestPointRange || 1;
+		}
+		series.closestPointRange = closestPointRange;
+
+	},
+
+	/**
+	 * Iterate over xData and crop values between min and max. Returns object containing crop start/end
+	 * cropped xData with corresponding part of yData, dataMin and dataMax within the cropped range
+	 */
+	cropData: function (xData, yData, min, max) {
+		var dataLength = xData.length,
+			cropStart = 0,
+			cropEnd = dataLength,
+			cropShoulder = pick(this.cropShoulder, 1), // line-type series need one point outside
+			i;
+
+		// iterate up to find slice start
+		for (i = 0; i < dataLength; i++) {
+			if (xData[i] >= min) {
+				cropStart = mathMax(0, i - cropShoulder);
+				break;
+			}
+		}
+
+		// proceed to find slice end
+		for (; i < dataLength; i++) {
+			if (xData[i] > max) {
+				cropEnd = i + cropShoulder;
+				break;
+			}
+		}
+
+		return {
+			xData: xData.slice(cropStart, cropEnd),
+			yData: yData.slice(cropStart, cropEnd),
+			start: cropStart,
+			end: cropEnd
+		};
+	},
+
+
+	/**
+	 * Generate the data point after the data has been processed by cropping away
+	 * unused points and optionally grouped in Highcharts Stock.
+	 */
+	generatePoints: function () {
+		var series = this,
+			options = series.options,
+			dataOptions = options.data,
+			data = series.data,
+			dataLength,
+			processedXData = series.processedXData,
+			processedYData = series.processedYData,
+			pointClass = series.pointClass,
+			processedDataLength = processedXData.length,
+			cropStart = series.cropStart || 0,
+			cursor,
+			hasGroupedData = series.hasGroupedData,
+			point,
+			points = [],
+			i;
+
+		if (!data && !hasGroupedData) {
+			var arr = [];
+			arr.length = dataOptions.length;
+			data = series.data = arr;
+		}
+
+		for (i = 0; i < processedDataLength; i++) {
+			cursor = cropStart + i;
+			if (!hasGroupedData) {
+				if (data[cursor]) {
+					point = data[cursor];
+				} else if (dataOptions[cursor] !== UNDEFINED) { // #970
+					data[cursor] = point = (new pointClass()).init(series, dataOptions[cursor], processedXData[i]);
+				}
+				points[i] = point;
+			} else {
+				// splat the y data in case of ohlc data array
+				points[i] = (new pointClass()).init(series, [processedXData[i]].concat(splat(processedYData[i])));
+			}
+			points[i].index = cursor; // For faster access in Point.update
+		}
+
+		// Hide cropped-away points - this only runs when the number of points is above cropThreshold, or when
+		// swithching view from non-grouped data to grouped data (#637)
+		if (data && (processedDataLength !== (dataLength = data.length) || hasGroupedData)) {
+			for (i = 0; i < dataLength; i++) {
+				if (i === cropStart && !hasGroupedData) { // when has grouped data, clear all points
+					i += processedDataLength;
+				}
+				if (data[i]) {
+					data[i].destroyElements();
+					data[i].plotX = UNDEFINED; // #1003
+				}
+			}
+		}
+
+		series.data = data;
+		series.points = points;
+	},
+
+	/**
+	 * Calculate Y extremes for visible data
+	 */
+	getExtremes: function (yData) {
+		var xAxis = this.xAxis,
+			yAxis = this.yAxis,
+			xData = this.processedXData,
+			yDataLength,
+			activeYData = [],
+			activeCounter = 0,
+			xExtremes = xAxis.getExtremes(), // #2117, need to compensate for log X axis
+			xMin = xExtremes.min,
+			xMax = xExtremes.max,
+			validValue,
+			withinRange,
+			x,
+			y,
+			i,
+			j;
+
+		yData = yData || this.stackedYData || this.processedYData;
+		yDataLength = yData.length;
+
+		for (i = 0; i < yDataLength; i++) {
+
+			x = xData[i];
+			y = yData[i];
+
+			// For points within the visible range, including the first point outside the
+			// visible range, consider y extremes
+			validValue = y !== null && y !== UNDEFINED && (!yAxis.isLog || (y.length || y > 0));
+			withinRange = this.getExtremesFromAll || this.options.getExtremesFromAll || this.cropped ||
+				((xData[i + 1] || x) >= xMin &&	(xData[i - 1] || x) <= xMax);
+
+			if (validValue && withinRange) {
+
+				j = y.length;
+				if (j) { // array, like ohlc or range data
+					while (j--) {
+						if (y[j] !== null) {
+							activeYData[activeCounter++] = y[j];
+						}
+					}
+				} else {
+					activeYData[activeCounter++] = y;
+				}
+			}
+		}
+		this.dataMin = arrayMin(activeYData);
+		this.dataMax = arrayMax(activeYData);
+	},
+
+	/**
+	 * Translate data points from raw data values to chart specific positioning data
+	 * needed later in drawPoints, drawGraph and drawTracker.
+	 */
+	translate: function () {
+		if (!this.processedXData) { // hidden series
+			this.processData();
+		}
+		this.generatePoints();
+		var series = this,
+			options = series.options,
+			stacking = options.stacking,
+			xAxis = series.xAxis,
+			categories = xAxis.categories,
+			yAxis = series.yAxis,
+			points = series.points,
+			dataLength = points.length,
+			hasModifyValue = !!series.modifyValue,
+			i,
+			pointPlacement = options.pointPlacement,
+			dynamicallyPlaced = pointPlacement === 'between' || isNumber(pointPlacement),
+			threshold = options.threshold,
+			stackThreshold = options.startFromThreshold ? threshold : 0,
+			plotX,
+			plotY,
+			lastPlotX,
+			closestPointRangePx = Number.MAX_VALUE;
+
+		// Translate each point
+		for (i = 0; i < dataLength; i++) {
+			var point = points[i],
+				xValue = point.x,
+				yValue = point.y,
+				yBottom = point.low,
+				stack = stacking && yAxis.stacks[(series.negStacks && yValue < (stackThreshold ? 0 : threshold) ? '-' : '') + series.stackKey],
+				pointStack,
+				stackValues;
+
+			// Discard disallowed y values for log axes (#3434)
+			if (yAxis.isLog && yValue !== null && yValue <= 0) {
+				point.y = yValue = null;
+				error(10);
+			}
+
+			// Get the plotX translation
+			point.plotX = plotX = mathMin(mathMax(-1e5, xAxis.translate(xValue, 0, 0, 0, 1, pointPlacement, this.type === 'flags')), 1e5); // #3923
+
+
+			// Calculate the bottom y value for stacked series
+			if (stacking && series.visible && stack && stack[xValue]) {
+
+				pointStack = stack[xValue];
+				stackValues = pointStack.points[series.index + ',' + i];
+				yBottom = stackValues[0];
+				yValue = stackValues[1];
+
+				if (yBottom === stackThreshold) {
+					yBottom = pick(threshold, yAxis.min);
+				}
+				if (yAxis.isLog && yBottom <= 0) { // #1200, #1232
+					yBottom = null;
+				}
+
+				point.total = point.stackTotal = pointStack.total;
+				point.percentage = pointStack.total && (point.y / pointStack.total * 100);
+				point.stackY = yValue;
+
+				// Place the stack label
+				pointStack.setOffset(series.pointXOffset || 0, series.barW || 0);
+
+			}
+
+			// Set translated yBottom or remove it
+			point.yBottom = defined(yBottom) ?
+				yAxis.translate(yBottom, 0, 1, 0, 1) :
+				null;
+
+			// general hook, used for Highstock compare mode
+			if (hasModifyValue) {
+				yValue = series.modifyValue(yValue, point);
+			}
+
+			// Set the the plotY value, reset it for redraws
+			point.plotY = plotY = (typeof yValue === 'number' && yValue !== Infinity) ?
+				mathMin(mathMax(-1e5, yAxis.translate(yValue, 0, 1, 0, 1)), 1e5) : // #3201
+				UNDEFINED;
+			point.isInside = plotY !== UNDEFINED && plotY >= 0 && plotY <= yAxis.len && // #3519
+				plotX >= 0 && plotX <= xAxis.len;
+
+
+			// Set client related positions for mouse tracking
+			point.clientX = dynamicallyPlaced ? xAxis.translate(xValue, 0, 0, 0, 1) : plotX; // #1514
+
+			point.negative = point.y < (threshold || 0);
+
+			// some API data
+			point.category = categories && categories[point.x] !== UNDEFINED ?
+				categories[point.x] : point.x;
+
+			// Determine auto enabling of markers (#3635)
+			if (i) {
+				closestPointRangePx = mathMin(closestPointRangePx, mathAbs(plotX - lastPlotX));
+			}
+			lastPlotX = plotX;
+
+		}
+
+		series.closestPointRangePx = closestPointRangePx;
+
+		// now that we have the cropped data, build the segments
+		series.getSegments();
+	},
+
+	/**
+	 * Set the clipping for the series. For animated series it is called twice, first to initiate
+	 * an
