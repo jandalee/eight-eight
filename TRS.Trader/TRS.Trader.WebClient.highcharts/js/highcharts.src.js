@@ -14200,4 +14200,501 @@ Series.prototype = {
 
 		// destroy all points with their elements
 		i = data.length;
-		while
+		while (i--) {
+			point = data[i];
+			if (point && point.destroy) {
+				point.destroy();
+			}
+		}
+		series.points = null;
+
+		// Clear the animation timeout if we are destroying the series during initial animation
+		clearTimeout(series.animationTimeout);
+
+		// Destroy all SVGElements associated to the series
+		for (prop in series) {
+			if (series[prop] instanceof SVGElement && !series[prop].survive) { // Survive provides a hook for not destroying
+
+				// issue 134 workaround
+				destroy = issue134 && prop === 'group' ?
+					'hide' :
+					'destroy';
+
+				series[prop][destroy]();
+			}
+		}
+
+		// remove from hoverSeries
+		if (chart.hoverSeries === series) {
+			chart.hoverSeries = null;
+		}
+		erase(chart.series, series);
+
+		// clear all members
+		for (prop in series) {
+			delete series[prop];
+		}
+	},
+
+	/**
+	 * Return the graph path of a segment
+	 */
+	getSegmentPath: function (segment) {
+		var series = this,
+			segmentPath = [],
+			step = series.options.step;
+
+		// build the segment line
+		each(segment, function (point, i) {
+
+			var plotX = point.plotX,
+				plotY = point.plotY,
+				lastPoint;
+
+			if (series.getPointSpline) { // generate the spline as defined in the SplineSeries object
+				segmentPath.push.apply(segmentPath, series.getPointSpline(segment, point, i));
+
+			} else {
+
+				// moveTo or lineTo
+				segmentPath.push(i ? L : M);
+
+				// step line?
+				if (step && i) {
+					lastPoint = segment[i - 1];
+					if (step === 'right') {
+						segmentPath.push(
+							lastPoint.plotX,
+							plotY
+						);
+
+					} else if (step === 'center') {
+						segmentPath.push(
+							(lastPoint.plotX + plotX) / 2,
+							lastPoint.plotY,
+							(lastPoint.plotX + plotX) / 2,
+							plotY
+						);
+
+					} else {
+						segmentPath.push(
+							plotX,
+							lastPoint.plotY
+						);
+					}
+				}
+
+				// normal line to next point
+				segmentPath.push(
+					point.plotX,
+					point.plotY
+				);
+			}
+		});
+
+		return segmentPath;
+	},
+
+	/**
+	 * Get the graph path
+	 */
+	getGraphPath: function () {
+		var series = this,
+			graphPath = [],
+			segmentPath,
+			singlePoints = []; // used in drawTracker
+
+		// Divide into segments and build graph and area paths
+		each(series.segments, function (segment) {
+
+			segmentPath = series.getSegmentPath(segment);
+
+			// add the segment to the graph, or a single point for tracking
+			if (segment.length > 1) {
+				graphPath = graphPath.concat(segmentPath);
+			} else {
+				singlePoints.push(segment[0]);
+			}
+		});
+
+		// Record it for use in drawGraph and drawTracker, and return graphPath
+		series.singlePoints = singlePoints;
+		series.graphPath = graphPath;
+
+		return graphPath;
+
+	},
+
+	/**
+	 * Draw the actual graph
+	 */
+	drawGraph: function () {
+		var series = this,
+			options = this.options,
+			props = [['graph', options.lineColor || this.color, options.dashStyle]],
+			lineWidth = options.lineWidth,
+			roundCap = options.linecap !== 'square',
+			graphPath = this.getGraphPath(),
+			fillColor = (this.fillGraph && this.color) || NONE, // polygon series use filled graph
+			zones = this.zones;
+
+		each(zones, function (threshold, i) {
+			props.push(['zoneGraph' + i, threshold.color || series.color, threshold.dashStyle || options.dashStyle]);
+		});
+		
+		// Draw the graph
+		each(props, function (prop, i) {
+			var graphKey = prop[0],
+				graph = series[graphKey],
+				attribs;
+
+			if (graph) {
+				stop(graph); // cancel running animations, #459
+				graph.animate({ d: graphPath });
+
+			} else if ((lineWidth || fillColor) && graphPath.length) { // #1487
+				attribs = {
+					stroke: prop[1],
+					'stroke-width': lineWidth,
+					fill: fillColor,
+					zIndex: 1 // #1069
+				};
+				if (prop[2]) {
+					attribs.dashstyle = prop[2];
+				} else if (roundCap) {
+					attribs['stroke-linecap'] = attribs['stroke-linejoin'] = 'round';
+				}
+
+				series[graphKey] = series.chart.renderer.path(graphPath)
+					.attr(attribs)
+					.add(series.group)
+					.shadow((i < 2) && options.shadow); // add shadow to normal series (0) or to first zone (1) #3932
+			}
+		});
+	},
+
+	/**
+	 * Clip the graphs into the positive and negative coloured graphs
+	 */
+	applyZones: function () {
+		var series = this,
+			chart = this.chart,
+			renderer = chart.renderer,
+			zones = this.zones,
+			translatedFrom,
+			translatedTo,
+			clips = this.clips || [],
+			clipAttr,
+			graph = this.graph,
+			area = this.area,
+			chartSizeMax = mathMax(chart.chartWidth, chart.chartHeight),
+			zoneAxis = this.zoneAxis || 'y',
+			axis = this[zoneAxis + 'Axis'],
+			extremes,
+			reversed = axis.reversed,
+			inverted = chart.inverted,
+			horiz = axis.horiz,
+			pxRange,
+			pxPosMin,
+			pxPosMax,
+			ignoreZones = false;
+
+		if (zones.length && (graph || area)) {
+			// The use of the Color Threshold assumes there are no gaps
+			// so it is safe to hide the original graph and area
+			if (graph) {
+				graph.hide();
+			}
+			if (area) { 
+				area.hide(); 
+			}
+
+			// Create the clips
+			extremes = axis.getExtremes();
+			each(zones, function (threshold, i) {
+
+				translatedFrom = reversed ? 
+					(horiz ? chart.plotWidth : 0) : 
+					(horiz ? 0 : axis.toPixels(extremes.min));
+				translatedFrom = mathMin(mathMax(pick(translatedTo, translatedFrom), 0), chartSizeMax);
+				translatedTo = mathMin(mathMax(mathRound(axis.toPixels(pick(threshold.value, extremes.max), true)), 0), chartSizeMax);
+				
+				if (ignoreZones) {
+					translatedFrom = translatedTo = axis.toPixels(extremes.max);
+				}
+
+				pxRange = Math.abs(translatedFrom - translatedTo);
+				pxPosMin = mathMin(translatedFrom, translatedTo);
+				pxPosMax = mathMax(translatedFrom, translatedTo);
+				if (axis.isXAxis) {
+					clipAttr = {
+						x: inverted ? pxPosMax : pxPosMin,
+						y: 0,
+						width: pxRange, 
+						height: chartSizeMax
+					};
+					if (!horiz) {
+						clipAttr.x = chart.plotHeight - clipAttr.x;
+					}
+				} else {
+					clipAttr = {
+						x: 0,
+						y: inverted ? pxPosMax : pxPosMin,
+						width: chartSizeMax, 
+						height: pxRange
+					};					
+					if (horiz) {
+						clipAttr.y = chart.plotWidth - clipAttr.y;
+					}
+				}
+
+				/// VML SUPPPORT
+				if (chart.inverted && renderer.isVML) {
+					if (axis.isXAxis) {			
+						clipAttr = {
+							x: 0,
+							y: reversed ? pxPosMin : pxPosMax,
+							height: clipAttr.width,
+							width: chart.chartWidth
+						};		
+					} else {				
+						clipAttr = {
+							x: clipAttr.y - chart.plotLeft - chart.spacingBox.x,
+							y: 0,
+							width: clipAttr.height,
+							height: chart.chartHeight
+						};	
+					}				
+				}
+				/// END OF VML SUPPORT
+
+				if (clips[i]) {
+					clips[i].animate(clipAttr);
+				} else {
+					clips[i] = renderer.clipRect(clipAttr);
+
+					if (graph) {
+						series['zoneGraph' + i].clip(clips[i]);
+					}
+
+					if (area) {
+						series['zoneArea' + i].clip(clips[i]);
+					}
+				}
+				// if this zone extends out of the axis, ignore the others
+				ignoreZones = threshold.value > extremes.max;
+			});
+			this.clips = clips;
+		}
+	},
+
+	/**
+	 * Initialize and perform group inversion on series.group and series.markerGroup
+	 */
+	invertGroups: function () {
+		var series = this,
+			chart = series.chart;
+
+		// Pie, go away (#1736)
+		if (!series.xAxis) {
+			return;
+		}
+
+		// A fixed size is needed for inversion to work
+		function setInvert() {
+			var size = {
+				width: series.yAxis.len,
+				height: series.xAxis.len
+			};
+
+			each(['group', 'markerGroup'], function (groupName) {
+				if (series[groupName]) {
+					series[groupName].attr(size).invert();
+				}
+			});
+		}
+
+		addEvent(chart, 'resize', setInvert); // do it on resize
+		addEvent(series, 'destroy', function () {
+			removeEvent(chart, 'resize', setInvert);
+		});
+
+		// Do it now
+		setInvert(); // do it now
+
+		// On subsequent render and redraw, just do setInvert without setting up events again
+		series.invertGroups = setInvert;
+	},
+
+	/**
+	 * General abstraction for creating plot groups like series.group, series.dataLabelsGroup and
+	 * series.markerGroup. On subsequent calls, the group will only be adjusted to the updated plot size.
+	 */
+	plotGroup: function (prop, name, visibility, zIndex, parent) {
+		var group = this[prop],
+			isNew = !group;
+
+		// Generate it on first call
+		if (isNew) {
+			this[prop] = group = this.chart.renderer.g(name)
+				.attr({
+					visibility: visibility,
+					zIndex: zIndex || 0.1 // IE8 needs this
+				})
+				.add(parent);
+		}
+		// Place it on first and subsequent (redraw) calls
+		group[isNew ? 'attr' : 'animate'](this.getPlotBox());
+		return group;
+	},
+
+	/**
+	 * Get the translation and scale for the plot area of this series
+	 */
+	getPlotBox: function () {
+		var chart = this.chart,
+			xAxis = this.xAxis,
+			yAxis = this.yAxis;
+
+		// Swap axes for inverted (#2339)
+		if (chart.inverted) {
+			xAxis = yAxis;
+			yAxis = this.xAxis;
+		}
+		return {
+			translateX: xAxis ? xAxis.left : chart.plotLeft,
+			translateY: yAxis ? yAxis.top : chart.plotTop,
+			scaleX: 1, // #1623
+			scaleY: 1
+		};
+	},
+
+	/**
+	 * Render the graph and markers
+	 */
+	render: function () {
+		var series = this,
+			chart = series.chart,
+			group,
+			options = series.options,
+			animation = options.animation,
+			// Animation doesn't work in IE8 quirks when the group div is hidden,
+			// and looks bad in other oldIE
+			animDuration = (animation && !!series.animate && chart.renderer.isSVG && pick(animation.duration, 500)) || 0,
+			visibility = series.visible ? VISIBLE : HIDDEN,
+			zIndex = options.zIndex,
+			hasRendered = series.hasRendered,
+			chartSeriesGroup = chart.seriesGroup;
+
+		// the group
+		group = series.plotGroup(
+			'group',
+			'series',
+			visibility,
+			zIndex,
+			chartSeriesGroup
+		);
+
+		series.markerGroup = series.plotGroup(
+			'markerGroup',
+			'markers',
+			visibility,
+			zIndex,
+			chartSeriesGroup
+		);
+
+		// initiate the animation
+		if (animDuration) {
+			series.animate(true);
+		}
+
+		// cache attributes for shapes
+		series.getAttribs();
+
+		// SVGRenderer needs to know this before drawing elements (#1089, #1795)
+		group.inverted = series.isCartesian ? chart.inverted : false;
+
+		// draw the graph if any
+		if (series.drawGraph) {
+			series.drawGraph();
+			series.applyZones();
+		}
+
+		each(series.points, function (point) {
+			if (point.redraw) {
+				point.redraw();
+			}
+		});
+
+		// draw the data labels (inn pies they go before the points)
+		if (series.drawDataLabels) {
+			series.drawDataLabels();
+		}
+
+		// draw the points
+		if (series.visible) {
+			series.drawPoints();
+		}
+
+
+		// draw the mouse tracking area
+		if (series.drawTracker && series.options.enableMouseTracking !== false) {
+			series.drawTracker();
+		}
+
+		// Handle inverted series and tracker groups
+		if (chart.inverted) {
+			series.invertGroups();
+		}
+
+		// Initial clipping, must be defined after inverting groups for VML. Applies to columns etc. (#3839).
+		if (options.clip !== false && !series.sharedClipKey && !hasRendered) {
+			group.clip(chart.clipRect);
+		}
+
+		// Run the animation
+		if (animDuration) {
+			series.animate();
+		} 
+
+		// Call the afterAnimate function on animation complete (but don't overwrite the animation.complete option
+		// which should be available to the user).
+		if (!hasRendered) {
+			if (animDuration) {
+				series.animationTimeout = setTimeout(function () {
+					series.afterAnimate();
+				}, animDuration);
+			} else {
+				series.afterAnimate();
+			}
+		}
+
+		series.isDirty = series.isDirtyData = false; // means data is in accordance with what you see
+		// (See #322) series.isDirty = series.isDirtyData = false; // means data is in accordance with what you see
+		series.hasRendered = true;
+	},
+
+	/**
+	 * Redraw the series after an update in the axes.
+	 */
+	redraw: function () {
+		var series = this,
+			chart = series.chart,
+			wasDirtyData = series.isDirtyData, // cache it here as it is set to false in render, but used after
+			wasDirty = series.isDirty,
+			group = series.group,
+			xAxis = series.xAxis,
+			yAxis = series.yAxis;
+
+		// reposition on resize
+		if (group) {
+			if (chart.inverted) {
+				group.attr({
+					width: chart.plotWidth,
+					height: chart.plotHeight
+				});
+			}
+
+			group.animate({
+				translateX: pick(xAxis && xAxis.left, chart.plotLeft),
+				translateY: pick(yAxis && yAxis.top,
