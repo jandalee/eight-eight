@@ -15592,4 +15592,477 @@ extend(Series.prototype, {
 		});
 
 		this.init(chart, newOptions);
-		chart.linkSeries(); // Links are lost in 
+		chart.linkSeries(); // Links are lost in this.remove (#3028)
+		if (pick(redraw, true)) {
+			chart.redraw(false);
+		}
+	}
+});
+
+// Extend the Axis.prototype for dynamic methods
+extend(Axis.prototype, {
+
+	/**
+	 * Update the axis with a new options structure
+	 */
+	update: function (newOptions, redraw) {
+		var chart = this.chart;
+
+		newOptions = chart.options[this.coll][this.options.index] = merge(this.userOptions, newOptions);
+
+		this.destroy(true);
+		this._addedPlotLB = this.chart._labelPanes = UNDEFINED; // #1611, #2887, #4314
+
+		this.init(chart, extend(newOptions, { events: UNDEFINED }));
+
+		chart.isDirtyBox = true;
+		if (pick(redraw, true)) {
+			chart.redraw();
+		}
+	},
+
+	/**
+     * Remove the axis from the chart
+     */
+	remove: function (redraw) {
+		var chart = this.chart,
+			key = this.coll, // xAxis or yAxis
+			axisSeries = this.series,
+			i = axisSeries.length;
+
+		// Remove associated series (#2687)
+		while (i--) {
+			if (axisSeries[i]) {
+				axisSeries[i].remove(false);
+			}
+		}
+
+		// Remove the axis
+		erase(chart.axes, this);
+		erase(chart[key], this);
+		chart.options[key].splice(this.options.index, 1);
+		each(chart[key], function (axis, i) { // Re-index, #1706
+			axis.options.index = i;
+		});
+		this.destroy();
+		chart.isDirtyBox = true;
+
+		if (pick(redraw, true)) {
+			chart.redraw();
+		}
+	},
+
+	/**
+	 * Update the axis title by options
+	 */
+	setTitle: function (newTitleOptions, redraw) {
+		this.update({ title: newTitleOptions }, redraw);
+	},
+
+	/**
+	 * Set new axis categories and optionally redraw
+	 * @param {Array} categories
+	 * @param {Boolean} redraw
+	 */
+	setCategories: function (categories, redraw) {
+		this.update({ categories: categories }, redraw);
+	}
+
+});
+
+
+/**
+ * LineSeries object
+ */
+var LineSeries = extendClass(Series);
+seriesTypes.line = LineSeries;
+
+/**
+ * Set the default options for area
+ */
+defaultPlotOptions.area = merge(defaultSeriesOptions, {
+	threshold: 0
+	// trackByArea: false,
+	// lineColor: null, // overrides color, but lets fillColor be unaltered
+	// fillOpacity: 0.75,
+	// fillColor: null
+});
+
+/**
+ * AreaSeries object
+ */
+var AreaSeries = extendClass(Series, {
+	type: 'area',
+	/**
+	 * For stacks, don't split segments on null values. Instead, draw null values with 
+	 * no marker. Also insert dummy points for any X position that exists in other series
+	 * in the stack.
+	 */ 
+	getSegments: function () {
+		var series = this,
+			segments = [],
+			segment = [],
+			keys = [],
+			xAxis = this.xAxis,
+			yAxis = this.yAxis,
+			stack = yAxis.stacks[this.stackKey],
+			pointMap = {},
+			plotX,
+			plotY,
+			points = this.points,
+			connectNulls = this.options.connectNulls,
+			i,
+			x;
+
+		if (this.options.stacking && !this.cropped) { // cropped causes artefacts in Stock, and perf issue
+			// Create a map where we can quickly look up the points by their X value.
+			for (i = 0; i < points.length; i++) {
+				pointMap[points[i].x] = points[i];
+			}
+
+			// Sort the keys (#1651)
+			for (x in stack) {
+				if (stack[x].total !== null) { // nulled after switching between grouping and not (#1651, #2336)
+					keys.push(+x);
+				}
+			}
+			keys.sort(function (a, b) {
+				return a - b;
+			});
+
+			each(keys, function (x) {
+				var y = 0,
+					stackPoint;
+
+				if (connectNulls && (!pointMap[x] || pointMap[x].y === null)) { // #1836
+					return;
+
+				// The point exists, push it to the segment
+				} else if (pointMap[x]) {
+					segment.push(pointMap[x]);
+
+				// There is no point for this X value in this series, so we 
+				// insert a dummy point in order for the areas to be drawn
+				// correctly.
+				} else {
+
+					// Loop down the stack to find the series below this one that has
+					// a value (#1991)
+					for (i = series.index; i <= yAxis.series.length; i++) {
+						stackPoint = stack[x].points[i + ',' + x];
+						if (stackPoint) {
+							y = stackPoint[1];
+							break;
+						}
+					}
+
+					plotX = xAxis.translate(x);
+					plotY = yAxis.toPixels(y, true);
+					segment.push({ 
+						y: null, 
+						plotX: plotX,
+						clientX: plotX, 
+						plotY: plotY, 
+						yBottom: plotY,
+						onMouseOver: noop
+					});
+				}
+			});
+
+			if (segment.length) {
+				segments.push(segment);
+			}
+
+		} else {
+			Series.prototype.getSegments.call(this);
+			segments = this.segments;
+		}
+
+		this.segments = segments;
+	},
+	
+	/**
+	 * Extend the base Series getSegmentPath method by adding the path for the area.
+	 * This path is pushed to the series.areaPath property.
+	 */
+	getSegmentPath: function (segment) {
+		
+		var segmentPath = Series.prototype.getSegmentPath.call(this, segment), // call base method
+			areaSegmentPath = [].concat(segmentPath), // work on a copy for the area path
+			i,
+			options = this.options,
+			segLength = segmentPath.length,
+			translatedThreshold = this.yAxis.getThreshold(options.threshold), // #2181
+			yBottom;
+		
+		if (segLength === 3) { // for animation from 1 to two points
+			areaSegmentPath.push(L, segmentPath[1], segmentPath[2]);
+		}
+		if (options.stacking && !this.closedStacks) {
+			
+			// Follow stack back. Todo: implement areaspline. A general solution could be to 
+			// reverse the entire graphPath of the previous series, though may be hard with
+			// splines and with series with different extremes
+			for (i = segment.length - 1; i >= 0; i--) {
+
+				yBottom = pick(segment[i].yBottom, translatedThreshold);
+			
+				// step line?
+				if (i < segment.length - 1 && options.step) {
+					areaSegmentPath.push(segment[i + 1].plotX, yBottom);
+				}
+				
+				areaSegmentPath.push(segment[i].plotX, yBottom);
+			}
+
+		} else { // follow zero line back
+			this.closeSegment(areaSegmentPath, segment, translatedThreshold);
+		}
+		this.areaPath = this.areaPath.concat(areaSegmentPath);
+		return segmentPath;
+	},
+	
+	/**
+	 * Extendable method to close the segment path of an area. This is overridden in polar 
+	 * charts.
+	 */
+	closeSegment: function (path, segment, translatedThreshold) {
+		path.push(
+			L,
+			segment[segment.length - 1].plotX,
+			translatedThreshold,
+			L,
+			segment[0].plotX,
+			translatedThreshold
+		);
+	},
+	
+	/**
+	 * Draw the graph and the underlying area. This method calls the Series base
+	 * function and adds the area. The areaPath is calculated in the getSegmentPath
+	 * method called from Series.prototype.drawGraph.
+	 */
+	drawGraph: function () {
+		
+		// Define or reset areaPath
+		this.areaPath = [];
+		
+		// Call the base method
+		Series.prototype.drawGraph.apply(this);
+		
+		// Define local variables
+		var series = this,
+			areaPath = this.areaPath,
+			options = this.options,
+			zones = this.zones,
+			props = [['area', this.color, options.fillColor]]; // area name, main color, fill color
+		
+		each(zones, function (threshold, i) {
+			props.push(['zoneArea' + i, threshold.color || series.color, threshold.fillColor || options.fillColor]);
+		});
+		each(props, function (prop) {
+			var areaKey = prop[0],
+				area = series[areaKey];
+				
+			// Create or update the area
+			if (area) { // update
+				area.animate({ d: areaPath });
+	
+			} else { // create
+				series[areaKey] = series.chart.renderer.path(areaPath)
+					.attr({
+						fill: pick(
+							prop[2],
+							Color(prop[1]).setOpacity(pick(options.fillOpacity, 0.75)).get()
+						),
+						zIndex: 0 // #1069
+					}).add(series.group);
+			}
+		});
+	},
+
+	drawLegendSymbol: LegendSymbolMixin.drawRectangle
+});
+
+seriesTypes.area = AreaSeries;
+/**
+ * Set the default options for spline
+ */
+defaultPlotOptions.spline = merge(defaultSeriesOptions);
+
+/**
+ * SplineSeries object
+ */
+var SplineSeries = extendClass(Series, {
+	type: 'spline',
+
+	/**
+	 * Get the spline segment from a given point's previous neighbour to the given point
+	 */
+	getPointSpline: function (segment, point, i) {
+		var smoothing = 1.5, // 1 means control points midway between points, 2 means 1/3 from the point, 3 is 1/4 etc
+			denom = smoothing + 1,
+			plotX = point.plotX,
+			plotY = point.plotY,
+			lastPoint = segment[i - 1],
+			nextPoint = segment[i + 1],
+			leftContX,
+			leftContY,
+			rightContX,
+			rightContY,
+			ret;
+
+		// find control points
+		if (lastPoint && nextPoint) {
+		
+			var lastX = lastPoint.plotX,
+				lastY = lastPoint.plotY,
+				nextX = nextPoint.plotX,
+				nextY = nextPoint.plotY,
+				correction;
+
+			leftContX = (smoothing * plotX + lastX) / denom;
+			leftContY = (smoothing * plotY + lastY) / denom;
+			rightContX = (smoothing * plotX + nextX) / denom;
+			rightContY = (smoothing * plotY + nextY) / denom;
+
+			// have the two control points make a straight line through main point
+			correction = ((rightContY - leftContY) * (rightContX - plotX)) /
+				(rightContX - leftContX) + plotY - rightContY;
+
+			leftContY += correction;
+			rightContY += correction;
+
+			// to prevent false extremes, check that control points are between
+			// neighbouring points' y values
+			if (leftContY > lastY && leftContY > plotY) {
+				leftContY = mathMax(lastY, plotY);
+				rightContY = 2 * plotY - leftContY; // mirror of left control point
+			} else if (leftContY < lastY && leftContY < plotY) {
+				leftContY = mathMin(lastY, plotY);
+				rightContY = 2 * plotY - leftContY;
+			}
+			if (rightContY > nextY && rightContY > plotY) {
+				rightContY = mathMax(nextY, plotY);
+				leftContY = 2 * plotY - rightContY;
+			} else if (rightContY < nextY && rightContY < plotY) {
+				rightContY = mathMin(nextY, plotY);
+				leftContY = 2 * plotY - rightContY;
+			}
+
+			// record for drawing in next point
+			point.rightContX = rightContX;
+			point.rightContY = rightContY;
+
+		}
+		
+		// Visualize control points for debugging
+		/*
+		if (leftContX) {
+			this.chart.renderer.circle(leftContX + this.chart.plotLeft, leftContY + this.chart.plotTop, 2)
+				.attr({
+					stroke: 'red',
+					'stroke-width': 1,
+					fill: 'none'
+				})
+				.add();
+			this.chart.renderer.path(['M', leftContX + this.chart.plotLeft, leftContY + this.chart.plotTop,
+				'L', plotX + this.chart.plotLeft, plotY + this.chart.plotTop])
+				.attr({
+					stroke: 'red',
+					'stroke-width': 1
+				})
+				.add();
+			this.chart.renderer.circle(rightContX + this.chart.plotLeft, rightContY + this.chart.plotTop, 2)
+				.attr({
+					stroke: 'green',
+					'stroke-width': 1,
+					fill: 'none'
+				})
+				.add();
+			this.chart.renderer.path(['M', rightContX + this.chart.plotLeft, rightContY + this.chart.plotTop,
+				'L', plotX + this.chart.plotLeft, plotY + this.chart.plotTop])
+				.attr({
+					stroke: 'green',
+					'stroke-width': 1
+				})
+				.add();
+		}
+		*/
+
+		// moveTo or lineTo
+		if (!i) {
+			ret = [M, plotX, plotY];
+		} else { // curve from last point to this
+			ret = [
+				'C',
+				lastPoint.rightContX || lastPoint.plotX,
+				lastPoint.rightContY || lastPoint.plotY,
+				leftContX || plotX,
+				leftContY || plotY,
+				plotX,
+				plotY
+			];
+			lastPoint.rightContX = lastPoint.rightContY = null; // reset for updating series later
+		}
+		return ret;
+	}
+});
+seriesTypes.spline = SplineSeries;
+
+/**
+ * Set the default options for areaspline
+ */
+defaultPlotOptions.areaspline = merge(defaultPlotOptions.area);
+
+/**
+ * AreaSplineSeries object
+ */
+var areaProto = AreaSeries.prototype,
+	AreaSplineSeries = extendClass(SplineSeries, {
+		type: 'areaspline',
+		closedStacks: true, // instead of following the previous graph back, follow the threshold back
+		
+		// Mix in methods from the area series
+		getSegmentPath: areaProto.getSegmentPath,
+		closeSegment: areaProto.closeSegment,
+		drawGraph: areaProto.drawGraph,
+		drawLegendSymbol: LegendSymbolMixin.drawRectangle
+	});
+
+seriesTypes.areaspline = AreaSplineSeries;
+
+/**
+ * Set the default options for column
+ */
+defaultPlotOptions.column = merge(defaultSeriesOptions, {
+	borderColor: '#FFFFFF',
+	//borderWidth: 1,
+	borderRadius: 0,
+	//colorByPoint: undefined,
+	groupPadding: 0.2,
+	//grouping: true,
+	marker: null, // point options are specified in the base options
+	pointPadding: 0.1,
+	//pointWidth: null,
+	minPointLength: 0,
+	cropThreshold: 50, // when there are more points, they will not animate out of the chart on xAxis.setExtremes
+	pointRange: null, // null means auto, meaning 1 in a categorized axis and least distance between points if not categories
+	states: {
+		hover: {
+			brightness: 0.1,
+			shadow: false,
+			halo: false
+		},
+		select: {
+			color: '#C0C0C0',
+			borderColor: '#000000',
+			shadow: false
+		}
+	},
+	dataLabels: {
+		align: null, // auto
+		verticalAlign: null, // auto
+		y: null
+	},
+	s
