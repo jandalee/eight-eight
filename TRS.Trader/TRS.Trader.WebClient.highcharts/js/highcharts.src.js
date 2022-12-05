@@ -17435,4 +17435,416 @@ if (seriesTypes.pie) {
 					y = naturalY;
 				}
 
-				// get the x - use the natur
+				// get the x - use the natural x position for first and last slot, to prevent the top
+				// and botton slice connectors from touching each other on either side
+				x = options.justify ?
+					seriesCenter[0] + (i ? -1 : 1) * (radius + distanceOption) :
+					series.getX(y === centerY - radius - distanceOption || y === centerY + radius + distanceOption ? naturalY : y, i);
+
+
+				// Record the placement and visibility
+				dataLabel._attr = {
+					visibility: visibility,
+					align: labelPos[6]
+				};
+				dataLabel._pos = {
+					x: x + options.x +
+						({ left: connectorPadding, right: -connectorPadding }[labelPos[6]] || 0),
+					y: y + options.y - 10 // 10 is for the baseline (label vs text)
+				};
+				dataLabel.connX = x;
+				dataLabel.connY = y;
+
+
+				// Detect overflowing data labels
+				if (this.options.size === null) {
+					dataLabelWidth = dataLabel.width;
+					// Overflow left
+					if (x - dataLabelWidth < connectorPadding) {
+						overflow[3] = mathMax(mathRound(dataLabelWidth - x + connectorPadding), overflow[3]);
+
+					// Overflow right
+					} else if (x + dataLabelWidth > plotWidth - connectorPadding) {
+						overflow[1] = mathMax(mathRound(x + dataLabelWidth - plotWidth + connectorPadding), overflow[1]);
+					}
+
+					// Overflow top
+					if (y - labelHeight / 2 < 0) {
+						overflow[0] = mathMax(mathRound(-y + labelHeight / 2), overflow[0]);
+
+					// Overflow left
+					} else if (y + labelHeight / 2 > plotHeight) {
+						overflow[2] = mathMax(mathRound(y + labelHeight / 2 - plotHeight), overflow[2]);
+					}
+				}
+			} // for each point
+		} // for each half
+
+		// Do not apply the final placement and draw the connectors until we have verified
+		// that labels are not spilling over.
+		if (arrayMax(overflow) === 0 || this.verifyDataLabelOverflow(overflow)) {
+
+			// Place the labels in the final position
+			this.placeDataLabels();
+
+			// Draw the connectors
+			if (outside && connectorWidth) {
+				each(this.points, function (point) {
+					connector = point.connector;
+					labelPos = point.labelPos;
+					dataLabel = point.dataLabel;
+
+					if (dataLabel && dataLabel._pos && point.visible) {
+						visibility = dataLabel._attr.visibility;
+						x = dataLabel.connX;
+						y = dataLabel.connY;
+						connectorPath = softConnector ? [
+							M,
+							x + (labelPos[6] === 'left' ? 5 : -5), y, // end of the string at the label
+							'C',
+							x, y, // first break, next to the label
+							2 * labelPos[2] - labelPos[4], 2 * labelPos[3] - labelPos[5],
+							labelPos[2], labelPos[3], // second break
+							L,
+							labelPos[4], labelPos[5] // base
+						] : [
+							M,
+							x + (labelPos[6] === 'left' ? 5 : -5), y, // end of the string at the label
+							L,
+							labelPos[2], labelPos[3], // second break
+							L,
+							labelPos[4], labelPos[5] // base
+						];
+
+						if (connector) {
+							connector.animate({ d: connectorPath });
+							connector.attr('visibility', visibility);
+
+						} else {
+							point.connector = connector = series.chart.renderer.path(connectorPath).attr({
+								'stroke-width': connectorWidth,
+								stroke: options.connectorColor || point.color || '#606060',
+								visibility: visibility
+								//zIndex: 0 // #2722 (reversed)
+							})
+							.add(series.dataLabelsGroup);
+						}
+					} else if (connector) {
+						point.connector = connector.destroy();
+					}
+				});
+			}
+		}
+	};
+	/**
+	 * Perform the final placement of the data labels after we have verified that they
+	 * fall within the plot area.
+	 */
+	seriesTypes.pie.prototype.placeDataLabels = function () {
+		each(this.points, function (point) {
+			var dataLabel = point.dataLabel,
+				_pos;
+
+			if (dataLabel && point.visible) {
+				_pos = dataLabel._pos;
+				if (_pos) {
+					dataLabel.attr(dataLabel._attr);
+					dataLabel[dataLabel.moved ? 'animate' : 'attr'](_pos);
+					dataLabel.moved = true;
+				} else if (dataLabel) {
+					dataLabel.attr({ y: -999 });
+				}
+			}
+		});
+	};
+
+	seriesTypes.pie.prototype.alignDataLabel =  noop;
+
+	/**
+	 * Verify whether the data labels are allowed to draw, or we should run more translation and data
+	 * label positioning to keep them inside the plot area. Returns true when data labels are ready
+	 * to draw.
+	 */
+	seriesTypes.pie.prototype.verifyDataLabelOverflow = function (overflow) {
+
+		var center = this.center,
+			options = this.options,
+			centerOption = options.center,
+			minSize = options.minSize || 80,
+			newSize = minSize,
+			ret;
+
+		// Handle horizontal size and center
+		if (centerOption[0] !== null) { // Fixed center
+			newSize = mathMax(center[2] - mathMax(overflow[1], overflow[3]), minSize);
+
+		} else { // Auto center
+			newSize = mathMax(
+				center[2] - overflow[1] - overflow[3], // horizontal overflow
+				minSize
+			);
+			center[0] += (overflow[3] - overflow[1]) / 2; // horizontal center
+		}
+
+		// Handle vertical size and center
+		if (centerOption[1] !== null) { // Fixed center
+			newSize = mathMax(mathMin(newSize, center[2] - mathMax(overflow[0], overflow[2])), minSize);
+
+		} else { // Auto center
+			newSize = mathMax(
+				mathMin(
+					newSize,
+					center[2] - overflow[0] - overflow[2] // vertical overflow
+				),
+				minSize
+			);
+			center[1] += (overflow[0] - overflow[2]) / 2; // vertical center
+		}
+
+		// If the size must be decreased, we need to run translate and drawDataLabels again
+		if (newSize < center[2]) {
+			center[2] = newSize;
+			center[3] = relativeLength(options.innerSize || 0, newSize);
+			this.translate(center);
+			each(this.points, function (point) {
+				if (point.dataLabel) {
+					point.dataLabel._pos = null; // reset
+				}
+			});
+
+			if (this.drawDataLabels) {
+				this.drawDataLabels();
+			}
+		// Else, return true to indicate that the pie and its labels is within the plot area
+		} else {
+			ret = true;
+		}
+		return ret;
+	};
+}
+
+if (seriesTypes.column) {
+
+	/**
+	 * Override the basic data label alignment by adjusting for the position of the column
+	 */
+	seriesTypes.column.prototype.alignDataLabel = function (point, dataLabel, options,  alignTo, isNew) {
+		var inverted = this.chart.inverted,
+			series = point.series,
+			dlBox = point.dlBox || point.shapeArgs, // data label box for alignment
+			below = pick(point.below, point.plotY > pick(this.translatedThreshold, series.yAxis.len)), // point.below is used in range series
+			inside = pick(options.inside, !!this.options.stacking); // draw it inside the box?
+
+		// Align to the column itself, or the top of it
+		if (dlBox) { // Area range uses this method but not alignTo
+			alignTo = merge(dlBox);
+
+			if (inverted) {
+				alignTo = {
+					x: series.yAxis.len - alignTo.y - alignTo.height,
+					y: series.xAxis.len - alignTo.x - alignTo.width,
+					width: alignTo.height,
+					height: alignTo.width
+				};
+			}
+
+			// Compute the alignment box
+			if (!inside) {
+				if (inverted) {
+					alignTo.x += below ? 0 : alignTo.width;
+					alignTo.width = 0;
+				} else {
+					alignTo.y += below ? alignTo.height : 0;
+					alignTo.height = 0;
+				}
+			}
+		}
+
+
+		// When alignment is undefined (typically columns and bars), display the individual
+		// point below or above the point depending on the threshold
+		options.align = pick(
+			options.align,
+			!inverted || inside ? 'center' : below ? 'right' : 'left'
+		);
+		options.verticalAlign = pick(
+			options.verticalAlign,
+			inverted || inside ? 'middle' : below ? 'top' : 'bottom'
+		);
+
+		// Call the parent method
+		Series.prototype.alignDataLabel.call(this, point, dataLabel, options, alignTo, isNew);
+	};
+}
+
+
+
+/**
+ * Highcharts JS v4.1.7 (2015-06-26)
+ * Highcharts module to hide overlapping data labels. This module is included by default in Highmaps.
+ *
+ * (c) 2010-2014 Torstein Honsi
+ *
+ * License: www.highcharts.com/license
+ */
+
+/*global Highcharts, HighchartsAdapter */
+(function (H) {
+	var Chart = H.Chart,
+		each = H.each,
+		pick = H.pick,
+		addEvent = HighchartsAdapter.addEvent;
+
+	// Collect potensial overlapping data labels. Stack labels probably don't need to be 
+	// considered because they are usually accompanied by data labels that lie inside the columns.
+	Chart.prototype.callbacks.push(function (chart) {
+		function collectAndHide() {
+			var labels = [];
+
+			each(chart.series, function (series) {
+				var dlOptions = series.options.dataLabels;
+				if ((dlOptions.enabled || series._hasPointLabels) && !dlOptions.allowOverlap && series.visible) { // #3866
+					each(series.points, function (point) { 
+						if (point.dataLabel) {
+							point.dataLabel.labelrank = pick(point.labelrank, point.shapeArgs && point.shapeArgs.height); // #4118
+							labels.push(point.dataLabel);
+						}
+					});
+				}
+			});
+			chart.hideOverlappingLabels(labels);
+		}
+
+		// Do it now ...
+		collectAndHide();
+
+		// ... and after each chart redraw
+		addEvent(chart, 'redraw', collectAndHide);
+
+	});
+
+	/**
+	 * Hide overlapping labels. Labels are moved and faded in and out on zoom to provide a smooth 
+	 * visual imression.
+	 */		
+	Chart.prototype.hideOverlappingLabels = function (labels) {
+
+		var len = labels.length,
+			label,
+			i,
+			j,
+			label1,
+			label2,
+			intersectRect = function (pos1, pos2, size1, size2) {
+				return !(
+					pos2.x > pos1.x + size1.width ||
+					pos2.x + size2.width < pos1.x ||
+					pos2.y > pos1.y + size1.height ||
+					pos2.y + size2.height < pos1.y
+				);
+			};
+	
+		// Mark with initial opacity
+		for (i = 0; i < len; i++) {
+			label = labels[i];
+			if (label) {
+				label.oldOpacity = label.opacity;
+				label.newOpacity = 1;
+			}
+		}
+
+		// Prevent a situation in a gradually rising slope, that each label
+		// will hide the previous one because the previous one always has
+		// lower rank.
+		labels.sort(function (a, b) {
+			return b.labelrank - a.labelrank;
+		});
+
+		// Detect overlapping labels
+		for (i = 0; i < len; i++) {
+			label1 = labels[i];
+
+			for (j = i + 1; j < len; ++j) {
+				label2 = labels[j];
+				if (label1 && label2 && label1.placed && label2.placed && label1.newOpacity !== 0 && label2.newOpacity !== 0 && 
+						intersectRect(label1.alignAttr, label2.alignAttr, label1, label2)) {
+					(label1.labelrank < label2.labelrank ? label1 : label2).newOpacity = 0;
+				}
+			}
+		}
+
+		// Hide or show
+		for (i = 0; i < len; i++) {
+			label = labels[i];
+			if (label) {
+				if (label.oldOpacity !== label.newOpacity && label.placed) {
+					label.alignAttr.opacity = label.newOpacity;
+					label[label.isOld && label.newOpacity ? 'animate' : 'attr'](label.alignAttr);
+				}
+				label.isOld = true;
+			}
+		}
+	};
+
+}(Highcharts));/**
+ * TrackerMixin for points and graphs
+ */
+
+var TrackerMixin = Highcharts.TrackerMixin = {
+
+	drawTrackerPoint: function () {
+		var series = this,
+			chart = series.chart,
+			pointer = chart.pointer,
+			cursor = series.options.cursor,
+			css = cursor && { cursor: cursor },
+			onMouseOver = function (e) {
+				var target = e.target,
+				point;
+
+				while (target && !point) {
+					point = target.point;
+					target = target.parentNode;
+				}
+
+				if (point !== UNDEFINED && point !== chart.hoverPoint) { // undefined on graph in scatterchart
+					point.onMouseOver(e);
+				}
+			};
+
+		// Add reference to the point
+		each(series.points, function (point) {
+			if (point.graphic) {
+				point.graphic.element.point = point;
+			}
+			if (point.dataLabel) {
+				point.dataLabel.element.point = point;
+			}
+		});
+
+		// Add the event listeners, we need to do this only once
+		if (!series._hasTracking) {
+			each(series.trackerGroups, function (key) {
+				if (series[key]) { // we don't always have dataLabelsGroup
+					series[key]
+						.addClass(PREFIX + 'tracker')
+						.on('mouseover', onMouseOver)
+						.on('mouseout', function (e) { pointer.onTrackerMouseOut(e); })
+						.css(css);
+					if (hasTouch) {
+						series[key].on('touchstart', onMouseOver);
+					}
+				}
+			});
+			series._hasTracking = true;
+		}
+	},
+
+	/**
+	 * Draw the tracker object that sits above all data labels and markers to
+	 * track mouse events on the graph or points. For the line type charts
+	 * the tracker uses the same graphPath, but with a greater stroke width
+	 * for better control.
+	 */
+	drawTrackerGraph: function () {
+		var series = t
