@@ -3789,3 +3789,2845 @@
 
                         // Never move original objects, clone them
                         target[name] = jQuery.extend(deep, clone, copy);
+
+                        // Don't bring in undefined values
+                    } else if (copy !== undefined) {
+                        target[name] = copy;
+                    }
+                }
+            }
+        }
+
+        // Return the modified object
+        return target;
+    };
+    jQuery.prototype.fadeIn = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display the matched elements by fading them to opaque.
+        ///     &#10;1 - fadeIn(duration, complete) 
+        ///     &#10;2 - fadeIn(options) 
+        ///     &#10;3 - fadeIn(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.fadeOut = function (speed, easing, callback) {
+        /// <summary>
+        ///     Hide the matched elements by fading them to transparent.
+        ///     &#10;1 - fadeOut(duration, complete) 
+        ///     &#10;2 - fadeOut(options) 
+        ///     &#10;3 - fadeOut(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.fadeTo = function (speed, to, easing, callback) {
+        /// <summary>
+        ///     Adjust the opacity of the matched elements.
+        ///     &#10;1 - fadeTo(duration, opacity, complete) 
+        ///     &#10;2 - fadeTo(duration, opacity, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="to" type="Number">
+        ///     A number between 0 and 1 denoting the target opacity.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+
+        // show any hidden elements after setting opacity to 0
+        return this.filter(isHidden).css("opacity", 0).show()
+
+			// animate to the value specified
+			.end().animate({ opacity: to }, speed, easing, callback);
+    };
+    jQuery.prototype.fadeToggle = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display or hide the matched elements by animating their opacity.
+        ///     &#10;1 - fadeToggle(duration, easing, complete) 
+        ///     &#10;2 - fadeToggle(options)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.filter = function (selector) {
+        /// <summary>
+        ///     Reduce the set of matched elements to those that match the selector or pass the function's test.
+        ///     &#10;1 - filter(selector) 
+        ///     &#10;2 - filter(function(index)) 
+        ///     &#10;3 - filter(element) 
+        ///     &#10;4 - filter(jQuery object)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match the current set of elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(winnow(this, selector || [], false));
+    };
+    jQuery.prototype.find = function (selector) {
+        /// <summary>
+        ///     Get the descendants of each element in the current set of matched elements, filtered by a selector, jQuery object, or element.
+        ///     &#10;1 - find(selector) 
+        ///     &#10;2 - find(jQuery object) 
+        ///     &#10;3 - find(element)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var self, matched, i,
+			l = this.length;
+
+        if (typeof selector !== "string") {
+            self = this;
+            return this.pushStack(jQuery(selector).filter(function () {
+                for (i = 0; i < l; i++) {
+                    if (jQuery.contains(self[i], this)) {
+                        return true;
+                    }
+                }
+            }));
+        }
+
+        matched = [];
+        for (i = 0; i < l; i++) {
+            jQuery.find(selector, this[i], matched);
+        }
+
+        // Needed because $( selector, context ) becomes $( context ).find( selector )
+        matched = this.pushStack(l > 1 ? jQuery.unique(matched) : matched);
+        matched.selector = (this.selector ? this.selector + " " : "") + selector;
+        return matched;
+    };
+    jQuery.prototype.finish = function (type) {
+        /// <summary>
+        ///     Stop the currently-running animation, remove all queued animations, and complete all animations for the matched elements.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     The name of the queue in which to stop animations.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (type !== false) {
+            type = type || "fx";
+        }
+        return this.each(function () {
+            var index,
+				data = data_priv.get(this),
+				queue = data[type + "queue"],
+				hooks = data[type + "queueHooks"],
+				timers = jQuery.timers,
+				length = queue ? queue.length : 0;
+
+            // enable finishing flag on private data
+            data.finish = true;
+
+            // empty the queue first
+            jQuery.queue(this, type, []);
+
+            if (hooks && hooks.cur && hooks.cur.finish) {
+                hooks.cur.finish.call(this);
+            }
+
+            // look for any active animations, and finish them
+            for (index = timers.length; index--;) {
+                if (timers[index].elem === this && timers[index].queue === type) {
+                    timers[index].anim.stop(true);
+                    timers.splice(index, 1);
+                }
+            }
+
+            // look for any animations in the old queue and finish them
+            for (index = 0; index < length; index++) {
+                if (queue[index] && queue[index].finish) {
+                    queue[index].finish.call(this);
+                }
+            }
+
+            // turn off finishing flag
+            delete data.finish;
+        });
+    };
+    jQuery.prototype.first = function () {
+        /// <summary>
+        ///     Reduce the set of matched elements to the first in the set.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.eq(0);
+    };
+    jQuery.prototype.focus = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focus" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - focus(handler(eventObject)) 
+        ///     &#10;2 - focus(eventData, handler(eventObject)) 
+        ///     &#10;3 - focus()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.focusin = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focusin" event.
+        ///     &#10;1 - focusin(handler(eventObject)) 
+        ///     &#10;2 - focusin(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.focusout = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focusout" JavaScript event.
+        ///     &#10;1 - focusout(handler(eventObject)) 
+        ///     &#10;2 - focusout(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.get = function (num) {
+        /// <summary>
+        ///     Retrieve the DOM elements matched by the jQuery object.
+        /// </summary>
+        /// <param name="num" type="Number">
+        ///     A zero-based integer indicating which element to retrieve.
+        /// </param>
+        /// <returns type="Array" />
+
+        return num == null ?
+
+			// Return a 'clean' array
+			this.toArray() :
+
+			// Return just the object
+			(num < 0 ? this[this.length + num] : this[num]);
+    };
+    jQuery.prototype.has = function (target) {
+        /// <summary>
+        ///     Reduce the set of matched elements to those that have a descendant that matches the selector or DOM element.
+        ///     &#10;1 - has(selector) 
+        ///     &#10;2 - has(contained)
+        /// </summary>
+        /// <param name="target" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var targets = jQuery(target, this),
+			l = targets.length;
+
+        return this.filter(function () {
+            var i = 0;
+            for (; i < l; i++) {
+                if (jQuery.contains(this, targets[i])) {
+                    return true;
+                }
+            }
+        });
+    };
+    jQuery.prototype.hasClass = function (selector) {
+        /// <summary>
+        ///     Determine whether any of the matched elements are assigned the given class.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     The class name to search for.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        var className = " " + selector + " ",
+			i = 0,
+			l = this.length;
+        for (; i < l; i++) {
+            if (this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf(className) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+    jQuery.prototype.height = function (margin, value) {
+        /// <summary>
+        ///     1: Get the current computed height for the first element in the set of matched elements.
+        ///     &#10;    1.1 - height()
+        ///     &#10;2: Set the CSS height of every matched element.
+        ///     &#10;    2.1 - height(value) 
+        ///     &#10;    2.2 - height(function(index, height))
+        /// </summary>
+        /// <param name="margin" type="">
+        ///     An integer representing the number of pixels, or an integer with an optional unit of measure appended (as a string).
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.hide = function (speed, easing, callback) {
+        /// <summary>
+        ///     Hide the matched elements.
+        ///     &#10;1 - hide() 
+        ///     &#10;2 - hide(duration, complete) 
+        ///     &#10;3 - hide(options) 
+        ///     &#10;4 - hide(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return speed == null || typeof speed === "boolean" ?
+			cssFn.apply(this, arguments) :
+			this.animate(genFx(name, true), speed, easing, callback);
+    };
+    jQuery.prototype.hover = function (fnOver, fnOut) {
+        /// <summary>
+        ///     1: Bind two handlers to the matched elements, to be executed when the mouse pointer enters and leaves the elements.
+        ///     &#10;    1.1 - hover(handlerIn(eventObject), handlerOut(eventObject))
+        ///     &#10;2: Bind a single handler to the matched elements, to be executed when the mouse pointer enters or leaves the elements.
+        ///     &#10;    2.1 - hover(handlerInOut(eventObject))
+        /// </summary>
+        /// <param name="fnOver" type="Function">
+        ///     A function to execute when the mouse pointer enters the element.
+        /// </param>
+        /// <param name="fnOut" type="Function">
+        ///     A function to execute when the mouse pointer leaves the element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.mouseenter(fnOver).mouseleave(fnOut || fnOver);
+    };
+    jQuery.prototype.html = function (value) {
+        /// <summary>
+        ///     1: Get the HTML contents of the first element in the set of matched elements.
+        ///     &#10;    1.1 - html()
+        ///     &#10;2: Set the HTML contents of each element in the set of matched elements.
+        ///     &#10;    2.1 - html(htmlString) 
+        ///     &#10;    2.2 - html(function(index, oldhtml))
+        /// </summary>
+        /// <param name="value" type="htmlString">
+        ///     A string of HTML to set as the content of each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (value) {
+            var elem = this[0] || {},
+				i = 0,
+				l = this.length;
+
+            if (value === undefined && elem.nodeType === 1) {
+                return elem.innerHTML;
+            }
+
+            // See if we can take a shortcut and just use innerHTML
+            if (typeof value === "string" && !rnoInnerhtml.test(value) &&
+				!wrapMap[(rtagName.exec(value) || ["", ""])[1].toLowerCase()]) {
+
+                value = value.replace(rxhtmlTag, "<$1></$2>");
+
+                try {
+                    for (; i < l; i++) {
+                        elem = this[i] || {};
+
+                        // Remove element nodes and prevent memory leaks
+                        if (elem.nodeType === 1) {
+                            jQuery.cleanData(getAll(elem, false));
+                            elem.innerHTML = value;
+                        }
+                    }
+
+                    elem = 0;
+
+                    // If using innerHTML throws an exception, use the fallback method
+                } catch (e) { }
+            }
+
+            if (elem) {
+                this.empty().append(value);
+            }
+        }, null, value, arguments.length);
+    };
+    jQuery.prototype.index = function (elem) {
+        /// <summary>
+        ///     Search for a given element from among the matched elements.
+        ///     &#10;1 - index() 
+        ///     &#10;2 - index(selector) 
+        ///     &#10;3 - index(element)
+        /// </summary>
+        /// <param name="elem" type="String">
+        ///     A selector representing a jQuery collection in which to look for an element.
+        /// </param>
+        /// <returns type="Number" />
+
+
+        // No argument, return index in parent
+        if (!elem) {
+            return (this[0] && this[0].parentNode) ? this.first().prevAll().length : -1;
+        }
+
+        // index in selector
+        if (typeof elem === "string") {
+            return core_indexOf.call(jQuery(elem), this[0]);
+        }
+
+        // Locate the position of the desired element
+        return core_indexOf.call(this,
+
+			// If it receives a jQuery object, the first element is used
+			elem.jquery ? elem[0] : elem
+		);
+    };
+    jQuery.prototype.init = function (selector, context, rootjQuery) {
+
+        var match, elem;
+
+        // HANDLE: $(""), $(null), $(undefined), $(false)
+        if (!selector) {
+            return this;
+        }
+
+        // Handle HTML strings
+        if (typeof selector === "string") {
+            if (selector.charAt(0) === "<" && selector.charAt(selector.length - 1) === ">" && selector.length >= 3) {
+                // Assume that strings that start and end with <> are HTML and skip the regex check
+                match = [null, selector, null];
+
+            } else {
+                match = rquickExpr.exec(selector);
+            }
+
+            // Match html or make sure no context is specified for #id
+            if (match && (match[1] || !context)) {
+
+                // HANDLE: $(html) -> $(array)
+                if (match[1]) {
+                    context = context instanceof jQuery ? context[0] : context;
+
+                    // scripts is true for back-compat
+                    jQuery.merge(this, jQuery.parseHTML(
+						match[1],
+						context && context.nodeType ? context.ownerDocument || context : document,
+						true
+					));
+
+                    // HANDLE: $(html, props)
+                    if (rsingleTag.test(match[1]) && jQuery.isPlainObject(context)) {
+                        for (match in context) {
+                            // Properties of context are called as methods if possible
+                            if (jQuery.isFunction(this[match])) {
+                                this[match](context[match]);
+
+                                // ...and otherwise set as attributes
+                            } else {
+                                this.attr(match, context[match]);
+                            }
+                        }
+                    }
+
+                    return this;
+
+                    // HANDLE: $(#id)
+                } else {
+                    elem = document.getElementById(match[2]);
+
+                    // Check parentNode to catch when Blackberry 4.6 returns
+                    // nodes that are no longer in the document #6963
+                    if (elem && elem.parentNode) {
+                        // Inject the element directly into the jQuery object
+                        this.length = 1;
+                        this[0] = elem;
+                    }
+
+                    this.context = document;
+                    this.selector = selector;
+                    return this;
+                }
+
+                // HANDLE: $(expr, $(...))
+            } else if (!context || context.jquery) {
+                return (context || rootjQuery).find(selector);
+
+                // HANDLE: $(expr, context)
+                // (which is just equivalent to: $(context).find(expr)
+            } else {
+                return this.constructor(context).find(selector);
+            }
+
+            // HANDLE: $(DOMElement)
+        } else if (selector.nodeType) {
+            this.context = this[0] = selector;
+            this.length = 1;
+            return this;
+
+            // HANDLE: $(function)
+            // Shortcut for document ready
+        } else if (jQuery.isFunction(selector)) {
+            return rootjQuery.ready(selector);
+        }
+
+        if (selector.selector !== undefined) {
+            this.selector = selector.selector;
+            this.context = selector.context;
+        }
+
+        return jQuery.makeArray(selector, this);
+    };
+    jQuery.prototype.innerHeight = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed height for the first element in the set of matched elements, including padding but not border.
+        /// </summary>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.innerWidth = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed width for the first element in the set of matched elements, including padding but not border.
+        /// </summary>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.insertAfter = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements after the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted after the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.insertBefore = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements before the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted before the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.is = function (selector) {
+        /// <summary>
+        ///     Check the current matched set of elements against a selector, element, or jQuery object and return true if at least one of these elements matches the given arguments.
+        ///     &#10;1 - is(selector) 
+        ///     &#10;2 - is(function(index)) 
+        ///     &#10;3 - is(jQuery object) 
+        ///     &#10;4 - is(element)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        return !!selector && (
+			typeof selector === "string" ?
+				// If this is a positional/relative selector, check membership in the returned set
+				// so $("p:first").is("p:last") won't return true for a doc with two "p".
+				rneedsContext.test(selector) ?
+					jQuery(selector, this.context).index(this[0]) >= 0 :
+					jQuery.filter(selector, this).length > 0 :
+				this.filter(selector).length > 0);
+    };
+    jQuery.prototype.keydown = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keydown" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keydown(handler(eventObject)) 
+        ///     &#10;2 - keydown(eventData, handler(eventObject)) 
+        ///     &#10;3 - keydown()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.keypress = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keypress" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keypress(handler(eventObject)) 
+        ///     &#10;2 - keypress(eventData, handler(eventObject)) 
+        ///     &#10;3 - keypress()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.keyup = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keyup" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keyup(handler(eventObject)) 
+        ///     &#10;2 - keyup(eventData, handler(eventObject)) 
+        ///     &#10;3 - keyup()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.last = function () {
+        /// <summary>
+        ///     Reduce the set of matched elements to the final one in the set.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.eq(-1);
+    };
+    jQuery.prototype.length = 0;
+    jQuery.prototype.load = function (url, params, callback) {
+        /// <summary>
+        ///     1: Bind an event handler to the "load" JavaScript event.
+        ///     &#10;    1.1 - load(handler(eventObject)) 
+        ///     &#10;    1.2 - load(eventData, handler(eventObject))
+        ///     &#10;2: Load data from the server and place the returned HTML into the matched element.
+        ///     &#10;    2.1 - load(url, data, complete(responseText, textStatus, XMLHttpRequest))
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="params" type="">
+        ///     A plain object or string that is sent to the server with the request.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is executed when the request completes.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (typeof url !== "string" && _load) {
+            return _load.apply(this, arguments);
+        }
+
+        var selector, type, response,
+            self = this,
+            off = url.indexOf(" ");
+
+        if (off >= 0) {
+            selector = url.slice(off);
+            url = url.slice(0, off);
+        }
+
+        // If it's a function
+        if (jQuery.isFunction(params)) {
+
+            // We assume that it's the callback
+            callback = params;
+            params = undefined;
+
+            // Otherwise, build a param string
+        } else if (params && typeof params === "object") {
+            type = "POST";
+        }
+
+        // If we have elements to modify, make the request
+        if (self.length > 0) {
+            jQuery.ajax({
+                url: url,
+
+                // if "type" variable is undefined, then "GET" method will be used
+                type: type,
+                dataType: "html",
+                data: params
+            }).done(function (responseText) {
+
+                // Save response for use in complete callback
+                response = arguments;
+
+                self.html(selector ?
+
+                    // If a selector was specified, locate the right elements in a dummy div
+                    // Exclude scripts to avoid IE 'Permission Denied' errors
+                    jQuery("<div>").append(jQuery.parseHTML(responseText)).find(selector) :
+
+                    // Otherwise use the full result
+                    responseText);
+
+            }).complete(callback && function (jqXHR, status) {
+                self.each(callback, response || [jqXHR.responseText, status, jqXHR]);
+            });
+        }
+
+        return this;
+    };
+    jQuery.prototype.map = function (callback) {
+        /// <summary>
+        ///     Pass each element in the current matched set through a function, producing a new jQuery object containing the return values.
+        /// </summary>
+        /// <param name="callback" type="Function">
+        ///     A function object that will be invoked for each element in the current set.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(jQuery.map(this, function (elem, i) {
+            return callback.call(elem, i, elem);
+        }));
+    };
+    jQuery.prototype.mousedown = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mousedown" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mousedown(handler(eventObject)) 
+        ///     &#10;2 - mousedown(eventData, handler(eventObject)) 
+        ///     &#10;3 - mousedown()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseenter = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to be fired when the mouse enters an element, or trigger that handler on an element.
+        ///     &#10;1 - mouseenter(handler(eventObject)) 
+        ///     &#10;2 - mouseenter(eventData, handler(eventObject)) 
+        ///     &#10;3 - mouseenter()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseleave = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to be fired when the mouse leaves an element, or trigger that handler on an element.
+        ///     &#10;1 - mouseleave(handler(eventObject)) 
+        ///     &#10;2 - mouseleave(eventData, handler(eventObject)) 
+        ///     &#10;3 - mouseleave()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mousemove = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mousemove" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mousemove(handler(eventObject)) 
+        ///     &#10;2 - mousemove(eventData, handler(eventObject)) 
+        ///     &#10;3 - mousemove()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseout = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mouseout" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mouseout(handler(eventObject)) 
+        ///     &#10;2 - mouseout(eventData, handler(eventObject)) 
+        ///     &#10;3 - mouseout()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseover = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mouseover" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mouseover(handler(eventObject)) 
+        ///     &#10;2 - mouseover(eventData, handler(eventObject)) 
+        ///     &#10;3 - mouseover()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseup = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mouseup" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mouseup(handler(eventObject)) 
+        ///     &#10;2 - mouseup(eventData, handler(eventObject)) 
+        ///     &#10;3 - mouseup()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.next = function (until, selector) {
+        /// <summary>
+        ///     Get the immediately following sibling of each element in the set of matched elements. If a selector is provided, it retrieves the next sibling only if it matches that selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.nextAll = function (until, selector) {
+        /// <summary>
+        ///     Get all following siblings of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.nextUntil = function (until, selector) {
+        /// <summary>
+        ///     Get all following siblings of each element up to but not including the element matched by the selector, DOM node, or jQuery object passed.
+        ///     &#10;1 - nextUntil(selector, filter) 
+        ///     &#10;2 - nextUntil(element, filter)
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to indicate where to stop matching following sibling elements.
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.not = function (selector) {
+        /// <summary>
+        ///     Remove elements from the set of matched elements.
+        ///     &#10;1 - not(selector) 
+        ///     &#10;2 - not(elements) 
+        ///     &#10;3 - not(function(index)) 
+        ///     &#10;4 - not(jQuery object)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(winnow(this, selector || [], true));
+    };
+    jQuery.prototype.off = function (types, selector, fn) {
+        /// <summary>
+        ///     Remove an event handler.
+        ///     &#10;1 - off(events, selector, handler(eventObject)) 
+        ///     &#10;2 - off(events, selector)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     One or more space-separated event types and optional namespaces, or just namespaces, such as "click", "keydown.myPlugin", or ".myPlugin".
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A selector which should match the one originally passed to .on() when attaching event handlers.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A handler function previously attached for the event(s), or the special value false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var handleObj, type;
+        if (types && types.preventDefault && types.handleObj) {
+            // ( event )  dispatched jQuery.Event
+            handleObj = types.handleObj;
+            jQuery(types.delegateTarget).off(
+				handleObj.namespace ? handleObj.origType + "." + handleObj.namespace : handleObj.origType,
+				handleObj.selector,
+				handleObj.handler
+			);
+            return this;
+        }
+        if (typeof types === "object") {
+            // ( types-object [, selector] )
+            for (type in types) {
+                this.off(type, selector, types[type]);
+            }
+            return this;
+        }
+        if (selector === false || typeof selector === "function") {
+            // ( types [, fn] )
+            fn = selector;
+            selector = undefined;
+        }
+        if (fn === false) {
+            fn = returnFalse;
+        }
+        return this.each(function () {
+            jQuery.event.remove(this, types, fn, selector);
+        });
+    };
+    jQuery.prototype.offset = function (options) {
+        /// <summary>
+        ///     1: Get the current coordinates of the first element in the set of matched elements, relative to the document.
+        ///     &#10;    1.1 - offset()
+        ///     &#10;2: Set the current coordinates of every element in the set of matched elements, relative to the document.
+        ///     &#10;    2.1 - offset(coordinates) 
+        ///     &#10;    2.2 - offset(function(index, coords))
+        /// </summary>
+        /// <param name="options" type="PlainObject">
+        ///     An object containing the properties top and left, which are integers indicating the new top and left coordinates for the elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (arguments.length) {
+            return options === undefined ?
+                this :
+                this.each(function (i) {
+                    jQuery.offset.setOffset(this, options, i);
+                });
+        }
+
+        var docElem, win,
+            elem = this[0],
+            box = { top: 0, left: 0 },
+            doc = elem && elem.ownerDocument;
+
+        if (!doc) {
+            return;
+        }
+
+        docElem = doc.documentElement;
+
+        // Make sure it's not a disconnected DOM node
+        if (!jQuery.contains(docElem, elem)) {
+            return box;
+        }
+
+        // If we don't have gBCR, just use 0,0 rather than error
+        // BlackBerry 5, iOS 3 (original iPhone)
+        if (typeof elem.getBoundingClientRect !== core_strundefined) {
+            box = elem.getBoundingClientRect();
+        }
+        win = getWindow(doc);
+        return {
+            top: box.top + win.pageYOffset - docElem.clientTop,
+            left: box.left + win.pageXOffset - docElem.clientLeft
+        };
+    };
+    jQuery.prototype.offsetParent = function () {
+        /// <summary>
+        ///     Get the closest ancestor element that is positioned.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.map(function () {
+            var offsetParent = this.offsetParent || docElem;
+
+            while (offsetParent && (!jQuery.nodeName(offsetParent, "html") && jQuery.css(offsetParent, "position") === "static")) {
+                offsetParent = offsetParent.offsetParent;
+            }
+
+            return offsetParent || docElem;
+        });
+    };
+    jQuery.prototype.on = function (types, selector, data, fn, /*INTERNAL*/ one) {
+        /// <summary>
+        ///     Attach an event handler function for one or more events to the selected elements.
+        ///     &#10;1 - on(events, selector, data, handler(eventObject)) 
+        ///     &#10;2 - on(events, selector, data)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     One or more space-separated event types and optional namespaces, such as "click" or "keydown.myPlugin".
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A selector string to filter the descendants of the selected elements that trigger the event. If the selector is null or omitted, the event is always triggered when it reaches the selected element.
+        /// </param>
+        /// <param name="data" type="Anything">
+        ///     Data to be passed to the handler in event.data when an event is triggered.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute when the event is triggered. The value false is also allowed as a shorthand for a function that simply does return false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var origFn, type;
+
+        // Types can be a map of types/handlers
+        if (typeof types === "object") {
+            // ( types-Object, selector, data )
+            if (typeof selector !== "string") {
+                // ( types-Object, data )
+                data = data || selector;
+                selector = undefined;
+            }
+            for (type in types) {
+                this.on(type, selector, data, types[type], one);
+            }
+            return this;
+        }
+
+        if (data == null && fn == null) {
+            // ( types, fn )
+            fn = selector;
+            data = selector = undefined;
+        } else if (fn == null) {
+            if (typeof selector === "string") {
+                // ( types, selector, fn )
+                fn = data;
+                data = undefined;
+            } else {
+                // ( types, data, fn )
+                fn = data;
+                data = selector;
+                selector = undefined;
+            }
+        }
+        if (fn === false) {
+            fn = returnFalse;
+        } else if (!fn) {
+            return this;
+        }
+
+        if (one === 1) {
+            origFn = fn;
+            fn = function (event) {
+                // Can use an empty set, since event contains the info
+                jQuery().off(event);
+                return origFn.apply(this, arguments);
+            };
+            // Use same guid so caller can remove using origFn
+            fn.guid = origFn.guid || (origFn.guid = jQuery.guid++);
+        }
+        return this.each(function () {
+            jQuery.event.add(this, types, fn, data, selector);
+        });
+    };
+    jQuery.prototype.one = function (types, selector, data, fn) {
+        /// <summary>
+        ///     Attach a handler to an event for the elements. The handler is executed at most once per element.
+        ///     &#10;1 - one(events, data, handler(eventObject)) 
+        ///     &#10;2 - one(events, selector, data, handler(eventObject)) 
+        ///     &#10;3 - one(events, selector, data)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     One or more space-separated event types and optional namespaces, such as "click" or "keydown.myPlugin".
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A selector string to filter the descendants of the selected elements that trigger the event. If the selector is null or omitted, the event is always triggered when it reaches the selected element.
+        /// </param>
+        /// <param name="data" type="Anything">
+        ///     Data to be passed to the handler in event.data when an event is triggered.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute when the event is triggered. The value false is also allowed as a shorthand for a function that simply does return false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.on(types, selector, data, fn, 1);
+    };
+    jQuery.prototype.outerHeight = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed height for the first element in the set of matched elements, including padding, border, and optionally margin. Returns an integer (without "px") representation of the value or null if called on an empty set of elements.
+        /// </summary>
+        /// <param name="margin" type="Boolean">
+        ///     A Boolean indicating whether to include the element's margin in the calculation.
+        /// </param>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.outerWidth = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed width for the first element in the set of matched elements, including padding and border.
+        /// </summary>
+        /// <param name="margin" type="Boolean">
+        ///     A Boolean indicating whether to include the element's margin in the calculation.
+        /// </param>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.parent = function (until, selector) {
+        /// <summary>
+        ///     Get the parent of each element in the current set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.parents = function (until, selector) {
+        /// <summary>
+        ///     Get the ancestors of each element in the current set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.parentsUntil = function (until, selector) {
+        /// <summary>
+        ///     Get the ancestors of each element in the current set of matched elements, up to but not including the element matched by the selector, DOM node, or jQuery object.
+        ///     &#10;1 - parentsUntil(selector, filter) 
+        ///     &#10;2 - parentsUntil(element, filter)
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to indicate where to stop matching ancestor elements.
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.position = function () {
+        /// <summary>
+        ///     Get the current coordinates of the first element in the set of matched elements, relative to the offset parent.
+        /// </summary>
+        /// <returns type="Object" />
+
+        if (!this[0]) {
+            return;
+        }
+
+        var offsetParent, offset,
+			elem = this[0],
+			parentOffset = { top: 0, left: 0 };
+
+        // Fixed elements are offset from window (parentOffset = {top:0, left: 0}, because it is it's only offset parent
+        if (jQuery.css(elem, "position") === "fixed") {
+            // We assume that getBoundingClientRect is available when computed position is fixed
+            offset = elem.getBoundingClientRect();
+
+        } else {
+            // Get *real* offsetParent
+            offsetParent = this.offsetParent();
+
+            // Get correct offsets
+            offset = this.offset();
+            if (!jQuery.nodeName(offsetParent[0], "html")) {
+                parentOffset = offsetParent.offset();
+            }
+
+            // Add offsetParent borders
+            parentOffset.top += jQuery.css(offsetParent[0], "borderTopWidth", true);
+            parentOffset.left += jQuery.css(offsetParent[0], "borderLeftWidth", true);
+        }
+
+        // Subtract parent offsets and element margins
+        return {
+            top: offset.top - parentOffset.top - jQuery.css(elem, "marginTop", true),
+            left: offset.left - parentOffset.left - jQuery.css(elem, "marginLeft", true)
+        };
+    };
+    jQuery.prototype.prepend = function () {
+        /// <summary>
+        ///     Insert content, specified by the parameter, to the beginning of each element in the set of matched elements.
+        ///     &#10;1 - prepend(content, content) 
+        ///     &#10;2 - prepend(function(index, html))
+        /// </summary>
+        /// <param name="" type="">
+        ///     DOM element, array of elements, HTML string, or jQuery object to insert at the beginning of each element in the set of matched elements.
+        /// </param>
+        /// <param name="" type="">
+        ///     One or more additional DOM elements, arrays of elements, HTML strings, or jQuery objects to insert at the beginning of each element in the set of matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.domManip(arguments, function (elem) {
+            if (this.nodeType === 1 || this.nodeType === 11 || this.nodeType === 9) {
+                var target = manipulationTarget(this, elem);
+                target.insertBefore(elem, target.firstChild);
+            }
+        });
+    };
+    jQuery.prototype.prependTo = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements to the beginning of the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted at the beginning of the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.prev = function (until, selector) {
+        /// <summary>
+        ///     Get the immediately preceding sibling of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.prevAll = function (until, selector) {
+        /// <summary>
+        ///     Get all preceding siblings of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.prevUntil = function (until, selector) {
+        /// <summary>
+        ///     Get all preceding siblings of each element up to but not including the element matched by the selector, DOM node, or jQuery object.
+        ///     &#10;1 - prevUntil(selector, filter) 
+        ///     &#10;2 - prevUntil(element, filter)
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to indicate where to stop matching preceding sibling elements.
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.promise = function (type, obj) {
+        /// <summary>
+        ///     Return a Promise object to observe when all actions of a certain type bound to the collection, queued or not, have finished.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     The type of queue that needs to be observed.
+        /// </param>
+        /// <param name="obj" type="PlainObject">
+        ///     Object onto which the promise methods have to be attached
+        /// </param>
+        /// <returns type="Promise" />
+
+        var tmp,
+			count = 1,
+			defer = jQuery.Deferred(),
+			elements = this,
+			i = this.length,
+			resolve = function () {
+			    if (!(--count)) {
+			        defer.resolveWith(elements, [elements]);
+			    }
+			};
+
+        if (typeof type !== "string") {
+            obj = type;
+            type = undefined;
+        }
+        type = type || "fx";
+
+        while (i--) {
+            tmp = data_priv.get(elements[i], type + "queueHooks");
+            if (tmp && tmp.empty) {
+                count++;
+                tmp.empty.add(resolve);
+            }
+        }
+        resolve();
+        return defer.promise(obj);
+    };
+    jQuery.prototype.prop = function (name, value) {
+        /// <summary>
+        ///     1: Get the value of a property for the first element in the set of matched elements.
+        ///     &#10;    1.1 - prop(propertyName)
+        ///     &#10;2: Set one or more properties for the set of matched elements.
+        ///     &#10;    2.1 - prop(propertyName, value) 
+        ///     &#10;    2.2 - prop(properties) 
+        ///     &#10;    2.3 - prop(propertyName, function(index, oldPropertyValue))
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     The name of the property to set.
+        /// </param>
+        /// <param name="value" type="">
+        ///     A value to set for the property.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, jQuery.prop, name, value, arguments.length > 1);
+    };
+    jQuery.prototype.pushStack = function (elems) {
+        /// <summary>
+        ///     Add a collection of DOM elements onto the jQuery stack.
+        ///     &#10;1 - pushStack(elements) 
+        ///     &#10;2 - pushStack(elements, name, arguments)
+        /// </summary>
+        /// <param name="elems" type="Array">
+        ///     An array of elements to push onto the stack and make into a new jQuery object.
+        /// </param>
+        /// <param name="" type="String">
+        ///     The name of a jQuery method that generated the array of elements.
+        /// </param>
+        /// <param name="" type="Array">
+        ///     The arguments that were passed in to the jQuery method (for serialization).
+        /// </param>
+        /// <returns type="jQuery" />
+
+
+        // Build a new jQuery matched element set
+        var ret = jQuery.merge(this.constructor(), elems);
+
+        // Add the old object onto the stack (as a reference)
+        ret.prevObject = this;
+        ret.context = this.context;
+
+        // Return the newly-formed element set
+        return ret;
+    };
+    jQuery.prototype.queue = function (type, data) {
+        /// <summary>
+        ///     1: Show the queue of functions to be executed on the matched elements.
+        ///     &#10;    1.1 - queue(queueName)
+        ///     &#10;2: Manipulate the queue of functions to be executed, once for each matched element.
+        ///     &#10;    2.1 - queue(queueName, newQueue) 
+        ///     &#10;    2.2 - queue(queueName, callback( next ))
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <param name="data" type="Array">
+        ///     An array of functions to replace the current queue contents.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var setter = 2;
+
+        if (typeof type !== "string") {
+            data = type;
+            type = "fx";
+            setter--;
+        }
+
+        if (arguments.length < setter) {
+            return jQuery.queue(this[0], type);
+        }
+
+        return data === undefined ?
+			this :
+			this.each(function () {
+			    var queue = jQuery.queue(this, type, data);
+
+			    // ensure a hooks for this queue
+			    jQuery._queueHooks(this, type);
+
+			    if (type === "fx" && queue[0] !== "inprogress") {
+			        jQuery.dequeue(this, type);
+			    }
+			});
+    };
+    jQuery.prototype.ready = function (fn) {
+        /// <summary>
+        ///     Specify a function to execute when the DOM is fully loaded.
+        /// </summary>
+        /// <param name="fn" type="Function">
+        ///     A function to execute after the DOM is ready.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        // Add the callback
+        jQuery.ready.promise().done(fn);
+
+        return this;
+    };
+    jQuery.prototype.remove = function (selector, keepData) {
+        /// <summary>
+        ///     Remove the set of matched elements from the DOM.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector expression that filters the set of matched elements to be removed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elem,
+			elems = selector ? jQuery.filter(selector, this) : this,
+			i = 0;
+
+        for (; (elem = elems[i]) != null; i++) {
+            if (!keepData && elem.nodeType === 1) {
+                jQuery.cleanData(getAll(elem));
+            }
+
+            if (elem.parentNode) {
+                if (keepData && jQuery.contains(elem.ownerDocument, elem)) {
+                    setGlobalEval(getAll(elem, "script"));
+                }
+                elem.parentNode.removeChild(elem);
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.removeAttr = function (name) {
+        /// <summary>
+        ///     Remove an attribute from each element in the set of matched elements.
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     An attribute to remove; as of version 1.7, it can be a space-separated list of attributes.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            jQuery.removeAttr(this, name);
+        });
+    };
+    jQuery.prototype.removeClass = function (value) {
+        /// <summary>
+        ///     Remove a single class, multiple classes, or all classes from each element in the set of matched elements.
+        ///     &#10;1 - removeClass(className) 
+        ///     &#10;2 - removeClass(function(index, class))
+        /// </summary>
+        /// <param name="value" type="String">
+        ///     One or more space-separated classes to be removed from the class attribute of each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var classes, elem, cur, clazz, j,
+			i = 0,
+			len = this.length,
+			proceed = arguments.length === 0 || typeof value === "string" && value;
+
+        if (jQuery.isFunction(value)) {
+            return this.each(function (j) {
+                jQuery(this).removeClass(value.call(this, j, this.className));
+            });
+        }
+        if (proceed) {
+            classes = (value || "").match(core_rnotwhite) || [];
+
+            for (; i < len; i++) {
+                elem = this[i];
+                // This expression is here for better compressibility (see addClass)
+                cur = elem.nodeType === 1 && (elem.className ?
+					(" " + elem.className + " ").replace(rclass, " ") :
+					""
+				);
+
+                if (cur) {
+                    j = 0;
+                    while ((clazz = classes[j++])) {
+                        // Remove *all* instances
+                        while (cur.indexOf(" " + clazz + " ") >= 0) {
+                            cur = cur.replace(" " + clazz + " ", " ");
+                        }
+                    }
+                    elem.className = value ? jQuery.trim(cur) : "";
+                }
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.removeData = function (key) {
+        /// <summary>
+        ///     Remove a previously-stored piece of data.
+        ///     &#10;1 - removeData(name) 
+        ///     &#10;2 - removeData(list)
+        /// </summary>
+        /// <param name="key" type="String">
+        ///     A string naming the piece of data to delete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            data_user.remove(this, key);
+        });
+    };
+    jQuery.prototype.removeProp = function (name) {
+        /// <summary>
+        ///     Remove a property for the set of matched elements.
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     The name of the property to remove.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            delete this[jQuery.propFix[name] || name];
+        });
+    };
+    jQuery.prototype.replaceAll = function (selector) {
+        /// <summary>
+        ///     Replace each target element with the set of matched elements.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector string, jQuery object, or DOM element reference indicating which element(s) to replace.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.replaceWith = function () {
+        /// <summary>
+        ///     Replace each element in the set of matched elements with the provided new content and return the set of elements that was removed.
+        ///     &#10;1 - replaceWith(newContent) 
+        ///     &#10;2 - replaceWith(function)
+        /// </summary>
+        /// <param name="" type="">
+        ///     The content to insert. May be an HTML string, DOM element, or jQuery object.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var
+			// Snapshot the DOM in case .domManip sweeps something relevant into its fragment
+			args = jQuery.map(this, function (elem) {
+			    return [elem.nextSibling, elem.parentNode];
+			}),
+			i = 0;
+
+        // Make the changes, replacing each context element with the new content
+        this.domManip(arguments, function (elem) {
+            var next = args[i++],
+				parent = args[i++];
+
+            if (parent) {
+                jQuery(this).remove();
+                parent.insertBefore(elem, next);
+            }
+            // Allow new content to include elements from the context set
+        }, true);
+
+        // Force removal if there was no new content (e.g., from empty arguments)
+        return i ? this : this.remove();
+    };
+    jQuery.prototype.resize = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "resize" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - resize(handler(eventObject)) 
+        ///     &#10;2 - resize(eventData, handler(eventObject)) 
+        ///     &#10;3 - resize()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.scroll = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "scroll" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - scroll(handler(eventObject)) 
+        ///     &#10;2 - scroll(eventData, handler(eventObject)) 
+        ///     &#10;3 - scroll()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.scrollLeft = function (val) {
+        /// <summary>
+        ///     1: Get the current horizontal position of the scroll bar for the first element in the set of matched elements.
+        ///     &#10;    1.1 - scrollLeft()
+        ///     &#10;2: Set the current horizontal position of the scroll bar for each of the set of matched elements.
+        ///     &#10;    2.1 - scrollLeft(value)
+        /// </summary>
+        /// <param name="val" type="Number">
+        ///     An integer indicating the new position to set the scroll bar to.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (elem, method, val) {
+            var win = getWindow(elem);
+
+            if (val === undefined) {
+                return win ? win[prop] : elem[method];
+            }
+
+            if (win) {
+                win.scrollTo(
+					!top ? val : window.pageXOffset,
+					top ? val : window.pageYOffset
+				);
+
+            } else {
+                elem[method] = val;
+            }
+        }, method, val, arguments.length, null);
+    };
+    jQuery.prototype.scrollTop = function (val) {
+        /// <summary>
+        ///     1: Get the current vertical position of the scroll bar for the first element in the set of matched elements or set the vertical position of the scroll bar for every matched element.
+        ///     &#10;    1.1 - scrollTop()
+        ///     &#10;2: Set the current vertical position of the scroll bar for each of the set of matched elements.
+        ///     &#10;    2.1 - scrollTop(value)
+        /// </summary>
+        /// <param name="val" type="Number">
+        ///     An integer indicating the new position to set the scroll bar to.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (elem, method, val) {
+            var win = getWindow(elem);
+
+            if (val === undefined) {
+                return win ? win[prop] : elem[method];
+            }
+
+            if (win) {
+                win.scrollTo(
+					!top ? val : window.pageXOffset,
+					top ? val : window.pageYOffset
+				);
+
+            } else {
+                elem[method] = val;
+            }
+        }, method, val, arguments.length, null);
+    };
+    jQuery.prototype.select = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "select" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - select(handler(eventObject)) 
+        ///     &#10;2 - select(eventData, handler(eventObject)) 
+        ///     &#10;3 - select()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.serialize = function () {
+        /// <summary>
+        ///     Encode a set of form elements as a string for submission.
+        /// </summary>
+        /// <returns type="String" />
+
+        return jQuery.param(this.serializeArray());
+    };
+    jQuery.prototype.serializeArray = function () {
+        /// <summary>
+        ///     Encode a set of form elements as an array of names and values.
+        /// </summary>
+        /// <returns type="Array" />
+
+        return this.map(function () {
+            // Can add propHook for "elements" to filter or add form elements
+            var elements = jQuery.prop(this, "elements");
+            return elements ? jQuery.makeArray(elements) : this;
+        })
+		.filter(function () {
+		    var type = this.type;
+		    // Use .is(":disabled") so that fieldset[disabled] works
+		    return this.name && !jQuery(this).is(":disabled") &&
+				rsubmittable.test(this.nodeName) && !rsubmitterTypes.test(type) &&
+				(this.checked || !manipulation_rcheckableType.test(type));
+		})
+		.map(function (i, elem) {
+		    var val = jQuery(this).val();
+
+		    return val == null ?
+				null :
+				jQuery.isArray(val) ?
+					jQuery.map(val, function (val) {
+					    return { name: elem.name, value: val.replace(rCRLF, "\r\n") };
+					}) :
+					{ name: elem.name, value: val.replace(rCRLF, "\r\n") };
+		}).get();
+    };
+    jQuery.prototype.show = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display the matched elements.
+        ///     &#10;1 - show() 
+        ///     &#10;2 - show(duration, complete) 
+        ///     &#10;3 - show(options) 
+        ///     &#10;4 - show(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return speed == null || typeof speed === "boolean" ?
+			cssFn.apply(this, arguments) :
+			this.animate(genFx(name, true), speed, easing, callback);
+    };
+    jQuery.prototype.siblings = function (until, selector) {
+        /// <summary>
+        ///     Get the siblings of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.size = function () {
+        /// <summary>
+        ///     Return the number of elements in the jQuery object.
+        /// </summary>
+        /// <returns type="Number" />
+
+        return this.length;
+    };
+    jQuery.prototype.slice = function () {
+        /// <summary>
+        ///     Reduce the set of matched elements to a subset specified by a range of indices.
+        /// </summary>
+        /// <param name="" type="Number">
+        ///     An integer indicating the 0-based position at which the elements begin to be selected. If negative, it indicates an offset from the end of the set.
+        /// </param>
+        /// <param name="" type="Number">
+        ///     An integer indicating the 0-based position at which the elements stop being selected. If negative, it indicates an offset from the end of the set. If omitted, the range continues until the end of the set.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(core_slice.apply(this, arguments));
+    };
+    jQuery.prototype.slideDown = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display the matched elements with a sliding motion.
+        ///     &#10;1 - slideDown(duration, complete) 
+        ///     &#10;2 - slideDown(options) 
+        ///     &#10;3 - slideDown(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.slideToggle = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display or hide the matched elements with a sliding motion.
+        ///     &#10;1 - slideToggle(duration, complete) 
+        ///     &#10;2 - slideToggle(options) 
+        ///     &#10;3 - slideToggle(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.slideUp = function (speed, easing, callback) {
+        /// <summary>
+        ///     Hide the matched elements with a sliding motion.
+        ///     &#10;1 - slideUp(duration, complete) 
+        ///     &#10;2 - slideUp(options) 
+        ///     &#10;3 - slideUp(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.stop = function (type, clearQueue, gotoEnd) {
+        /// <summary>
+        ///     Stop the currently-running animation on the matched elements.
+        ///     &#10;1 - stop(clearQueue, jumpToEnd) 
+        ///     &#10;2 - stop(queue, clearQueue, jumpToEnd)
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     The name of the queue in which to stop animations.
+        /// </param>
+        /// <param name="clearQueue" type="Boolean">
+        ///     A Boolean indicating whether to remove queued animation as well. Defaults to false.
+        /// </param>
+        /// <param name="gotoEnd" type="Boolean">
+        ///     A Boolean indicating whether to complete the current animation immediately. Defaults to false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var stopQueue = function (hooks) {
+            var stop = hooks.stop;
+            delete hooks.stop;
+            stop(gotoEnd);
+        };
+
+        if (typeof type !== "string") {
+            gotoEnd = clearQueue;
+            clearQueue = type;
+            type = undefined;
+        }
+        if (clearQueue && type !== false) {
+            this.queue(type || "fx", []);
+        }
+
+        return this.each(function () {
+            var dequeue = true,
+				index = type != null && type + "queueHooks",
+				timers = jQuery.timers,
+				data = data_priv.get(this);
+
+            if (index) {
+                if (data[index] && data[index].stop) {
+                    stopQueue(data[index]);
+                }
+            } else {
+                for (index in data) {
+                    if (data[index] && data[index].stop && rrun.test(index)) {
+                        stopQueue(data[index]);
+                    }
+                }
+            }
+
+            for (index = timers.length; index--;) {
+                if (timers[index].elem === this && (type == null || timers[index].queue === type)) {
+                    timers[index].anim.stop(gotoEnd);
+                    dequeue = false;
+                    timers.splice(index, 1);
+                }
+            }
+
+            // start the next in the queue if the last step wasn't forced
+            // timers currently will call their complete callbacks, which will dequeue
+            // but only if they were gotoEnd
+            if (dequeue || !gotoEnd) {
+                jQuery.dequeue(this, type);
+            }
+        });
+    };
+    jQuery.prototype.submit = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "submit" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - submit(handler(eventObject)) 
+        ///     &#10;2 - submit(eventData, handler(eventObject)) 
+        ///     &#10;3 - submit()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.text = function (value) {
+        /// <summary>
+        ///     1: Get the combined text contents of each element in the set of matched elements, including their descendants.
+        ///     &#10;    1.1 - text()
+        ///     &#10;2: Set the content of each element in the set of matched elements to the specified text.
+        ///     &#10;    2.1 - text(textString) 
+        ///     &#10;    2.2 - text(function(index, text))
+        /// </summary>
+        /// <param name="value" type="String">
+        ///     A string of text to set as the content of each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (value) {
+            return value === undefined ?
+				jQuery.text(this) :
+				this.empty().append((this[0] && this[0].ownerDocument || document).createTextNode(value));
+        }, null, value, arguments.length);
+    };
+    jQuery.prototype.toArray = function () {
+        /// <summary>
+        ///     Retrieve all the DOM elements contained in the jQuery set, as an array.
+        /// </summary>
+        /// <returns type="Array" />
+
+        return core_slice.call(this);
+    };
+    jQuery.prototype.toggle = function (speed, easing, callback) {
+        /// <summary>
+        ///     1: Bind two or more handlers to the matched elements, to be executed on alternate clicks.
+        ///     &#10;    1.1 - toggle(handler(eventObject), handler(eventObject), handler(eventObject))
+        ///     &#10;2: Display or hide the matched elements.
+        ///     &#10;    2.1 - toggle(duration, complete) 
+        ///     &#10;    2.2 - toggle(options) 
+        ///     &#10;    2.3 - toggle(duration, easing, complete) 
+        ///     &#10;    2.4 - toggle(showOrHide)
+        /// </summary>
+        /// <param name="speed" type="Function">
+        ///     A function to execute every even time the element is clicked.
+        /// </param>
+        /// <param name="easing" type="Function">
+        ///     A function to execute every odd time the element is clicked.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     Additional handlers to cycle through after clicks.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return speed == null || typeof speed === "boolean" ?
+			cssFn.apply(this, arguments) :
+			this.animate(genFx(name, true), speed, easing, callback);
+    };
+    jQuery.prototype.toggleClass = function (value, stateVal) {
+        /// <summary>
+        ///     Add or remove one or more classes from each element in the set of matched elements, depending on either the class's presence or the value of the switch argument.
+        ///     &#10;1 - toggleClass(className) 
+        ///     &#10;2 - toggleClass(className, switch) 
+        ///     &#10;3 - toggleClass(switch) 
+        ///     &#10;4 - toggleClass(function(index, class, switch), switch)
+        /// </summary>
+        /// <param name="value" type="String">
+        ///     One or more class names (separated by spaces) to be toggled for each element in the matched set.
+        /// </param>
+        /// <param name="stateVal" type="Boolean">
+        ///     A Boolean (not just truthy/falsy) value to determine whether the class should be added or removed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var type = typeof value,
+			isBool = typeof stateVal === "boolean";
+
+        if (jQuery.isFunction(value)) {
+            return this.each(function (i) {
+                jQuery(this).toggleClass(value.call(this, i, this.className, stateVal), stateVal);
+            });
+        }
+
+        return this.each(function () {
+            if (type === "string") {
+                // toggle individual class names
+                var className,
+					i = 0,
+					self = jQuery(this),
+					state = stateVal,
+					classNames = value.match(core_rnotwhite) || [];
+
+                while ((className = classNames[i++])) {
+                    // check each className given, space separated list
+                    state = isBool ? state : !self.hasClass(className);
+                    self[state ? "addClass" : "removeClass"](className);
+                }
+
+                // Toggle whole class name
+            } else if (type === core_strundefined || type === "boolean") {
+                if (this.className) {
+                    // store className if set
+                    data_priv.set(this, "__className__", this.className);
+                }
+
+                // If the element has a class name or if we're passed "false",
+                // then remove the whole classname (if there was one, the above saved it).
+                // Otherwise bring back whatever was previously saved (if anything),
+                // falling back to the empty string if nothing was stored.
+                this.className = this.className || value === false ? "" : data_priv.get(this, "__className__") || "";
+            }
+        });
+    };
+    jQuery.prototype.trigger = function (type, data) {
+        /// <summary>
+        ///     Execute all handlers and behaviors attached to the matched elements for the given event type.
+        ///     &#10;1 - trigger(eventType, extraParameters) 
+        ///     &#10;2 - trigger(event, extraParameters)
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="data" type="">
+        ///     Additional parameters to pass along to the event handler.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            jQuery.event.trigger(type, data, this);
+        });
+    };
+    jQuery.prototype.triggerHandler = function (type, data) {
+        /// <summary>
+        ///     Execute all handlers attached to an element for an event.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="data" type="Array">
+        ///     An array of additional parameters to pass along to the event handler.
+        /// </param>
+        /// <returns type="Object" />
+
+        var elem = this[0];
+        if (elem) {
+            return jQuery.event.trigger(type, data, elem, true);
+        }
+    };
+    jQuery.prototype.unbind = function (types, fn) {
+        /// <summary>
+        ///     Remove a previously-attached event handler from the elements.
+        ///     &#10;1 - unbind(eventType, handler(eventObject)) 
+        ///     &#10;2 - unbind(eventType, false) 
+        ///     &#10;3 - unbind(event)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     The function that is to be no longer executed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.off(types, null, fn);
+    };
+    jQuery.prototype.undelegate = function (selector, types, fn) {
+        /// <summary>
+        ///     Remove a handler from the event for all elements which match the current selector, based upon a specific set of root elements.
+        ///     &#10;1 - undelegate() 
+        ///     &#10;2 - undelegate(selector, eventType) 
+        ///     &#10;3 - undelegate(selector, eventType, handler(eventObject)) 
+        ///     &#10;4 - undelegate(selector, events) 
+        ///     &#10;5 - undelegate(namespace)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector which will be used to filter the event results.
+        /// </param>
+        /// <param name="types" type="String">
+        ///     A string containing a JavaScript event type, such as "click" or "keydown"
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute at the time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        // ( namespace ) or ( selector, types [, fn] )
+        return arguments.length === 1 ? this.off(selector, "**") : this.off(types, selector || "**", fn);
+    };
+    jQuery.prototype.unload = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "unload" JavaScript event.
+        ///     &#10;1 - unload(handler(eventObject)) 
+        ///     &#10;2 - unload(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     A plain object of data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.unwrap = function () {
+        /// <summary>
+        ///     Remove the parents of the set of matched elements from the DOM, leaving the matched elements in their place.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.parent().each(function () {
+            if (!jQuery.nodeName(this, "body")) {
+                jQuery(this).replaceWith(this.childNodes);
+            }
+        }).end();
+    };
+    jQuery.prototype.val = function (value) {
+        /// <summary>
+        ///     1: Get the current value of the first element in the set of matched elements.
+        ///     &#10;    1.1 - val()
+        ///     &#10;2: Set the value of each element in the set of matched elements.
+        ///     &#10;    2.1 - val(value) 
+        ///     &#10;    2.2 - val(function(index, value))
+        /// </summary>
+        /// <param name="value" type="">
+        ///     A string of text or an array of strings corresponding to the value of each matched element to set as selected/checked.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var hooks, ret, isFunction,
+			elem = this[0];
+
+        if (!arguments.length) {
+            if (elem) {
+                hooks = jQuery.valHooks[elem.type] || jQuery.valHooks[elem.nodeName.toLowerCase()];
+
+                if (hooks && "get" in hooks && (ret = hooks.get(elem, "value")) !== undefined) {
+                    return ret;
+                }
+
+                ret = elem.value;
+
+                return typeof ret === "string" ?
+					// handle most common string cases
+					ret.replace(rreturn, "") :
+					// handle cases where value is null/undef or number
+					ret == null ? "" : ret;
+            }
+
+            return;
+        }
+
+        isFunction = jQuery.isFunction(value);
+
+        return this.each(function (i) {
+            var val,
+				self = jQuery(this);
+
+            if (this.nodeType !== 1) {
+                return;
+            }
+
+            if (isFunction) {
+                val = value.call(this, i, self.val());
+            } else {
+                val = value;
+            }
+
+            // Treat null/undefined as ""; convert numbers to string
+            if (val == null) {
+                val = "";
+            } else if (typeof val === "number") {
+                val += "";
+            } else if (jQuery.isArray(val)) {
+                val = jQuery.map(val, function (value) {
+                    return value == null ? "" : value + "";
+                });
+            }
+
+            hooks = jQuery.valHooks[this.type] || jQuery.valHooks[this.nodeName.toLowerCase()];
+
+            // If set returns undefined, fall back to normal setting
+            if (!hooks || !("set" in hooks) || hooks.set(this, val, "value") === undefined) {
+                this.value = val;
+            }
+        });
+    };
+    jQuery.prototype.width = function (margin, value) {
+        /// <summary>
+        ///     1: Get the current computed width for the first element in the set of matched elements.
+        ///     &#10;    1.1 - width()
+        ///     &#10;2: Set the CSS width of each element in the set of matched elements.
+        ///     &#10;    2.1 - width(value) 
+        ///     &#10;    2.2 - width(function(index, width))
+        /// </summary>
+        /// <param name="margin" type="">
+        ///     An integer representing the number of pixels, or an integer along with an optional unit of measure appended (as a string).
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.wrap = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around each element in the set of matched elements.
+        ///     &#10;1 - wrap(wrappingElement) 
+        ///     &#10;2 - wrap(function(index))
+        /// </summary>
+        /// <param name="html" type="">
+        ///     A selector, element, HTML string, or jQuery object specifying the structure to wrap around the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var isFunction = jQuery.isFunction(html);
+
+        return this.each(function (i) {
+            jQuery(this).wrapAll(isFunction ? html.call(this, i) : html);
+        });
+    };
+    jQuery.prototype.wrapAll = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around all elements in the set of matched elements.
+        /// </summary>
+        /// <param name="html" type="">
+        ///     A selector, element, HTML string, or jQuery object specifying the structure to wrap around the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var wrap;
+
+        if (jQuery.isFunction(html)) {
+            return this.each(function (i) {
+                jQuery(this).wrapAll(html.call(this, i));
+            });
+        }
+
+        if (this[0]) {
+
+            // The elements to wrap the target around
+            wrap = jQuery(html, this[0].ownerDocument).eq(0).clone(true);
+
+            if (this[0].parentNode) {
+                wrap.insertBefore(this[0]);
+            }
+
+            wrap.map(function () {
+                var elem = this;
+
+                while (elem.firstElementChild) {
+                    elem = elem.firstElementChild;
+                }
+
+                return elem;
+            }).append(this);
+        }
+
+        return this;
+    };
+    jQuery.prototype.wrapInner = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around the content of each element in the set of matched elements.
+        ///     &#10;1 - wrapInner(wrappingElement) 
+        ///     &#10;2 - wrapInner(function(index))
+        /// </summary>
+        /// <param name="html" type="String">
+        ///     An HTML snippet, selector expression, jQuery object, or DOM element specifying the structure to wrap around the content of the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (jQuery.isFunction(html)) {
+            return this.each(function (i) {
+                jQuery(this).wrapInner(html.call(this, i));
+            });
+        }
+
+        return this.each(function () {
+            var self = jQuery(this),
+				contents = self.contents();
+
+            if (contents.length) {
+                contents.wrapAll(html);
+
+            } else {
+                self.append(html);
+            }
+        });
+    };
+    jQuery.fn = jQuery.prototype;
+    jQuery.fn.init.prototype = jQuery.fn;
+    window.jQuery = window.$ = jQuery;
+})(window);
