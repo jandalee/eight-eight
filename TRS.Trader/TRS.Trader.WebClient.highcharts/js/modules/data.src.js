@@ -359,4 +359,440 @@
 	},
 
 	/**
-	 * Parse a single column. Set properties like .isDatetime and .isN
+	 * Parse a single column. Set properties like .isDatetime and .isNumeric.
+	 */
+	parseColumn: function (column, col) {
+		var rawColumns = this.rawColumns,
+			columns = this.columns, 
+			row = column.length,
+			val,
+			floatVal,
+			trimVal,
+			trimInsideVal,
+			firstRowAsNames = this.firstRowAsNames,
+			isXColumn = inArray(col, this.valueCount.xColumns) !== -1,
+			dateVal,
+			backup = [],
+			diff,
+			chartOptions = this.chartOptions,
+			descending,
+			columnTypes = this.options.columnTypes || [],
+			columnType = columnTypes[col],
+			forceCategory = isXColumn && ((chartOptions && chartOptions.xAxis && splat(chartOptions.xAxis)[0].type === 'category') || columnType === 'string');
+		
+		if (!rawColumns[col]) {
+			rawColumns[col] = [];
+		}
+		while (row--) {
+			val = backup[row] || column[row];
+			
+			trimVal = this.trim(val);
+			trimInsideVal = this.trim(val, true);
+			floatVal = parseFloat(trimInsideVal);
+
+			// Set it the first time
+			if (rawColumns[col][row] === undefined) {
+				rawColumns[col][row] = trimVal;
+			}
+			
+			// Disable number or date parsing by setting the X axis type to category
+			if (forceCategory || (row === 0 && firstRowAsNames)) {
+				column[row] = trimVal;
+
+			} else if (+trimInsideVal === floatVal) { // is numeric
+			
+				column[row] = floatVal;
+				
+				// If the number is greater than milliseconds in a year, assume datetime
+				if (floatVal > 365 * 24 * 3600 * 1000 && columnType !== 'float') {
+					column.isDatetime = true;
+				} else {
+					column.isNumeric = true;
+				}
+
+				if (column[row + 1] !== undefined) {
+					descending = floatVal > column[row + 1];
+				}
+			
+			// String, continue to determine if it is a date string or really a string
+			} else {
+				dateVal = this.parseDate(val);
+				// Only allow parsing of dates if this column is an x-column
+				if (isXColumn && typeof dateVal === 'number' && !isNaN(dateVal) && columnType !== 'float') { // is date
+					backup[row] = val; 
+					column[row] = dateVal;
+					column.isDatetime = true;
+
+					// Check if the dates are uniformly descending or ascending. If they 
+					// are not, chances are that they are a different time format, so check
+					// for alternative.
+					if (column[row + 1] !== undefined) {
+						diff = dateVal > column[row + 1];
+						if (diff !== descending && descending !== undefined) {
+							if (this.alternativeFormat) {
+								this.dateFormat = this.alternativeFormat;
+								row = column.length;
+								this.alternativeFormat = this.dateFormats[this.dateFormat].alternative;
+							} else {
+								column.unsorted = true;
+							}
+						}
+						descending = diff;
+					}
+				
+				} else { // string
+					column[row] = trimVal === '' ? null : trimVal;
+					if (row !== 0 && (column.isDatetime || column.isNumeric)) {
+						column.mixed = true;
+					}
+				}
+			}
+		}
+
+		// If strings are intermixed with numbers or dates in a parsed column, it is an indication
+		// that parsing went wrong or the data was not intended to display as numbers or dates and 
+		// parsing is too aggressive. Fall back to categories. Demonstrated in the 
+		// highcharts/demo/column-drilldown sample.
+		if (isXColumn && column.mixed) {
+			columns[col] = rawColumns[col];
+		}
+
+		// If the 0 column is date or number and descending, reverse all columns. 
+		if (isXColumn && descending && this.options.sort) {
+			for (col = 0; col < columns.length; col++) {
+				columns[col].reverse();
+				if (firstRowAsNames) {
+					columns[col].unshift(columns[col].pop());
+				}
+			}
+		}
+	},
+	
+	/**
+	 * A collection of available date formats, extendable from the outside to support
+	 * custom date formats.
+	 */
+	dateFormats: {
+		'YYYY-mm-dd': {
+			regex: /^([0-9]{4})[\-\/\.]([0-9]{2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[1], match[2] - 1, +match[3]);
+			}
+		},
+		'dd/mm/YYYY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{4})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3], match[2] - 1, +match[1]);
+			},
+			alternative: 'mm/dd/YYYY' // different format with the same regex
+		},
+		'mm/dd/YYYY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{4})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3], match[1] - 1, +match[2]);
+			}
+		},
+		'dd/mm/YY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3] + 2000, match[2] - 1, +match[1]);
+			},
+			alternative: 'mm/dd/YY' // different format with the same regex
+		},
+		'mm/dd/YY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3] + 2000, match[1] - 1, +match[2]);
+			}
+		}
+	},
+	
+	/**
+	 * Parse a date and return it as a number. Overridable through options.parseDate.
+	 */
+	parseDate: function (val) {
+		var parseDate = this.options.parseDate,
+			ret,
+			key,
+			format,
+			dateFormat = this.options.dateFormat || this.dateFormat,
+			match;
+
+		if (parseDate) {
+			ret = parseDate(val);
+		
+		} else if (typeof val === 'string') {
+			// Auto-detect the date format the first time
+			if (!dateFormat) {
+				for (key in this.dateFormats) {
+					format = this.dateFormats[key];
+					match = val.match(format.regex);
+					if (match) {
+						this.dateFormat = dateFormat = key;
+						this.alternativeFormat = format.alternative;
+						ret = format.parser(match);
+						break;
+					}
+				}
+			// Next time, use the one previously found
+			} else {
+				format = this.dateFormats[dateFormat];
+				match = val.match(format.regex);
+				if (match) {
+					ret = format.parser(match);
+				}
+			}
+			// Fall back to Date.parse		
+			if (!match) {
+				match = Date.parse(val);
+				// External tools like Date.js and MooTools extend Date object and
+				// returns a date.
+				if (typeof match === 'object' && match !== null && match.getTime) {
+					ret = match.getTime() - match.getTimezoneOffset() * 60000;
+				
+				// Timestamp
+				} else if (typeof match === 'number' && !isNaN(match)) {
+					ret = match - (new Date(match)).getTimezoneOffset() * 60000;
+				}
+			}
+		}
+		return ret;
+	},
+	
+	/**
+	 * Reorganize rows into columns
+	 */
+	rowsToColumns: function (rows) {
+		var row,
+			rowsLength,
+			col,
+			colsLength,
+			columns;
+
+		if (rows) {
+			columns = [];
+			rowsLength = rows.length;
+			for (row = 0; row < rowsLength; row++) {
+				colsLength = rows[row].length;
+				for (col = 0; col < colsLength; col++) {
+					if (!columns[col]) {
+						columns[col] = [];
+					}
+					columns[col][row] = rows[row][col];
+				}
+			}
+		}
+		return columns;
+	},
+	
+	/**
+	 * A hook for working directly on the parsed columns
+	 */
+	parsed: function () {
+		if (this.options.parsed) {
+			return this.options.parsed.call(this, this.columns);
+		}
+	},
+
+	getFreeIndexes: function (numberOfColumns, seriesBuilders) {
+		var s,
+			i,
+			freeIndexes = [],
+			freeIndexValues = [],
+			referencedIndexes;
+
+		// Add all columns as free
+		for (i = 0; i < numberOfColumns; i = i + 1) {
+			freeIndexes.push(true);
+		}
+
+		// Loop all defined builders and remove their referenced columns
+		for (s = 0; s < seriesBuilders.length; s = s + 1) {
+			referencedIndexes = seriesBuilders[s].getReferencedColumnIndexes();
+
+			for (i = 0; i < referencedIndexes.length; i = i + 1) {
+				freeIndexes[referencedIndexes[i]] = false;
+			}
+		}
+
+		// Collect the values for the free indexes
+		for (i = 0; i < freeIndexes.length; i = i + 1) {
+			if (freeIndexes[i]) {
+				freeIndexValues.push(i);
+			}
+		}
+
+		return freeIndexValues;
+	},
+	
+	/**
+	 * If a complete callback function is provided in the options, interpret the 
+	 * columns into a Highcharts options object.
+	 */
+	complete: function () {
+		
+		var columns = this.columns,
+			xColumns = [],
+			type,
+			options = this.options,
+			series,
+			data,
+			i,
+			j,
+			r,
+			seriesIndex,
+			chartOptions,
+			allSeriesBuilders = [],
+			builder,
+			freeIndexes,
+			typeCol,
+			index;
+
+		xColumns.length = columns.length;
+		if (options.complete || options.afterComplete) {
+
+			// Get the names and shift the top row
+			for (i = 0; i < columns.length; i++) {
+				if (this.firstRowAsNames) {
+					columns[i].name = columns[i].shift();
+				}
+			}
+			
+			// Use the next columns for series
+			series = [];
+			freeIndexes = this.getFreeIndexes(columns.length, this.valueCount.seriesBuilders);
+
+			// Populate defined series
+			for (seriesIndex = 0; seriesIndex < this.valueCount.seriesBuilders.length; seriesIndex++) {
+				builder = this.valueCount.seriesBuilders[seriesIndex];
+
+				// If the builder can be populated with remaining columns, then add it to allBuilders
+				if (builder.populateColumns(freeIndexes)) {
+					allSeriesBuilders.push(builder);
+				}
+			}
+
+			// Populate dynamic series
+			while (freeIndexes.length > 0) {
+				builder = new SeriesBuilder();
+				builder.addColumnReader(0, 'x');
+				
+				// Mark index as used (not free)
+				index = inArray(0, freeIndexes);
+				if (index !== -1) {
+					freeIndexes.splice(index, 1);
+				}
+
+				for (i = 0; i < this.valueCount.global; i++) {
+					// Create and add a column reader for the next free column index
+					builder.addColumnReader(undefined, this.valueCount.globalPointArrayMap[i]);
+				}
+
+				// If the builder can be populated with remaining columns, then add it to allBuilders
+				if (builder.populateColumns(freeIndexes)) {
+					allSeriesBuilders.push(builder);
+				}
+			}
+
+			// Get the data-type from the first series x column
+			if (allSeriesBuilders.length > 0 && allSeriesBuilders[0].readers.length > 0) {
+				typeCol = columns[allSeriesBuilders[0].readers[0].columnIndex];
+				if (typeCol !== undefined) {
+					if (typeCol.isDatetime) {
+						type = 'datetime';
+					} else if (!typeCol.isNumeric) {
+						type = 'category';
+					}
+				}
+			}
+			// Axis type is category, then the "x" column should be called "name"
+			if (type === 'category') {
+				for (seriesIndex = 0; seriesIndex < allSeriesBuilders.length; seriesIndex++) {
+					builder = allSeriesBuilders[seriesIndex];
+					for (r = 0; r < builder.readers.length; r++) {
+						if (builder.readers[r].configName === 'x') {
+							builder.readers[r].configName = 'name';
+						}
+					}
+				}
+			}
+
+			// Read data for all builders
+			for (seriesIndex = 0; seriesIndex < allSeriesBuilders.length; seriesIndex++) {
+				builder = allSeriesBuilders[seriesIndex];
+
+				// Iterate down the cells of each column and add data to the series
+				data = [];
+				for (j = 0; j < columns[0].length; j++) { // TODO: which column's length should we use here
+					data[j] = builder.read(columns, j);
+				}
+
+				// Add the series
+				series[seriesIndex] = {
+					data: data
+				};
+				if (builder.name) {
+					series[seriesIndex].name = builder.name;
+				}
+				if (type === 'category') {
+					series[seriesIndex].turboThreshold = 0;
+				}
+			}
+
+
+
+			// Do the callback
+			chartOptions = {
+				series: series
+			};
+			if (type) {
+				chartOptions.xAxis = {
+					type: type
+				};
+			}
+			
+			if (options.complete) {
+				options.complete(chartOptions);
+			}
+
+			// The afterComplete hook is used internally to avoid conflict with the externally
+			// available complete option.
+			if (options.afterComplete) {
+				options.afterComplete(chartOptions);
+			}
+		}
+	}
+	});
+	
+	// Register the Data prototype and data function on Highcharts
+	Highcharts.Data = Data;
+	Highcharts.data = function (options, chartOptions) {
+		return new Data(options, chartOptions);
+	};
+
+	// Extend Chart.init so that the Chart constructor accepts a new configuration
+	// option group, data.
+	Highcharts.wrap(Highcharts.Chart.prototype, 'init', function (proceed, userOptions, callback) {
+		var chart = this;
+
+		if (userOptions && userOptions.data) {
+			Highcharts.data(Highcharts.extend(userOptions.data, {
+
+				afterComplete: function (dataOptions) {
+					var i, series;
+					
+					// Merge series configs
+					if (userOptions.hasOwnProperty('series')) {
+						if (typeof userOptions.series === 'object') {
+							i = Math.max(userOptions.series.length, dataOptions.series.length);
+							while (i--) {
+								series = userOptions.series[i] || {};
+								userOptions.series[i] = Highcharts.merge(series, dataOptions.series[i]);
+							}
+						} else { // Allow merging in dataOptions.series (#2856)
+							delete userOptions.series;
+						}
+					}
+
+					// Do the merge
+					userOptions = Highcharts.merge(dataOptions,
