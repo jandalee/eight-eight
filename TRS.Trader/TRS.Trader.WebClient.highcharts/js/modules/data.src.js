@@ -795,4 +795,159 @@
 					}
 
 					// Do the merge
-					userOptions = Highcharts.merge(dataOptions,
+					userOptions = Highcharts.merge(dataOptions, userOptions);
+
+					proceed.call(chart, userOptions, callback);
+				}
+			}), userOptions);
+		} else {
+			proceed.call(chart, userOptions, callback);
+		}
+	});
+
+	/**
+	 * Creates a new SeriesBuilder. A SeriesBuilder consists of a number
+	 * of ColumnReaders that reads columns and give them a name.
+	 * Ex: A series builder can be constructed to read column 3 as 'x' and
+	 * column 7 and 8 as 'y1' and 'y2'.
+	 * The output would then be points/rows of the form {x: 11, y1: 22, y2: 33}
+	 * 
+	 * The name of the builder is taken from the second column. In the above
+	 * example it would be the column with index 7.
+	 * @constructor
+	 */
+	SeriesBuilder = function () {
+		this.readers = [];
+		this.pointIsArray = true;
+	};
+
+	/**
+	 * Populates readers with column indexes. A reader can be added without
+	 * a specific index and for those readers the index is taken sequentially
+	 * from the free columns (this is handled by the ColumnCursor instance).
+	 * @returns {boolean}
+	 */
+	SeriesBuilder.prototype.populateColumns = function (freeIndexes) {
+		var builder = this,
+			enoughColumns = true;
+
+		// Loop each reader and give it an index if its missing.
+		// The freeIndexes.shift() will return undefined if there
+		// are no more columns.
+		each(builder.readers, function (reader) {
+			if (reader.columnIndex === undefined) {
+				reader.columnIndex = freeIndexes.shift();
+			}
+		});
+
+		// Now, all readers should have columns mapped. If not
+		// then return false to signal that this series should
+		// not be added.
+		each(builder.readers, function (reader) {
+			if (reader.columnIndex === undefined) {
+				enoughColumns = false;
+			}
+		});
+
+		return enoughColumns;
+	};
+
+	/**
+	 * Reads a row from the dataset and returns a point or array depending
+	 * on the names of the readers.
+	 * @param columns
+	 * @param rowIndex
+	 * @returns {Array | Object}
+	 */
+	SeriesBuilder.prototype.read = function (columns, rowIndex) {
+		var builder = this,
+			pointIsArray = builder.pointIsArray,
+			point = pointIsArray ? [] : {},
+			columnIndexes;
+
+		// Loop each reader and ask it to read its value.
+		// Then, build an array or point based on the readers names.
+		each(builder.readers, function (reader) {
+			var value = columns[reader.columnIndex][rowIndex];
+			if (pointIsArray) {
+				point.push(value);
+			} else {
+				point[reader.configName] = value; 
+			}
+		});
+
+		// The name comes from the first column (excluding the x column)
+		if (this.name === undefined && builder.readers.length >= 2) {
+			columnIndexes = builder.getReferencedColumnIndexes();
+			if (columnIndexes.length >= 2) {
+				// remove the first one (x col)
+				columnIndexes.shift();
+
+				// Sort the remaining
+				columnIndexes.sort();
+
+				// Now use the lowest index as name column
+				this.name = columns[columnIndexes.shift()].name;
+			}
+		}
+
+		return point;
+	};
+
+	/**
+	 * Creates and adds ColumnReader from the given columnIndex and configName.
+	 * ColumnIndex can be undefined and in that case the reader will be given
+	 * an index when columns are populated.
+	 * @param columnIndex {Number | undefined}
+	 * @param configName
+	 */
+	SeriesBuilder.prototype.addColumnReader = function (columnIndex, configName) {
+		this.readers.push({
+			columnIndex: columnIndex, 
+			configName: configName
+		});
+
+		if (!(configName === 'x' || configName === 'y' || configName === undefined)) {
+			this.pointIsArray = false;
+		}
+	};
+
+	/**
+	 * Returns an array of column indexes that the builder will use when
+	 * reading data.
+	 * @returns {Array}
+	 */
+	SeriesBuilder.prototype.getReferencedColumnIndexes = function () {
+		var i,
+			referencedColumnIndexes = [],
+			columnReader;
+		
+		for (i = 0; i < this.readers.length; i = i + 1) {
+			columnReader = this.readers[i];
+			if (columnReader.columnIndex !== undefined) {
+				referencedColumnIndexes.push(columnReader.columnIndex);
+			}
+		}
+
+		return referencedColumnIndexes;
+	};
+
+	/**
+	 * Returns true if the builder has a reader for the given configName.
+	 * @param configName
+	 * @returns {boolean}
+	 */
+	SeriesBuilder.prototype.hasReader = function (configName) {
+		var i, columnReader;
+		for (i = 0; i < this.readers.length; i = i + 1) {
+			columnReader = this.readers[i];
+			if (columnReader.configName === configName) {
+				return true;
+			}
+		}
+		// Else return undefined
+	};
+
+
+
+}(Highcharts));
