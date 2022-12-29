@@ -448,4 +448,302 @@ extend(Chart.prototype, {
 	 * Display a popup menu for choosing the export type
 	 *
 	 * @param {String} className An identifier for the menu
-	 * @param {Array} items A collection with tex
+	 * @param {Array} items A collection with text and onclicks for the items
+	 * @param {Number} x The x position of the opener button
+	 * @param {Number} y The y position of the opener button
+	 * @param {Number} width The width of the opener button
+	 * @param {Number} height The height of the opener button
+	 */
+	contextMenu: function (className, items, x, y, width, height, button) {
+		var chart = this,
+			navOptions = chart.options.navigation,
+			menuItemStyle = navOptions.menuItemStyle,
+			chartWidth = chart.chartWidth,
+			chartHeight = chart.chartHeight,
+			cacheName = 'cache-' + className,
+			menu = chart[cacheName],
+			menuPadding = mathMax(width, height), // for mouse leave detection
+			boxShadow = '3px 3px 10px #888',
+			innerMenu,
+			hide,
+			hideTimer,
+			menuStyle,
+			docMouseUpHandler = function (e) {
+				if (!chart.pointer.inClass(e.target, className)) {
+					hide();
+				}
+			};
+
+		// create the menu only the first time
+		if (!menu) {
+
+			// create a HTML element above the SVG
+			chart[cacheName] = menu = createElement(DIV, {
+				className: className
+			}, {
+				position: ABSOLUTE,
+				zIndex: 1000,
+				padding: menuPadding + PX
+			}, chart.container);
+
+			innerMenu = createElement(DIV, null,
+				extend({
+					MozBoxShadow: boxShadow,
+					WebkitBoxShadow: boxShadow,
+					boxShadow: boxShadow
+				}, navOptions.menuStyle), menu);
+
+			// hide on mouse out
+			hide = function () {
+				css(menu, { display: NONE });
+				if (button) {
+					button.setState(0);
+				}
+				chart.openMenu = false;
+			};
+
+			// Hide the menu some time after mouse leave (#1357)
+			addEvent(menu, 'mouseleave', function () {
+				hideTimer = setTimeout(hide, 500);
+			});
+			addEvent(menu, 'mouseenter', function () {
+				clearTimeout(hideTimer);
+			});
+
+
+			// Hide it on clicking or touching outside the menu (#2258, #2335, #2407)
+			addEvent(document, 'mouseup', docMouseUpHandler);
+			addEvent(chart, 'destroy', function () {
+				removeEvent(document, 'mouseup', docMouseUpHandler);
+			});
+
+
+			// create the items
+			each(items, function (item) {
+				if (item) {
+					var element = item.separator ?
+						createElement('hr', null, null, innerMenu) :
+						createElement(DIV, {
+							onmouseover: function () {
+								css(this, navOptions.menuItemHoverStyle);
+							},
+							onmouseout: function () {
+								css(this, menuItemStyle);
+							},
+							onclick: function () {
+								hide();
+								if (item.onclick) {
+									item.onclick.apply(chart, arguments);
+								}
+							},
+							innerHTML: item.text || chart.options.lang[item.textKey]
+						}, extend({
+							cursor: 'pointer'
+						}, menuItemStyle), innerMenu);
+
+
+					// Keep references to menu divs to be able to destroy them
+					chart.exportDivElements.push(element);
+				}
+			});
+
+			// Keep references to menu and innerMenu div to be able to destroy them
+			chart.exportDivElements.push(innerMenu, menu);
+
+			chart.exportMenuWidth = menu.offsetWidth;
+			chart.exportMenuHeight = menu.offsetHeight;
+		}
+
+		menuStyle = { display: 'block' };
+
+		// if outside right, right align it
+		if (x + chart.exportMenuWidth > chartWidth) {
+			menuStyle.right = (chartWidth - x - width - menuPadding) + PX;
+		} else {
+			menuStyle.left = (x - menuPadding) + PX;
+		}
+		// if outside bottom, bottom align it
+		if (y + height + chart.exportMenuHeight > chartHeight && button.alignOptions.verticalAlign !== 'top') {
+			menuStyle.bottom = (chartHeight - y - menuPadding)  + PX;
+		} else {
+			menuStyle.top = (y + height - menuPadding) + PX;
+		}
+
+		css(menu, menuStyle);
+		chart.openMenu = true;
+	},
+
+	/**
+	 * Add the export button to the chart
+	 */
+	addButton: function (options) {
+		var chart = this,
+			renderer = chart.renderer,
+			btnOptions = merge(chart.options.navigation.buttonOptions, options),
+			onclick = btnOptions.onclick,
+			menuItems = btnOptions.menuItems,
+			symbol,
+			button,
+			symbolAttr = {
+				stroke: btnOptions.symbolStroke,
+				fill: btnOptions.symbolFill
+			},
+			symbolSize = btnOptions.symbolSize || 12;
+		if (!chart.btnCount) {
+			chart.btnCount = 0;
+		}
+
+		// Keeps references to the button elements
+		if (!chart.exportDivElements) {
+			chart.exportDivElements = [];
+			chart.exportSVGElements = [];
+		}
+
+		if (btnOptions.enabled === false) {
+			return;
+		}
+
+
+		var attr = btnOptions.theme,
+			states = attr.states,
+			hover = states && states.hover,
+			select = states && states.select,
+			callback;
+
+		delete attr.states;
+
+		if (onclick) {
+			callback = function () {
+				onclick.apply(chart, arguments);
+			};
+
+		} else if (menuItems) {
+			callback = function () {
+				chart.contextMenu(
+					button.menuClassName,
+					menuItems,
+					button.translateX,
+					button.translateY,
+					button.width,
+					button.height,
+					button
+				);
+				button.setState(2);
+			};
+		}
+
+
+		if (btnOptions.text && btnOptions.symbol) {
+			attr.paddingLeft = Highcharts.pick(attr.paddingLeft, 25);
+
+		} else if (!btnOptions.text) {
+			extend(attr, {
+				width: btnOptions.width,
+				height: btnOptions.height,
+				padding: 0
+			});
+		}
+
+		button = renderer.button(btnOptions.text, 0, 0, callback, attr, hover, select)
+			.attr({
+				title: chart.options.lang[btnOptions._titleKey],
+				'stroke-linecap': 'round'
+			});
+		button.menuClassName = options.menuClassName || PREFIX + 'menu-' + chart.btnCount++;
+
+		if (btnOptions.symbol) {
+			symbol = renderer.symbol(
+					btnOptions.symbol,
+					btnOptions.symbolX - (symbolSize / 2),
+					btnOptions.symbolY - (symbolSize / 2),
+					symbolSize,
+					symbolSize
+				)
+				.attr(extend(symbolAttr, {
+					'stroke-width': btnOptions.symbolStrokeWidth || 1,
+					zIndex: 1
+				})).add(button);
+		}
+
+		button.add()
+			.align(extend(btnOptions, {
+				width: button.width,
+				x: Highcharts.pick(btnOptions.x, buttonOffset) // #1654
+			}), true, 'spacingBox');
+
+		buttonOffset += (button.width + btnOptions.buttonSpacing) * (btnOptions.align === 'right' ? -1 : 1);
+
+		chart.exportSVGElements.push(button, symbol);
+
+	},
+
+	/**
+	 * Destroy the buttons.
+	 */
+	destroyExport: function (e) {
+		var chart = e.target,
+			i,
+			elem;
+
+		// Destroy the extra buttons added
+		for (i = 0; i < chart.exportSVGElements.length; i++) {
+			elem = chart.exportSVGElements[i];
+
+			// Destroy and null the svg/vml elements
+			if (elem) { // #1822
+				elem.onclick = elem.ontouchstart = null;
+				chart.exportSVGElements[i] = elem.destroy();
+			}
+		}
+
+		// Destroy the divs for the menu
+		for (i = 0; i < chart.exportDivElements.length; i++) {
+			elem = chart.exportDivElements[i];
+
+			// Remove the event handler
+			removeEvent(elem, 'mouseleave');
+
+			// Remove inline events
+			chart.exportDivElements[i] = elem.onmouseout = elem.onmouseover = elem.ontouchstart = elem.onclick = null;
+
+			// Destroy the div by moving to garbage bin
+			discardElement(elem);
+		}
+	}
+});
+
+
+symbols.menu = function (x, y, width, height) {
+	var arr = [
+		M, x, y + 2.5,
+		L, x + width, y + 2.5,
+		M, x, y + height / 2 + 0.5,
+		L, x + width, y + height / 2 + 0.5,
+		M, x, y + height - 1.5,
+		L, x + width, y + height - 1.5
+	];
+	return arr;
+};
+
+// Add the buttons on chart load
+Chart.prototype.callbacks.push(function (chart) {
+	var n,
+		exportingOptions = chart.options.exporting,
+		buttons = exportingOptions.buttons;
+
+	buttonOffset = 0;
+
+	if (exportingOptions.enabled !== false) {
+
+		for (n in buttons) {
+			chart.addButton(buttons[n]);
+		}
+
+		// Destroy the export elements at chart destroy
+		addEvent(chart, 'destroy', chart.destroyExport);
+	}
+
+});
+
+
+}(Highcharts));
