@@ -1862,4 +1862,424 @@ jQuery.hasData = function( elem ) {
 	};
 jQuery.holdReady = function( hold ) {
 /// <summary>
-///     Holds or releases 
+///     Holds or releases the execution of jQuery's ready event.
+/// </summary>
+/// <param name="hold" type="Boolean">
+///     Indicates whether the ready hold is being requested or released
+/// </param>
+/// <returns type="undefined" />
+
+		if ( hold ) {
+			jQuery.readyWait++;
+		} else {
+			jQuery.ready( true );
+		}
+	};
+jQuery.inArray = function( elem, array ) {
+/// <summary>
+///     Search for a specified value within an array and return its index (or -1 if not found).
+/// </summary>
+/// <param name="elem" type="Object">
+///     The value to search for.
+/// </param>
+/// <param name="array" type="Array">
+///     An array through which to search.
+/// </param>
+/// <returns type="Number" />
+
+		if ( !array ) {
+			return -1;
+		}
+
+		if ( indexOf ) {
+			return indexOf.call( array, elem );
+		}
+
+		for ( var i = 0, length = array.length; i < length; i++ ) {
+			if ( array[ i ] === elem ) {
+				return i;
+			}
+		}
+
+		return -1;
+	};
+jQuery.isEmptyObject = function( obj ) {
+/// <summary>
+///     Check to see if an object is empty (contains no properties).
+/// </summary>
+/// <param name="obj" type="Object">
+///     The object that will be checked to see if it's empty.
+/// </param>
+/// <returns type="Boolean" />
+
+		for ( var name in obj ) {
+			return false;
+		}
+		return true;
+	};
+jQuery.isFunction = function( obj ) {
+/// <summary>
+///     Determine if the argument passed is a Javascript function object.
+/// </summary>
+/// <param name="obj" type="Object">
+///     Object to test whether or not it is a function.
+/// </param>
+/// <returns type="boolean" />
+
+		return jQuery.type(obj) === "function";
+	};
+jQuery.isNaN = function( obj ) {
+
+		return obj == null || !rdigit.test( obj ) || isNaN( obj );
+	};
+jQuery.isPlainObject = function( obj ) {
+/// <summary>
+///     Check to see if an object is a plain object (created using "{}" or "new Object").
+/// </summary>
+/// <param name="obj" type="Object">
+///     The object that will be checked to see if it's a plain object.
+/// </param>
+/// <returns type="Boolean" />
+
+		// Must be an Object.
+		// Because of IE, we also have to check the presence of the constructor property.
+		// Make sure that DOM nodes and window objects don't pass through, as well
+		if ( !obj || jQuery.type(obj) !== "object" || obj.nodeType || jQuery.isWindow( obj ) ) {
+			return false;
+		}
+
+		try {
+			// Not own constructor property must be Object
+			if ( obj.constructor &&
+				!hasOwn.call(obj, "constructor") &&
+				!hasOwn.call(obj.constructor.prototype, "isPrototypeOf") ) {
+				return false;
+			}
+		} catch ( e ) {
+			// IE8,9 Will throw exceptions on certain host objects #9897
+			return false;
+		}
+
+		// Own properties are enumerated firstly, so to speed up,
+		// if last one is own, then all properties are own.
+
+		var key;
+		for ( key in obj ) {}
+
+		return key === undefined || hasOwn.call( obj, key );
+	};
+jQuery.isReady = true;
+jQuery.isWindow = function( obj ) {
+/// <summary>
+///     Determine whether the argument is a window.
+/// </summary>
+/// <param name="obj" type="Object">
+///     Object to test whether or not it is a window.
+/// </param>
+/// <returns type="boolean" />
+
+		return obj && typeof obj === "object" && "setInterval" in obj;
+	};
+jQuery.isXMLDoc = function( elem ) {
+/// <summary>
+///     Check to see if a DOM node is within an XML document (or is an XML document).
+/// </summary>
+/// <param name="elem" domElement="true">
+///     The DOM node that will be checked to see if it's in an XML document.
+/// </param>
+/// <returns type="Boolean" />
+
+	// documentElement is verified for cases where it doesn't yet exist
+	// (such as loading iframes in IE - #4833) 
+	var documentElement = (elem ? elem.ownerDocument || elem : 0).documentElement;
+
+	return documentElement ? documentElement.nodeName !== "HTML" : false;
+};
+jQuery.lastModified = {};
+jQuery.makeArray = function( array, results ) {
+/// <summary>
+///     Convert an array-like object into a true JavaScript array.
+/// </summary>
+/// <param name="array" type="Object">
+///     Any object to turn into a native Array.
+/// </param>
+/// <returns type="Array" />
+
+		var ret = results || [];
+
+		if ( array != null ) {
+			// The window, strings (and functions) also have 'length'
+			// The extra typeof function check is to prevent crashes
+			// in Safari 2 (See: #3039)
+			// Tweaked logic slightly to handle Blackberry 4.7 RegExp issues #6930
+			var type = jQuery.type( array );
+
+			if ( array.length == null || type === "string" || type === "function" || type === "regexp" || jQuery.isWindow( array ) ) {
+				push.call( ret, array );
+			} else {
+				jQuery.merge( ret, array );
+			}
+		}
+
+		return ret;
+	};
+jQuery.map = function( elems, callback, arg ) {
+/// <summary>
+///     Translate all items in an array or object to new array of items.
+///     <para>1 - jQuery.map(array, callback(elementOfArray, indexInArray)) </para>
+///     <para>2 - jQuery.map(arrayOrObject, callback( value, indexOrKey ))</para>
+/// </summary>
+/// <param name="elems" type="Array">
+///     The Array to translate.
+/// </param>
+/// <param name="callback" type="Function">
+///     The function to process each item against.  The first argument to the function is the array item, the second argument is the index in array The function can return any value. Within the function, this refers to the global (window) object.
+/// </param>
+/// <returns type="Array" />
+
+		var value, key, ret = [],
+			i = 0,
+			length = elems.length,
+			// jquery objects are treated as arrays
+			isArray = elems instanceof jQuery || length !== undefined && typeof length === "number" && ( ( length > 0 && elems[ 0 ] && elems[ length -1 ] ) || length === 0 || jQuery.isArray( elems ) ) ;
+
+		// Go through the array, translating each of the items to their
+		if ( isArray ) {
+			for ( ; i < length; i++ ) {
+				value = callback( elems[ i ], i, arg );
+
+				if ( value != null ) {
+					ret[ ret.length ] = value;
+				}
+			}
+
+		// Go through every key on the object,
+		} else {
+			for ( key in elems ) {
+				value = callback( elems[ key ], key, arg );
+
+				if ( value != null ) {
+					ret[ ret.length ] = value;
+				}
+			}
+		}
+
+		// Flatten any nested arrays
+		return ret.concat.apply( [], ret );
+	};
+jQuery.merge = function( first, second ) {
+/// <summary>
+///     Merge the contents of two arrays together into the first array.
+/// </summary>
+/// <param name="first" type="Array">
+///     The first array to merge, the elements of second added.
+/// </param>
+/// <param name="second" type="Array">
+///     The second array to merge into the first, unaltered.
+/// </param>
+/// <returns type="Array" />
+
+		var i = first.length,
+			j = 0;
+
+		if ( typeof second.length === "number" ) {
+			for ( var l = second.length; j < l; j++ ) {
+				first[ i++ ] = second[ j ];
+			}
+
+		} else {
+			while ( second[j] !== undefined ) {
+				first[ i++ ] = second[ j++ ];
+			}
+		}
+
+		first.length = i;
+
+		return first;
+	};
+jQuery.noConflict = function( deep ) {
+/// <summary>
+///     Relinquish jQuery's control of the $ variable.
+/// </summary>
+/// <param name="deep" type="Boolean">
+///     A Boolean indicating whether to remove all jQuery variables from the global scope (including jQuery itself).
+/// </param>
+/// <returns type="Object" />
+
+		if ( window.$ === jQuery ) {
+			window.$ = _$;
+		}
+
+		if ( deep && window.jQuery === jQuery ) {
+			window.jQuery = _jQuery;
+		}
+
+		return jQuery;
+	};
+jQuery.noData = { "embed": true,
+"object": 'clsid:D27CDB6E-AE6D-11cf-96B8-444553540000',
+"applet": true };
+jQuery.nodeName = function( elem, name ) {
+
+		return elem.nodeName && elem.nodeName.toUpperCase() === name.toUpperCase();
+	};
+jQuery.noop = function() {
+/// <summary>
+///     An empty function.
+/// </summary>
+/// <returns type="Function" />
+};
+jQuery.now = function() {
+/// <summary>
+///     Return a number representing the current time.
+/// </summary>
+/// <returns type="Number" />
+
+		return (new Date()).getTime();
+	};
+jQuery.nth = function( cur, result, dir, elem ) {
+
+		result = result || 1;
+		var num = 0;
+
+		for ( ; cur; cur = cur[dir] ) {
+			if ( cur.nodeType === 1 && ++num === result ) {
+				break;
+			}
+		}
+
+		return cur;
+	};
+jQuery.offset = {};
+jQuery.param = function( a, traditional ) {
+/// <summary>
+///     Create a serialized representation of an array or object, suitable for use in a URL query string or Ajax request.
+///     <para>1 - jQuery.param(obj) </para>
+///     <para>2 - jQuery.param(obj, traditional)</para>
+/// </summary>
+/// <param name="a" type="Object">
+///     An array or object to serialize.
+/// </param>
+/// <param name="traditional" type="Boolean">
+///     A Boolean indicating whether to perform a traditional "shallow" serialization.
+/// </param>
+/// <returns type="String" />
+
+		var s = [],
+			add = function( key, value ) {
+				// If value is a function, invoke it and return its value
+				value = jQuery.isFunction( value ) ? value() : value;
+				s[ s.length ] = encodeURIComponent( key ) + "=" + encodeURIComponent( value );
+			};
+
+		// Set traditional to true for jQuery <= 1.3.2 behavior.
+		if ( traditional === undefined ) {
+			traditional = jQuery.ajaxSettings.traditional;
+		}
+
+		// If an array was passed in, assume that it is an array of form elements.
+		if ( jQuery.isArray( a ) || ( a.jquery && !jQuery.isPlainObject( a ) ) ) {
+			// Serialize the form elements
+			jQuery.each( a, function() {
+				add( this.name, this.value );
+			});
+
+		} else {
+			// If traditional, encode the "old" way (the way 1.3.2 or older
+			// did it), otherwise encode params recursively.
+			for ( var prefix in a ) {
+				buildParams( prefix, a[ prefix ], traditional, add );
+			}
+		}
+
+		// Return the resulting serialization
+		return s.join( "&" ).replace( r20, "+" );
+	};
+jQuery.parseJSON = function( data ) {
+/// <summary>
+///     Takes a well-formed JSON string and returns the resulting JavaScript object.
+/// </summary>
+/// <param name="data" type="String">
+///     The JSON string to parse.
+/// </param>
+/// <returns type="Object" />
+
+		if ( typeof data !== "string" || !data ) {
+			return null;
+		}
+
+		// Make sure leading/trailing whitespace is removed (IE can't handle it)
+		data = jQuery.trim( data );
+
+		// Attempt to parse using the native JSON parser first
+		if ( window.JSON && window.JSON.parse ) {
+			return window.JSON.parse( data );
+		}
+
+		// Make sure the incoming data is actual JSON
+		// Logic borrowed from http://json.org/json2.js
+		if ( rvalidchars.test( data.replace( rvalidescape, "@" )
+			.replace( rvalidtokens, "]" )
+			.replace( rvalidbraces, "")) ) {
+
+			return (new Function( "return " + data ))();
+
+		}
+		jQuery.error( "Invalid JSON: " + data );
+	};
+jQuery.parseXML = function( data ) {
+/// <summary>
+///     Parses a string into an XML document.
+/// </summary>
+/// <param name="data" type="String">
+///     a well-formed XML string to be parsed
+/// </param>
+/// <returns type="XMLDocument" />
+
+		var xml, tmp;
+		try {
+			if ( window.DOMParser ) { // Standard
+				tmp = new DOMParser();
+				xml = tmp.parseFromString( data , "text/xml" );
+			} else { // IE
+				xml = new ActiveXObject( "Microsoft.XMLDOM" );
+				xml.async = "false";
+				xml.loadXML( data );
+			}
+		} catch( e ) {
+			xml = undefined;
+		}
+		if ( !xml || !xml.documentElement || xml.getElementsByTagName( "parsererror" ).length ) {
+			jQuery.error( "Invalid XML: " + data );
+		}
+		return xml;
+	};
+jQuery.post = function( url, data, callback, type ) {
+/// <summary>
+///     Load data from the server using a HTTP POST request.
+/// </summary>
+/// <param name="url" type="String">
+///     A string containing the URL to which the request is sent.
+/// </param>
+/// <param name="data" type="String">
+///     A map or string that is sent to the server with the request.
+/// </param>
+/// <param name="callback" type="Function">
+///     A callback function that is executed if the request succeeds.
+/// </param>
+/// <param name="type" type="String">
+///     The type of data expected from the server. Default: Intelligent Guess (xml, json, script, or html).
+/// </param>
+
+		// shift arguments if data argument was omitted
+		if ( jQuery.isFunction( data ) ) {
+			type = type || callback;
+			callback = data;
+			data = undefined;
+		}
+
+		return jQuery.ajax({
+			type: method,
+			url: url,
+			data: data,
+			success: callbac
