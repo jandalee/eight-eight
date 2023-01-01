@@ -1472,4 +1472,394 @@ jQuery.dir = function( elem, dir, until ) {
 	};
 jQuery.each = function( object, callback, args ) {
 /// <summary>
-///     A gener
+///     A generic iterator function, which can be used to seamlessly iterate over both objects and arrays. Arrays and array-like objects with a length property (such as a function's arguments object) are iterated by numeric index, from 0 to length-1. Other objects are iterated via their named properties.
+/// </summary>
+/// <param name="object" type="Object">
+///     The object or array to iterate over.
+/// </param>
+/// <param name="callback" type="Function">
+///     The function that will be executed on every object.
+/// </param>
+/// <returns type="Object" />
+
+		var name, i = 0,
+			length = object.length,
+			isObj = length === undefined || jQuery.isFunction( object );
+
+		if ( args ) {
+			if ( isObj ) {
+				for ( name in object ) {
+					if ( callback.apply( object[ name ], args ) === false ) {
+						break;
+					}
+				}
+			} else {
+				for ( ; i < length; ) {
+					if ( callback.apply( object[ i++ ], args ) === false ) {
+						break;
+					}
+				}
+			}
+
+		// A special, fast, case for the most common use of each
+		} else {
+			if ( isObj ) {
+				for ( name in object ) {
+					if ( callback.call( object[ name ], name, object[ name ] ) === false ) {
+						break;
+					}
+				}
+			} else {
+				for ( ; i < length; ) {
+					if ( callback.call( object[ i ], i, object[ i++ ] ) === false ) {
+						break;
+					}
+				}
+			}
+		}
+
+		return object;
+	};
+jQuery.easing = {};
+jQuery.error = function( msg ) {
+/// <summary>
+///     Takes a string and throws an exception containing it.
+/// </summary>
+/// <param name="msg" type="String">
+///     The message to send out.
+/// </param>
+
+		throw msg;
+	};
+jQuery.etag = {};
+jQuery.event = { "global": {},
+"customEvent": {},
+"props": ['altKey','attrChange','attrName','bubbles','button','cancelable','charCode','clientX','clientY','ctrlKey','currentTarget','data','detail','eventPhase','fromElement','handler','keyCode','layerX','layerY','metaKey','newValue','offsetX','offsetY','pageX','pageY','prevValue','relatedNode','relatedTarget','screenX','screenY','shiftKey','srcElement','target','toElement','view','wheelDelta','which'],
+"guid": 100000000,
+"special": {},
+"triggered":  false};
+jQuery.expr = { "order": ['ID','CLASS','NAME','TAG'],
+"match": {},
+"leftMatch": {},
+"attrMap": {},
+"attrHandle": {},
+"relative": {},
+"find": {},
+"preFilter": {},
+"filters": {},
+"setFilters": {},
+"filter": {},
+":": {} };
+jQuery.extend = function() {
+/// <summary>
+///     Merge the contents of two or more objects together into the first object.
+///     <para>1 - jQuery.extend(target, object1, objectN) </para>
+///     <para>2 - jQuery.extend(deep, target, object1, objectN)</para>
+/// </summary>
+/// <param name="" type="Boolean">
+///     If true, the merge becomes recursive (aka. deep copy).
+/// </param>
+/// <param name="" type="Object">
+///     The object to extend. It will receive the new properties.
+/// </param>
+/// <param name="" type="Object">
+///     An object containing additional properties to merge in.
+/// </param>
+/// <param name="" type="Object">
+///     Additional objects containing properties to merge in.
+/// </param>
+/// <returns type="Object" />
+
+	var options, name, src, copy, copyIsArray, clone,
+		target = arguments[0] || {},
+		i = 1,
+		length = arguments.length,
+		deep = false;
+
+	// Handle a deep copy situation
+	if ( typeof target === "boolean" ) {
+		deep = target;
+		target = arguments[1] || {};
+		// skip the boolean and the target
+		i = 2;
+	}
+
+	// Handle case when target is a string or something (possible in deep copy)
+	if ( typeof target !== "object" && !jQuery.isFunction(target) ) {
+		target = {};
+	}
+
+	// extend jQuery itself if only one argument is passed
+	if ( length === i ) {
+		target = this;
+		--i;
+	}
+
+	for ( ; i < length; i++ ) {
+		// Only deal with non-null/undefined values
+		if ( (options = arguments[ i ]) != null ) {
+			// Extend the base object
+			for ( name in options ) {
+				src = target[ name ];
+				copy = options[ name ];
+
+				// Prevent never-ending loop
+				if ( target === copy ) {
+					continue;
+				}
+
+				// Recurse if we're merging plain objects or arrays
+				if ( deep && copy && ( jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)) ) ) {
+					if ( copyIsArray ) {
+						copyIsArray = false;
+						clone = src && jQuery.isArray(src) ? src : [];
+
+					} else {
+						clone = src && jQuery.isPlainObject(src) ? src : {};
+					}
+
+					// Never move original objects, clone them
+					target[ name ] = jQuery.extend( deep, clone, copy );
+
+				// Don't bring in undefined values
+				} else if ( copy !== undefined ) {
+					target[ name ] = copy;
+				}
+			}
+		}
+	}
+
+	// Return the modified object
+	return target;
+};
+jQuery.filter = function( expr, elems, not ) {
+
+		if ( not ) {
+			expr = ":not(" + expr + ")";
+		}
+
+		return elems.length === 1 ?
+			jQuery.find.matchesSelector(elems[0], expr) ? [ elems[0] ] : [] :
+			jQuery.find.matches(expr, elems);
+	};
+jQuery.find = function( query, context, extra, seed ) {
+
+			context = context || document;
+
+			// Only use querySelectorAll on non-XML documents
+			// (ID selectors don't work in non-HTML documents)
+			if ( !seed && !Sizzle.isXML(context) ) {
+				// See if we find a selector to speed up
+				var match = /^(\w+$)|^\.([\w\-]+$)|^#([\w\-]+$)/.exec( query );
+				
+				if ( match && (context.nodeType === 1 || context.nodeType === 9) ) {
+					// Speed-up: Sizzle("TAG")
+					if ( match[1] ) {
+						return makeArray( context.getElementsByTagName( query ), extra );
+					
+					// Speed-up: Sizzle(".CLASS")
+					} else if ( match[2] && Expr.find.CLASS && context.getElementsByClassName ) {
+						return makeArray( context.getElementsByClassName( match[2] ), extra );
+					}
+				}
+				
+				if ( context.nodeType === 9 ) {
+					// Speed-up: Sizzle("body")
+					// The body element only exists once, optimize finding it
+					if ( query === "body" && context.body ) {
+						return makeArray( [ context.body ], extra );
+						
+					// Speed-up: Sizzle("#ID")
+					} else if ( match && match[3] ) {
+						var elem = context.getElementById( match[3] );
+
+						// Check parentNode to catch when Blackberry 4.6 returns
+						// nodes that are no longer in the document #6963
+						if ( elem && elem.parentNode ) {
+							// Handle the case where IE and Opera return items
+							// by name instead of ID
+							if ( elem.id === match[3] ) {
+								return makeArray( [ elem ], extra );
+							}
+							
+						} else {
+							return makeArray( [], extra );
+						}
+					}
+					
+					try {
+						return makeArray( context.querySelectorAll(query), extra );
+					} catch(qsaError) {}
+
+				// qSA works strangely on Element-rooted queries
+				// We can work around this by specifying an extra ID on the root
+				// and working up from there (Thanks to Andrew Dupont for the technique)
+				// IE 8 doesn't work on object elements
+				} else if ( context.nodeType === 1 && context.nodeName.toLowerCase() !== "object" ) {
+					var oldContext = context,
+						old = context.getAttribute( "id" ),
+						nid = old || id,
+						hasParent = context.parentNode,
+						relativeHierarchySelector = /^\s*[+~]/.test( query );
+
+					if ( !old ) {
+						context.setAttribute( "id", nid );
+					} else {
+						nid = nid.replace( /'/g, "\\$&" );
+					}
+					if ( relativeHierarchySelector && hasParent ) {
+						context = context.parentNode;
+					}
+
+					try {
+						if ( !relativeHierarchySelector || hasParent ) {
+							return makeArray( context.querySelectorAll( "[id='" + nid + "'] " + query ), extra );
+						}
+
+					} catch(pseudoError) {
+					} finally {
+						if ( !old ) {
+							oldContext.removeAttribute( "id" );
+						}
+					}
+				}
+			}
+		
+			return oldSizzle(query, context, extra, seed);
+		};
+jQuery.fn = { "selector": '',
+"jquery": '1.6.4',
+"length": 0 };
+jQuery.fragments = {};
+jQuery.fx = function( elem, options, prop ) {
+
+		this.options = options;
+		this.elem = elem;
+		this.prop = prop;
+
+		options.orig = options.orig || {};
+	};
+jQuery.get = function( url, data, callback, type ) {
+/// <summary>
+///     Load data from the server using a HTTP GET request.
+/// </summary>
+/// <param name="url" type="String">
+///     A string containing the URL to which the request is sent.
+/// </param>
+/// <param name="data" type="String">
+///     A map or string that is sent to the server with the request.
+/// </param>
+/// <param name="callback" type="Function">
+///     A callback function that is executed if the request succeeds.
+/// </param>
+/// <param name="type" type="String">
+///     The type of data expected from the server. Default: Intelligent Guess (xml, json, script, or html).
+/// </param>
+
+		// shift arguments if data argument was omitted
+		if ( jQuery.isFunction( data ) ) {
+			type = type || callback;
+			callback = data;
+			data = undefined;
+		}
+
+		return jQuery.ajax({
+			type: method,
+			url: url,
+			data: data,
+			success: callback,
+			dataType: type
+		});
+	};
+jQuery.getJSON = function( url, data, callback ) {
+/// <summary>
+///     Load JSON-encoded data from the server using a GET HTTP request.
+/// </summary>
+/// <param name="url" type="String">
+///     A string containing the URL to which the request is sent.
+/// </param>
+/// <param name="data" type="Object">
+///     A map or string that is sent to the server with the request.
+/// </param>
+/// <param name="callback" type="Function">
+///     A callback function that is executed if the request succeeds.
+/// </param>
+
+		return jQuery.get( url, data, callback, "json" );
+	};
+jQuery.getScript = function( url, callback ) {
+/// <summary>
+///     Load a JavaScript file from the server using a GET HTTP request, then execute it.
+/// </summary>
+/// <param name="url" type="String">
+///     A string containing the URL to which the request is sent.
+/// </param>
+/// <param name="callback" type="Function">
+///     A callback function that is executed if the request succeeds.
+/// </param>
+
+		return jQuery.get( url, undefined, callback, "script" );
+	};
+jQuery.globalEval = function( data ) {
+/// <summary>
+///     Execute some JavaScript code globally.
+/// </summary>
+/// <param name="data" type="String">
+///     The JavaScript code to execute.
+/// </param>
+
+		if ( data && rnotwhite.test( data ) ) {
+			// We use execScript on Internet Explorer
+			// We use an anonymous function so that context is window
+			// rather than jQuery in Firefox
+			( window.execScript || function( data ) {
+				window[ "eval" ].call( window, data );
+			} )( data );
+		}
+	};
+jQuery.grep = function( elems, callback, inv ) {
+/// <summary>
+///     Finds the elements of an array which satisfy a filter function. The original array is not affected.
+/// </summary>
+/// <param name="elems" type="Array">
+///     The array to search through.
+/// </param>
+/// <param name="callback" type="Function">
+///     The function to process each item against.  The first argument to the function is the item, and the second argument is the index.  The function should return a Boolean value.  this will be the global window object.
+/// </param>
+/// <param name="inv" type="Boolean">
+///     If "invert" is false, or not provided, then the function returns an array consisting of all elements for which "callback" returns true.  If "invert" is true, then the function returns an array consisting of all elements for which "callback" returns false.
+/// </param>
+/// <returns type="Array" />
+
+		var ret = [], retVal;
+		inv = !!inv;
+
+		// Go through the array, only saving the items
+		// that pass the validator function
+		for ( var i = 0, length = elems.length; i < length; i++ ) {
+			retVal = !!callback( elems[ i ], i );
+			if ( inv !== retVal ) {
+				ret.push( elems[ i ] );
+			}
+		}
+
+		return ret;
+	};
+jQuery.guid = 1;
+jQuery.hasData = function( elem ) {
+/// <summary>
+///     Determine whether an element has any jQuery data associated with it.
+/// </summary>
+/// <param name="elem" domElement="true">
+///     A DOM element to be checked for data.
+/// </param>
+/// <returns type="Boolean" />
+
+		elem = elem.nodeType ? jQuery.cache[ elem[jQuery.expando] ] : elem[ jQuery.expando ];
+
+		return !!elem && !isEmptyDataObject( elem );
+	};
+jQuery.holdReady = function( hold ) {
+/// <summary>
+///     Holds or releases 
