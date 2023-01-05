@@ -3117,3 +3117,381 @@ jQuery.prototype.andSelf = function() {
 ///     Add the previous set of elements on the stack to the current set.
 /// </summary>
 /// <returns type="jQuery" />
+
+		return this.add( this.prevObject );
+	};
+jQuery.prototype.animate = function( prop, speed, easing, callback ) {
+/// <summary>
+///     Perform a custom animation of a set of CSS properties.
+///     <para>1 - animate(properties, duration, easing, complete) </para>
+///     <para>2 - animate(properties, options)</para>
+/// </summary>
+/// <param name="prop" type="Object">
+///     A map of CSS properties that the animation will move toward.
+/// </param>
+/// <param name="speed" type="Number">
+///     A string or number determining how long the animation will run.
+/// </param>
+/// <param name="easing" type="String">
+///     A string indicating which easing function to use for the transition.
+/// </param>
+/// <param name="callback" type="Function">
+///     A function to call once the animation is complete.
+/// </param>
+/// <returns type="jQuery" />
+
+		var optall = jQuery.speed(speed, easing, callback);
+
+		if ( jQuery.isEmptyObject( prop ) ) {
+			return this.each( optall.complete, [ false ] );
+		}
+
+		// Do not change referenced properties as per-property easing will be lost
+		prop = jQuery.extend( {}, prop );
+
+		return this[ optall.queue === false ? "each" : "queue" ](function() {
+			// XXX 'this' does not always have a nodeName when running the
+			// test suite
+
+			if ( optall.queue === false ) {
+				jQuery._mark( this );
+			}
+
+			var opt = jQuery.extend( {}, optall ),
+				isElement = this.nodeType === 1,
+				hidden = isElement && jQuery(this).is(":hidden"),
+				name, val, p,
+				display, e,
+				parts, start, end, unit;
+
+			// will store per property easing and be used to determine when an animation is complete
+			opt.animatedProperties = {};
+
+			for ( p in prop ) {
+
+				// property name normalization
+				name = jQuery.camelCase( p );
+				if ( p !== name ) {
+					prop[ name ] = prop[ p ];
+					delete prop[ p ];
+				}
+
+				val = prop[ name ];
+
+				// easing resolution: per property > opt.specialEasing > opt.easing > 'swing' (default)
+				if ( jQuery.isArray( val ) ) {
+					opt.animatedProperties[ name ] = val[ 1 ];
+					val = prop[ name ] = val[ 0 ];
+				} else {
+					opt.animatedProperties[ name ] = opt.specialEasing && opt.specialEasing[ name ] || opt.easing || 'swing';
+				}
+
+				if ( val === "hide" && hidden || val === "show" && !hidden ) {
+					return opt.complete.call( this );
+				}
+
+				if ( isElement && ( name === "height" || name === "width" ) ) {
+					// Make sure that nothing sneaks out
+					// Record all 3 overflow attributes because IE does not
+					// change the overflow attribute when overflowX and
+					// overflowY are set to the same value
+					opt.overflow = [ this.style.overflow, this.style.overflowX, this.style.overflowY ];
+
+					// Set display property to inline-block for height/width
+					// animations on inline elements that are having width/height
+					// animated
+					if ( jQuery.css( this, "display" ) === "inline" &&
+							jQuery.css( this, "float" ) === "none" ) {
+						if ( !jQuery.support.inlineBlockNeedsLayout ) {
+							this.style.display = "inline-block";
+
+						} else {
+							display = defaultDisplay( this.nodeName );
+
+							// inline-level elements accept inline-block;
+							// block-level elements need to be inline with layout
+							if ( display === "inline" ) {
+								this.style.display = "inline-block";
+
+							} else {
+								this.style.display = "inline";
+								this.style.zoom = 1;
+							}
+						}
+					}
+				}
+			}
+
+			if ( opt.overflow != null ) {
+				this.style.overflow = "hidden";
+			}
+
+			for ( p in prop ) {
+				e = new jQuery.fx( this, opt, p );
+				val = prop[ p ];
+
+				if ( rfxtypes.test(val) ) {
+					e[ val === "toggle" ? hidden ? "show" : "hide" : val ]();
+
+				} else {
+					parts = rfxnum.exec( val );
+					start = e.cur();
+
+					if ( parts ) {
+						end = parseFloat( parts[2] );
+						unit = parts[3] || ( jQuery.cssNumber[ p ] ? "" : "px" );
+
+						// We need to compute starting value
+						if ( unit !== "px" ) {
+							jQuery.style( this, p, (end || 1) + unit);
+							start = ((end || 1) / e.cur()) * start;
+							jQuery.style( this, p, start + unit);
+						}
+
+						// If a +=/-= token was provided, we're doing a relative animation
+						if ( parts[1] ) {
+							end = ( (parts[ 1 ] === "-=" ? -1 : 1) * end ) + start;
+						}
+
+						e.custom( start, end, unit );
+
+					} else {
+						e.custom( start, val, "" );
+					}
+				}
+			}
+
+			// For JS strict compliance
+			return true;
+		});
+	};
+jQuery.prototype.append = function() {
+/// <summary>
+///     Insert content, specified by the parameter, to the end of each element in the set of matched elements.
+///     <para>1 - append(content, content) </para>
+///     <para>2 - append(function(index, html))</para>
+/// </summary>
+/// <param name="" type="jQuery">
+///     DOM element, HTML string, or jQuery object to insert at the end of each element in the set of matched elements.
+/// </param>
+/// <param name="" type="jQuery">
+///     One or more additional DOM elements, arrays of elements, HTML strings, or jQuery objects to insert at the end of each element in the set of matched elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.domManip(arguments, true, function( elem ) {
+			if ( this.nodeType === 1 ) {
+				this.appendChild( elem );
+			}
+		});
+	};
+jQuery.prototype.appendTo = function( selector ) {
+/// <summary>
+///     Insert every element in the set of matched elements to the end of the target.
+/// </summary>
+/// <param name="selector" type="jQuery">
+///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted at the end of the element(s) specified by this parameter.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = [],
+			insert = jQuery( selector ),
+			parent = this.length === 1 && this[0].parentNode;
+
+		if ( parent && parent.nodeType === 11 && parent.childNodes.length === 1 && insert.length === 1 ) {
+			insert[ original ]( this[0] );
+			return this;
+
+		} else {
+			for ( var i = 0, l = insert.length; i < l; i++ ) {
+				var elems = (i > 0 ? this.clone(true) : this).get();
+				jQuery( insert[i] )[ original ]( elems );
+				ret = ret.concat( elems );
+			}
+
+			return this.pushStack( ret, name, insert.selector );
+		}
+	};
+jQuery.prototype.attr = function( name, value ) {
+/// <summary>
+///     1: Get the value of an attribute for the first element in the set of matched elements.
+///     <para>    1.1 - attr(attributeName)</para>
+///     <para>2: Set one or more attributes for the set of matched elements.</para>
+///     <para>    2.1 - attr(attributeName, value) </para>
+///     <para>    2.2 - attr(map) </para>
+///     <para>    2.3 - attr(attributeName, function(index, attr))</para>
+/// </summary>
+/// <param name="name" type="String">
+///     The name of the attribute to set.
+/// </param>
+/// <param name="value" type="Number">
+///     A value to set for the attribute.
+/// </param>
+/// <returns type="jQuery" />
+
+		return jQuery.access( this, name, value, true, jQuery.attr );
+	};
+jQuery.prototype.before = function() {
+/// <summary>
+///     Insert content, specified by the parameter, before each element in the set of matched elements.
+///     <para>1 - before(content, content) </para>
+///     <para>2 - before(function)</para>
+/// </summary>
+/// <param name="" type="jQuery">
+///     HTML string, DOM element, or jQuery object to insert before each element in the set of matched elements.
+/// </param>
+/// <param name="" type="jQuery">
+///     One or more additional DOM elements, arrays of elements, HTML strings, or jQuery objects to insert before each element in the set of matched elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( this[0] && this[0].parentNode ) {
+			return this.domManip(arguments, false, function( elem ) {
+				this.parentNode.insertBefore( elem, this );
+			});
+		} else if ( arguments.length ) {
+			var set = jQuery(arguments[0]);
+			set.push.apply( set, this.toArray() );
+			return this.pushStack( set, "before", arguments );
+		}
+	};
+jQuery.prototype.bind = function( type, data, fn ) {
+/// <summary>
+///     Attach a handler to an event for the elements.
+///     <para>1 - bind(eventType, eventData, handler(eventObject)) </para>
+///     <para>2 - bind(eventType, eventData, preventBubble) </para>
+///     <para>3 - bind(events)</para>
+/// </summary>
+/// <param name="type" type="String">
+///     A string containing one or more JavaScript event types, such as "click" or "submit," or custom event names.
+/// </param>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		var handler;
+
+		// Handle object literals
+		if ( typeof type === "object" ) {
+			for ( var key in type ) {
+				this[ name ](key, data, type[key], fn);
+			}
+			return this;
+		}
+
+		if ( arguments.length === 2 || data === false ) {
+			fn = data;
+			data = undefined;
+		}
+
+		if ( name === "one" ) {
+			handler = function( event ) {
+				jQuery( this ).unbind( event, handler );
+				return fn.apply( this, arguments );
+			};
+			handler.guid = fn.guid || jQuery.guid++;
+		} else {
+			handler = fn;
+		}
+
+		if ( type === "unload" && name !== "one" ) {
+			this.one( type, data, fn );
+
+		} else {
+			for ( var i = 0, l = this.length; i < l; i++ ) {
+				jQuery.event.add( this[i], type, handler, data );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.blur = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "blur" JavaScript event, or trigger that event on an element.
+///     <para>1 - blur(handler(eventObject)) </para>
+///     <para>2 - blur(eventData, handler(eventObject)) </para>
+///     <para>3 - blur()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.change = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "change" JavaScript event, or trigger that event on an element.
+///     <para>1 - change(handler(eventObject)) </para>
+///     <para>2 - change(eventData, handler(eventObject)) </para>
+///     <para>3 - change()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.children = function( until, selector ) {
+/// <summary>
+///     Get the children of each element in the set of matched elements, optionally filtered by a selector.
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.clearQueue = function( type ) {
+/// <summary>
+///     Remove from the queue all items that have not yet been run.
+/// </summary>
+/// <param name="type" type="String">
+///     A string 
