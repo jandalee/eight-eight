@@ -4641,4 +4641,397 @@ jQuery.prototype.init = function( selector, context, rootjQuery ) {
 		if ( typeof selector === "string" ) {
 			// Are we dealing with HTML string or an ID?
 			if ( selector.charAt(0) === "<" && selector.charAt( selector.length - 1 ) === ">" && selector.length >= 3 ) {
-				// Assume that strings that start and end w
+				// Assume that strings that start and end with <> are HTML and skip the regex check
+				match = [ null, selector, null ];
+
+			} else {
+				match = quickExpr.exec( selector );
+			}
+
+			// Verify a match, and that no context was specified for #id
+			if ( match && (match[1] || !context) ) {
+
+				// HANDLE: $(html) -> $(array)
+				if ( match[1] ) {
+					context = context instanceof jQuery ? context[0] : context;
+					doc = (context ? context.ownerDocument || context : document);
+
+					// If a single string is passed in and it's a single tag
+					// just do a createElement and skip the rest
+					ret = rsingleTag.exec( selector );
+
+					if ( ret ) {
+						if ( jQuery.isPlainObject( context ) ) {
+							selector = [ document.createElement( ret[1] ) ];
+							jQuery.fn.attr.call( selector, context, true );
+
+						} else {
+							selector = [ doc.createElement( ret[1] ) ];
+						}
+
+					} else {
+						ret = jQuery.buildFragment( [ match[1] ], [ doc ] );
+						selector = (ret.cacheable ? jQuery.clone(ret.fragment) : ret.fragment).childNodes;
+					}
+
+					return jQuery.merge( this, selector );
+
+				// HANDLE: $("#id")
+				} else {
+					elem = document.getElementById( match[2] );
+
+					// Check parentNode to catch when Blackberry 4.6 returns
+					// nodes that are no longer in the document #6963
+					if ( elem && elem.parentNode ) {
+						// Handle the case where IE and Opera return items
+						// by name instead of ID
+						if ( elem.id !== match[2] ) {
+							return rootjQuery.find( selector );
+						}
+
+						// Otherwise, we inject the element directly into the jQuery object
+						this.length = 1;
+						this[0] = elem;
+					}
+
+					this.context = document;
+					this.selector = selector;
+					return this;
+				}
+
+			// HANDLE: $(expr, $(...))
+			} else if ( !context || context.jquery ) {
+				return (context || rootjQuery).find( selector );
+
+			// HANDLE: $(expr, context)
+			// (which is just equivalent to: $(context).find(expr)
+			} else {
+				return this.constructor( context ).find( selector );
+			}
+
+		// HANDLE: $(function)
+		// Shortcut for document ready
+		} else if ( jQuery.isFunction( selector ) ) {
+			return rootjQuery.ready( selector );
+		}
+
+		if (selector.selector !== undefined) {
+			this.selector = selector.selector;
+			this.context = selector.context;
+		}
+
+		return jQuery.makeArray( selector, this );
+	};
+jQuery.prototype.innerHeight = function() {
+/// <summary>
+///     Get the current computed height for the first element in the set of matched elements, including padding but not border.
+/// </summary>
+/// <returns type="Number" />
+
+		var elem = this[0];
+		return elem && elem.style ?
+			parseFloat( jQuery.css( elem, type, "padding" ) ) :
+			null;
+	};
+jQuery.prototype.innerWidth = function() {
+/// <summary>
+///     Get the current computed width for the first element in the set of matched elements, including padding but not border.
+/// </summary>
+/// <returns type="Number" />
+
+		var elem = this[0];
+		return elem && elem.style ?
+			parseFloat( jQuery.css( elem, type, "padding" ) ) :
+			null;
+	};
+jQuery.prototype.insertAfter = function( selector ) {
+/// <summary>
+///     Insert every element in the set of matched elements after the target.
+/// </summary>
+/// <param name="selector" type="jQuery">
+///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted after the element(s) specified by this parameter.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = [],
+			insert = jQuery( selector ),
+			parent = this.length === 1 && this[0].parentNode;
+
+		if ( parent && parent.nodeType === 11 && parent.childNodes.length === 1 && insert.length === 1 ) {
+			insert[ original ]( this[0] );
+			return this;
+
+		} else {
+			for ( var i = 0, l = insert.length; i < l; i++ ) {
+				var elems = (i > 0 ? this.clone(true) : this).get();
+				jQuery( insert[i] )[ original ]( elems );
+				ret = ret.concat( elems );
+			}
+
+			return this.pushStack( ret, name, insert.selector );
+		}
+	};
+jQuery.prototype.insertBefore = function( selector ) {
+/// <summary>
+///     Insert every element in the set of matched elements before the target.
+/// </summary>
+/// <param name="selector" type="jQuery">
+///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted before the element(s) specified by this parameter.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = [],
+			insert = jQuery( selector ),
+			parent = this.length === 1 && this[0].parentNode;
+
+		if ( parent && parent.nodeType === 11 && parent.childNodes.length === 1 && insert.length === 1 ) {
+			insert[ original ]( this[0] );
+			return this;
+
+		} else {
+			for ( var i = 0, l = insert.length; i < l; i++ ) {
+				var elems = (i > 0 ? this.clone(true) : this).get();
+				jQuery( insert[i] )[ original ]( elems );
+				ret = ret.concat( elems );
+			}
+
+			return this.pushStack( ret, name, insert.selector );
+		}
+	};
+jQuery.prototype.is = function( selector ) {
+/// <summary>
+///     Check the current matched set of elements against a selector, element, or jQuery object and return true if at least one of these elements matches the given arguments.
+///     <para>1 - is(selector) </para>
+///     <para>2 - is(function(index)) </para>
+///     <para>3 - is(jQuery object) </para>
+///     <para>4 - is(element)</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="Boolean" />
+
+		return !!selector && ( typeof selector === "string" ?
+			jQuery.filter( selector, this ).length > 0 :
+			this.filter( selector ).length > 0 );
+	};
+jQuery.prototype.keydown = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "keydown" JavaScript event, or trigger that event on an element.
+///     <para>1 - keydown(handler(eventObject)) </para>
+///     <para>2 - keydown(eventData, handler(eventObject)) </para>
+///     <para>3 - keydown()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.keypress = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "keypress" JavaScript event, or trigger that event on an element.
+///     <para>1 - keypress(handler(eventObject)) </para>
+///     <para>2 - keypress(eventData, handler(eventObject)) </para>
+///     <para>3 - keypress()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.keyup = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "keyup" JavaScript event, or trigger that event on an element.
+///     <para>1 - keyup(handler(eventObject)) </para>
+///     <para>2 - keyup(eventData, handler(eventObject)) </para>
+///     <para>3 - keyup()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.last = function() {
+/// <summary>
+///     Reduce the set of matched elements to the final one in the set.
+/// </summary>
+/// <returns type="jQuery" />
+
+		return this.eq( -1 );
+	};
+jQuery.prototype.length = 0;
+jQuery.prototype.live = function( types, data, fn, origSelector /* Internal Use Only */ ) {
+/// <summary>
+///     Attach a handler to the event for all elements which match the current selector, now and in the future.
+///     <para>1 - live(eventType, handler) </para>
+///     <para>2 - live(eventType, eventData, handler) </para>
+///     <para>3 - live(events)</para>
+/// </summary>
+/// <param name="types" type="String">
+///     A string containing a JavaScript event type, such as "click" or "keydown." As of jQuery 1.4 the string can contain multiple, space-separated event types or custom event names, as well.
+/// </param>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute at the time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		var type, i = 0, match, namespaces, preType,
+			selector = origSelector || this.selector,
+			context = origSelector ? this : jQuery( this.context );
+
+		if ( typeof types === "object" && !types.preventDefault ) {
+			for ( var key in types ) {
+				context[ name ]( key, data, types[key], selector );
+			}
+
+			return this;
+		}
+
+		if ( name === "die" && !types &&
+					origSelector && origSelector.charAt(0) === "." ) {
+
+			context.unbind( origSelector );
+
+			return this;
+		}
+
+		if ( data === false || jQuery.isFunction( data ) ) {
+			fn = data || returnFalse;
+			data = undefined;
+		}
+
+		types = (types || "").split(" ");
+
+		while ( (type = types[ i++ ]) != null ) {
+			match = rnamespaces.exec( type );
+			namespaces = "";
+
+			if ( match )  {
+				namespaces = match[0];
+				type = type.replace( rnamespaces, "" );
+			}
+
+			if ( type === "hover" ) {
+				types.push( "mouseenter" + namespaces, "mouseleave" + namespaces );
+				continue;
+			}
+
+			preType = type;
+
+			if ( liveMap[ type ] ) {
+				types.push( liveMap[ type ] + namespaces );
+				type = type + namespaces;
+
+			} else {
+				type = (liveMap[ type ] || type) + namespaces;
+			}
+
+			if ( name === "live" ) {
+				// bind live handler
+				for ( var j = 0, l = context.length; j < l; j++ ) {
+					jQuery.event.add( context[j], "live." + liveConvert( type, selector ),
+						{ data: data, selector: selector, handler: fn, origType: type, origHandler: fn, preType: preType } );
+				}
+
+			} else {
+				// unbind live handler
+				context.unbind( "live." + liveConvert( type, selector ), fn );
+			}
+		}
+
+		return this;
+	};
+jQuery.prototype.load = function( url, params, callback ) {
+/// <summary>
+///     1: Bind an event handler to the "load" JavaScript event.
+///     <para>    1.1 - load(handler(eventObject)) </para>
+///     <para>    1.2 - load(eventData, handler(eventObject))</para>
+///     <para>2: Load data from the server and place the returned HTML into the matched element.</para>
+///     <para>    2.1 - load(url, data, complete(responseText, textStatus, XMLHttpRequest))</para>
+/// </summary>
+/// <param name="url" type="String">
+///     A string containing the URL to which the request is sent.
+/// </param>
+/// <param name="params" type="String">
+///     A map or string that is sent to the server with the request.
+/// </param>
+/// <param name="callback" type="Function">
+///     A callback function that is executed when the request completes.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( typeof url !== "string" && _load ) {
+			return _load.apply( this, arguments );
+
+		// Don't do a request if no elements are being requested
+		} else if ( !this.length ) {
+			return this;
+		}
+
+		var off = url.indexOf( " " );
+		if ( off >= 0 ) {
+			var selector = url.slice( off, url.length );
+			url = url.slice( 0, off );
+		}
+
+		// Default to a GET request
+		var type = "GET";
+
+		// If the second parameter was provided
+		if ( params ) {
+			// If it's a function
+			if ( jQuery.isFunction( params ) ) {
+				// We assume that it's the callback
+				callback = params;
+				params = undefined;
+
+			// Otherwise, build a param string
+			} else if ( typeof params === "object" ) {
+				params = jQuery.param( params, jQuery.ajaxSettings.traditional );
+				type = "POST";
+			}
+		}
+
+		var self = this;
+
+		// Request the remote document
+		jQuery.aja
