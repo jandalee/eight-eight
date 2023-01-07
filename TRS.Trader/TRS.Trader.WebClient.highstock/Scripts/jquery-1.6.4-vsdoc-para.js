@@ -5034,4 +5034,373 @@ jQuery.prototype.load = function( url, params, callback ) {
 		var self = this;
 
 		// Request the remote document
-		jQuery.aja
+		jQuery.ajax({
+			url: url,
+			type: type,
+			dataType: "html",
+			data: params,
+			// Complete callback (responseText is used internally)
+			complete: function( jqXHR, status, responseText ) {
+				// Store the response as specified by the jqXHR object
+				responseText = jqXHR.responseText;
+				// If successful, inject the HTML into all the matched elements
+				if ( jqXHR.isResolved() ) {
+					// #4825: Get the actual response in case
+					// a dataFilter is present in ajaxSettings
+					jqXHR.done(function( r ) {
+						responseText = r;
+					});
+					// See if a selector was specified
+					self.html( selector ?
+						// Create a dummy div to hold the results
+						jQuery("<div>")
+							// inject the contents of the document in, removing the scripts
+							// to avoid any 'Permission Denied' errors in IE
+							.append(responseText.replace(rscript, ""))
+
+							// Locate the specified elements
+							.find(selector) :
+
+						// If not, just inject the full result
+						responseText );
+				}
+
+				if ( callback ) {
+					self.each( callback, [ responseText, status, jqXHR ] );
+				}
+			}
+		});
+
+		return this;
+	};
+jQuery.prototype.map = function( callback ) {
+/// <summary>
+///     Pass each element in the current matched set through a function, producing a new jQuery object containing the return values.
+/// </summary>
+/// <param name="callback" type="Function">
+///     A function object that will be invoked for each element in the current set.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.pushStack( jQuery.map(this, function( elem, i ) {
+			return callback.call( elem, i, elem );
+		}));
+	};
+jQuery.prototype.mousedown = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "mousedown" JavaScript event, or trigger that event on an element.
+///     <para>1 - mousedown(handler(eventObject)) </para>
+///     <para>2 - mousedown(eventData, handler(eventObject)) </para>
+///     <para>3 - mousedown()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mouseenter = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to be fired when the mouse enters an element, or trigger that handler on an element.
+///     <para>1 - mouseenter(handler(eventObject)) </para>
+///     <para>2 - mouseenter(eventData, handler(eventObject)) </para>
+///     <para>3 - mouseenter()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mouseleave = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to be fired when the mouse leaves an element, or trigger that handler on an element.
+///     <para>1 - mouseleave(handler(eventObject)) </para>
+///     <para>2 - mouseleave(eventData, handler(eventObject)) </para>
+///     <para>3 - mouseleave()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mousemove = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "mousemove" JavaScript event, or trigger that event on an element.
+///     <para>1 - mousemove(handler(eventObject)) </para>
+///     <para>2 - mousemove(eventData, handler(eventObject)) </para>
+///     <para>3 - mousemove()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mouseout = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "mouseout" JavaScript event, or trigger that event on an element.
+///     <para>1 - mouseout(handler(eventObject)) </para>
+///     <para>2 - mouseout(eventData, handler(eventObject)) </para>
+///     <para>3 - mouseout()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mouseover = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "mouseover" JavaScript event, or trigger that event on an element.
+///     <para>1 - mouseover(handler(eventObject)) </para>
+///     <para>2 - mouseover(eventData, handler(eventObject)) </para>
+///     <para>3 - mouseover()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.mouseup = function( data, fn ) {
+/// <summary>
+///     Bind an event handler to the "mouseup" JavaScript event, or trigger that event on an element.
+///     <para>1 - mouseup(handler(eventObject)) </para>
+///     <para>2 - mouseup(eventData, handler(eventObject)) </para>
+///     <para>3 - mouseup()</para>
+/// </summary>
+/// <param name="data" type="Object">
+///     A map of data that will be passed to the event handler.
+/// </param>
+/// <param name="fn" type="Function">
+///     A function to execute each time the event is triggered.
+/// </param>
+/// <returns type="jQuery" />
+
+		if ( fn == null ) {
+			fn = data;
+			data = null;
+		}
+
+		return arguments.length > 0 ?
+			this.bind( name, data, fn ) :
+			this.trigger( name );
+	};
+jQuery.prototype.next = function( until, selector ) {
+/// <summary>
+///     Get the immediately following sibling of each element in the set of matched elements. If a selector is provided, it retrieves the next sibling only if it matches that selector.
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.nextAll = function( until, selector ) {
+/// <summary>
+///     Get all following siblings of each element in the set of matched elements, optionally filtered by a selector.
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.nextUntil = function( until, selector ) {
+/// <summary>
+///     Get all following siblings of each element up to but not including the element matched by the selector, DOM node, or jQuery object passed.
+///     <para>1 - nextUntil(selector, filter) </para>
+///     <para>2 - nextUntil(element, filter)</para>
+/// </summary>
+/// <param name="until" type="String">
+///     A string containing a selector expression to indicate where to stop matching following sibling elements.
+/// </param>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		var ret = jQuery.map( this, fn, until ),
+			// The variable 'args' was introduced in
+			// https://github.com/jquery/jquery/commit/52a0238
+			// to work around a bug in Chrome 10 (Dev) and should be removed when the bug is fixed.
+			// http://code.google.com/p/v8/issues/detail?id=1050
+			args = slice.call(arguments);
+
+		if ( !runtil.test( name ) ) {
+			selector = until;
+		}
+
+		if ( selector && typeof selector === "string" ) {
+			ret = jQuery.filter( selector, ret );
+		}
+
+		ret = this.length > 1 && !guaranteedUnique[ name ] ? jQuery.unique( ret ) : ret;
+
+		if ( (this.length > 1 || rmultiselector.test( selector )) && rparentsprev.test( name ) ) {
+			ret = ret.reverse();
+		}
+
+		return this.pushStack( ret, name, args.join(",") );
+	};
+jQuery.prototype.not = function( selector ) {
+/// <summary>
+///     Remove elements from the set of matched elements.
+///     <para>1 - not(selector) </para>
+///     <para>2 - not(elements) </para>
+///     <para>3 - not(function(index))</para>
+/// </summary>
+/// <param name="selector" type="String">
+///     A string containing a selector expression to match elements against.
+/// </param>
+/// <returns type="jQuery" />
+
+		return this.pushStack( winnow(this, selector, false), "not", selector);
+	};
+jQuery.prototype.offset = function( options ) {
+/// <summary>
+///     1: Get the current coordinates of the first element in the set of matched elements, relative to the document.
+///     <para>    1.1 - offset()</para>
+///     <para>2: Set the current coordinates of every element in the set of matched elements, relative to the document.</para>
+///     <para>    2.1 - offset(coordinates) </para>
+///     <para>    2.2 - offset(function(index, coords))</para>
+/// </summary>
+/// <param name="options" type="Object">
+///     An object containing the properties top and left, which are integers indicating the new top and left coordinates for the elements.
+/// </param>
+/// <returns type="jQuery" />
+
+		var elem = this[0], box;
+
+		if ( options ) {
+			return this.each(function( i ) {
+				jQuery.offset.setOffset( this, options, i );
+			});
+		}
+
+		if ( !elem || !elem.ownerDocument ) {
+			return null;
+		}
+
+		if ( elem === elem.ownerDocument.body ) {
+			return jQuery.offset.bodyOffset( elem );
+		}
+
+		try {
+			box = elem.getBoundingClientRect();
+		} catch(e) {}
+
+		var doc = elem.ownerDocument,
+			docElem = doc.
