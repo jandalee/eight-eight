@@ -448,4 +448,468 @@ Highcharts.SVGRenderer.prototype.arc3d = function (shapeArgs) {
 /**
  * Generate the paths required to draw a 3D arc
  */
-Highcharts.SV
+Highcharts.SVGRenderer.prototype.arc3dPath = function (shapeArgs) {
+	var cx = shapeArgs.x, // x coordinate of the center
+		cy = shapeArgs.y, // y coordinate of the center
+		start = shapeArgs.start, // start angle
+		end = shapeArgs.end - 0.00001, // end angle
+		r = shapeArgs.r, // radius
+		ir = shapeArgs.innerR, // inner radius
+		d = shapeArgs.depth, // depth
+		alpha = shapeArgs.alpha, // alpha rotation of the chart
+		beta = shapeArgs.beta; // beta rotation of the chart
+
+	// Derived Variables
+	var cs = cos(start),		// cosinus of the start angle
+		ss = sin(start),		// sinus of the start angle
+		ce = cos(end),			// cosinus of the end angle
+		se = sin(end),			// sinus of the end angle
+		rx = r * cos(beta),		// x-radius 
+		ry = r * cos(alpha),	// y-radius
+		irx = ir * cos(beta),	// x-radius (inner)
+		iry = ir * cos(alpha),	// y-radius (inner)
+		dx = d * sin(beta),		// distance between top and bottom in x
+		dy = d * sin(alpha);	// distance between top and bottom in y
+
+	// TOP	
+	var top = ['M', cx + (rx * cs), cy + (ry * ss)];
+	top = top.concat(curveTo(cx, cy, rx, ry, start, end, 0, 0));
+	top = top.concat([
+		'L', cx + (irx * ce), cy + (iry * se)
+	]);
+	top = top.concat(curveTo(cx, cy, irx, iry, end, start, 0, 0));
+	top = top.concat(['Z']);
+
+	// OUTSIDE
+	var b = (beta > 0 ? PI / 2 : 0),
+		a = (alpha > 0 ? 0 : PI / 2);
+
+	var start2 = start > -b ? start : (end > -b ? -b : start),
+		end2 = end < PI - a ? end : (start < PI - a ? PI - a : end);
+	
+	var out = ['M', cx + (rx * cos(start2)), cy + (ry * sin(start2))];
+	out = out.concat(curveTo(cx, cy, rx, ry, start2, end2, 0, 0));
+	out = out.concat([
+		'L', cx + (rx * cos(end2)) + dx, cy + (ry * sin(end2)) + dy
+	]);
+	out = out.concat(curveTo(cx, cy, rx, ry, end2, start2, dx, dy));
+	out = out.concat(['Z']);
+
+	// INSIDE
+	var inn = ['M', cx + (irx * cs), cy + (iry * ss)];
+	inn = inn.concat(curveTo(cx, cy, irx, iry, start, end, 0, 0));
+	inn = inn.concat([
+		'L', cx + (irx * cos(end)) + dx, cy + (iry * sin(end)) + dy
+	]);
+	inn = inn.concat(curveTo(cx, cy, irx, iry, end, start, dx, dy));
+	inn = inn.concat(['Z']);
+
+	// SIDES
+	var side1 = [
+		'M', cx + (rx * cs), cy + (ry * ss),
+		'L', cx + (rx * cs) + dx, cy + (ry * ss) + dy,
+		'L', cx + (irx * cs) + dx, cy + (iry * ss) + dy,
+		'L', cx + (irx * cs), cy + (iry * ss),
+		'Z'
+	];
+	var side2 = [
+		'M', cx + (rx * ce), cy + (ry * se),
+		'L', cx + (rx * ce) + dx, cy + (ry * se) + dy,
+		'L', cx + (irx * ce) + dx, cy + (iry * se) + dy,
+		'L', cx + (irx * ce), cy + (iry * se),
+		'Z'
+	];
+
+	var a1 = sin((start + end) / 2),
+		a2 = sin(start),
+		a3 = sin(end);
+
+	return {
+		top: top,
+		zTop: r,
+		out: out,
+		zOut: Math.max(a1, a2, a3) * r,
+		inn: inn,
+		zInn: Math.max(a1, a2, a3) * r,
+		side1: side1,
+		zSide1: a2 * (r * 0.99),
+		side2: side2,
+		zSide2: a3 * (r * 0.99)
+	};
+};
+/*** 
+	EXTENSION FOR 3D CHARTS
+***/
+// Shorthand to check the is3d flag
+Highcharts.Chart.prototype.is3d = function () {
+	return this.options.chart.options3d && this.options.chart.options3d.enabled; // #4280
+};
+
+Highcharts.wrap(Highcharts.Chart.prototype, 'isInsidePlot', function (proceed) {
+	if (this.is3d()) {
+		return true;
+	} else {
+		return proceed.apply(this, [].slice.call(arguments, 1));
+	}
+});
+
+var defaultChartOptions = Highcharts.getOptions();
+defaultChartOptions.chart.options3d = {
+	enabled: false,
+	alpha: 0,
+	beta: 0,
+	depth: 100,
+	viewDistance: 25,
+	frame: {
+		bottom: { size: 1, color: 'rgba(255,255,255,0)' },
+		side: { size: 1, color: 'rgba(255,255,255,0)' },
+		back: { size: 1, color: 'rgba(255,255,255,0)' }
+	}
+};
+
+Highcharts.wrap(Highcharts.Chart.prototype, 'init', function (proceed) {
+	var args = [].slice.call(arguments, 1),
+		plotOptions,
+		pieOptions;
+
+	if (args[0].chart.options3d && args[0].chart.options3d.enabled) {
+		plotOptions = args[0].plotOptions || {};
+		pieOptions = plotOptions.pie || {};
+
+		pieOptions.borderColor = Highcharts.pick(pieOptions.borderColor, undefined); 
+	}
+	proceed.apply(this, args);
+});
+
+Highcharts.wrap(Highcharts.Chart.prototype, 'setChartSize', function (proceed) {
+	proceed.apply(this, [].slice.call(arguments, 1));
+
+	if (this.is3d()) {
+		var inverted = this.inverted,
+			clipBox = this.clipBox,
+			margin = this.margin,
+			x = inverted ? 'y' : 'x',
+			y = inverted ? 'x' : 'y',
+			w = inverted ? 'height' : 'width',
+			h = inverted ? 'width' : 'height';
+
+		clipBox[x] = -(margin[3] || 0);
+		clipBox[y] = -(margin[0] || 0);
+		clipBox[w] = this.chartWidth + (margin[3] || 0) + (margin[1] || 0);
+		clipBox[h] = this.chartHeight + (margin[0] || 0) + (margin[2] || 0);
+	}
+});
+
+Highcharts.wrap(Highcharts.Chart.prototype, 'redraw', function (proceed) {
+	if (this.is3d()) {
+		// Set to force a redraw of all elements
+		this.isDirtyBox = true;
+	}
+	proceed.apply(this, [].slice.call(arguments, 1));	
+});
+
+// Draw the series in the reverse order (#3803, #3917)
+Highcharts.wrap(Highcharts.Chart.prototype, 'renderSeries', function (proceed) {
+	var series,
+		i = this.series.length;
+	
+	if (this.is3d()) {
+		while (i--) {		
+			series = this.series[i];
+			series.translate();
+			series.render();	
+		}
+	} else {
+		proceed.call(this);
+	}
+});
+
+Highcharts.Chart.prototype.retrieveStacks = function (stacking) {
+	var series = this.series,
+		stacks = {},
+		stackNumber,
+		i = 1;
+
+	Highcharts.each(this.series, function (S) {
+		stackNumber = stacking ? (S.options.stack || 0) : series.length - 1 - S.index; // #3841
+		if (!stacks[stackNumber]) {
+			stacks[stackNumber] = { series: [S], position: i};
+			i++;
+		} else {
+			stacks[stackNumber].series.push(S);
+		}
+	});
+
+	stacks.totalStacks = i + 1;
+	return stacks;
+};
+
+/***
+	EXTENSION TO THE AXIS
+***/
+Highcharts.wrap(Highcharts.Axis.prototype, 'init', function (proceed) {
+	var args = arguments;
+	if (args[1].is3d()) {
+		args[2].tickWidth = Highcharts.pick(args[2].tickWidth, 0);
+		args[2].gridLineWidth = Highcharts.pick(args[2].gridLineWidth, 1);
+	}
+
+	proceed.apply(this, [].slice.call(arguments, 1));
+});	
+Highcharts.wrap(Highcharts.Axis.prototype, 'render', function (proceed) {
+	proceed.apply(this, [].slice.call(arguments, 1));
+
+	// Do not do this if the chart is not 3D
+	if (!this.chart.is3d()) {
+		return;
+	}
+
+	var chart = this.chart,
+		renderer = chart.renderer,
+		options3d = chart.options.chart.options3d,
+		frame = options3d.frame,
+		fbottom = frame.bottom,
+		fback = frame.back,
+		fside = frame.side,
+		depth = options3d.depth,
+		height = this.height,
+		width = this.width,
+		left = this.left,
+		top = this.top;
+
+	if (this.isZAxis) {
+		return;
+	} else if (this.horiz) {
+		var bottomShape = {
+			x: left,
+			y: top + (chart.xAxis[0].opposite ? -fbottom.size : height),
+			z: 0,
+			width: width,
+			height: fbottom.size,
+			depth: depth,
+			insidePlotArea: false
+		};
+		if (!this.bottomFrame) {
+			this.bottomFrame = renderer.cuboid(bottomShape).attr({
+				fill: fbottom.color,
+				zIndex: (chart.yAxis[0].reversed && options3d.alpha > 0 ? 4 : -1)
+			})
+			.css({
+				stroke: fbottom.color
+			}).add();
+		} else {
+			this.bottomFrame.animate(bottomShape);
+		}
+	} else {
+		// BACK
+		var backShape = {
+			x: left + (chart.yAxis[0].opposite ? 0 : -fside.size),
+			y: top + (chart.xAxis[0].opposite ? -fbottom.size : 0),
+			z: depth,
+			width: width + fside.size,
+			height: height + fbottom.size,
+			depth: fback.size,
+			insidePlotArea: false
+		};
+		if (!this.backFrame) {
+			this.backFrame = renderer.cuboid(backShape).attr({
+				fill: fback.color, 
+				zIndex: -3
+			}).css({
+				stroke: fback.color
+			}).add();
+		} else {
+			this.backFrame.animate(backShape);
+		}
+		var sideShape = {
+			x: left + (chart.yAxis[0].opposite ? width : -fside.size),
+			y: top + (chart.xAxis[0].opposite ? -fbottom.size : 0),
+			z: 0,
+			width: fside.size,
+			height: height + fbottom.size,
+			depth: depth,
+			insidePlotArea: false
+		};
+		if (!this.sideFrame) {
+			this.sideFrame = renderer.cuboid(sideShape).attr({
+				fill: fside.color, 
+				zIndex: -2
+			}).css({
+				stroke: fside.color
+			}).add();
+		} else {
+			this.sideFrame.animate(sideShape);
+		}
+	}
+});
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'getPlotLinePath', function (proceed) {
+	var path = proceed.apply(this, [].slice.call(arguments, 1));
+
+	// Do not do this if the chart is not 3D
+	if (!this.chart.is3d()) {
+		return path;
+	}
+
+	if (path === null) { return path; }
+
+	var chart = this.chart,
+		options3d = chart.options.chart.options3d;
+
+	var d = this.isZAxis ? this.chart.plotWidth : options3d.depth,
+		opposite = this.opposite;
+	if (this.horiz) {
+		opposite = !opposite;
+	}
+	var pArr = [
+		this.swapZ({ x: path[1], y: path[2], z: (opposite ? d : 0)}),
+		this.swapZ({ x: path[1], y: path[2], z: d }),
+		this.swapZ({ x: path[4], y: path[5], z: d }),
+		this.swapZ({ x: path[4], y: path[5], z: (opposite ? 0 : d)})
+	];
+
+	pArr = perspective(pArr, this.chart, false);
+	path = this.chart.renderer.toLinePath(pArr, false);
+
+	return path;
+});
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'getLinePath', function () {
+	// do not draw axislines in 3D ?
+	return [];
+});
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'getPlotBandPath', function (proceed) {
+	// Do not do this if the chart is not 3D
+	if (!this.chart.is3d()) {
+		return proceed.apply(this, [].slice.call(arguments, 1));
+	} else {
+		var args = arguments,
+			from = args[1],
+			to = args[2];
+	
+		var toPath = this.getPlotLinePath(to),
+			path = this.getPlotLinePath(from);
+			
+		if (path && toPath) {
+			path.push(
+				'L',
+				toPath[10],	// These two do not exist in the regular getPlotLine
+				toPath[11],  // ---- # 3005
+				'L',
+				toPath[7],
+				toPath[8],
+				'L',
+				toPath[4],
+				toPath[5],
+				'L',
+				toPath[1],
+				toPath[2]
+			);
+		} else { // outside the axis area
+			path = null;
+		}
+		
+		return path;
+	}
+});
+
+/*** 
+	EXTENSION TO THE TICKS
+***/
+
+Highcharts.wrap(Highcharts.Tick.prototype, 'getMarkPath', function (proceed) {
+	var path = proceed.apply(this, [].slice.call(arguments, 1));	
+
+	// Do not do this if the chart is not 3D
+	if (!this.axis.chart.is3d()) {
+		return path;
+	}
+
+	var pArr = [
+		this.axis.swapZ({x: path[1], y: path[2], z: 0}),
+		this.axis.swapZ({x: path[4], y: path[5], z: 0})
+	];
+
+	pArr = perspective(pArr, this.axis.chart, false);
+	path = [
+		'M', pArr[0].x, pArr[0].y,
+		'L', pArr[1].x, pArr[1].y
+	];
+	return path;
+});
+
+Highcharts.wrap(Highcharts.Tick.prototype, 'getLabelPosition', function (proceed) {
+	var pos = proceed.apply(this, [].slice.call(arguments, 1));
+
+	// Do not do this if the chart is not 3D
+	if (!this.axis.chart.is3d()) {
+		return pos;
+	}
+
+	var new_pos = perspective([this.axis.swapZ({x: pos.x, y: pos.y, z: 0})], this.axis.chart, false)[0];
+	new_pos.x = new_pos.x - (!this.axis.horiz && this.axis.opposite ? this.axis.transA : 0); //#3788
+	new_pos.old = pos;
+	return new_pos;
+});
+
+Highcharts.wrap(Highcharts.Tick.prototype, 'handleOverflow', function (proceed, xy) {
+	if (this.axis.chart.is3d()) {
+		xy = xy.old;
+	}
+	return proceed.call(this, xy);
+});
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'getTitlePosition', function (proceed) {
+	var pos = proceed.apply(this, [].slice.call(arguments, 1));
+
+	// Do not do this if the chart is not 3D
+	if (!this.chart.is3d()) {
+		return pos;
+	}
+
+	pos = perspective([this.swapZ({x: pos.x, y: pos.y, z: 0})], this.chart, false)[0];
+	return pos;
+});
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'drawCrosshair', function (proceed) {
+	var args = arguments;
+	if (this.chart.is3d()) {
+		if (args[2]) {
+			args[2] = {
+				plotX: args[2].plotXold || args[2].plotX,
+				plotY: args[2].plotYold || args[2].plotY
+			};
+		}
+	}
+	proceed.apply(this, [].slice.call(args, 1));
+});
+
+/***
+    Z-AXIS
+***/
+
+Highcharts.Axis.prototype.swapZ = function (p, insidePlotArea) {
+	if (this.isZAxis) {
+		var plotLeft = insidePlotArea ? 0 : this.chart.plotLeft;
+		var chart = this.chart;
+		return {
+			x: plotLeft + (chart.yAxis[0].opposite ? p.z : chart.xAxis[0].width - p.z),
+			y: p.y,
+			z: p.x - plotLeft
+		};
+	} else {
+		return p;
+	}
+};
+
+var ZAxis = Highcharts.ZAxis = function () {
+	this.isZAxis = true;
+	this.init.apply(this, arguments);
+};
+Highcharts.extend(ZAxis.prototype, Highcharts.Axis.prototype);
+Highcharts.extend(ZAxis.prototype, {
+	setOptions: function (userOptions) {
+		userOptions = Highcharts.merge({
+			offset: 0,
+			lineWi
