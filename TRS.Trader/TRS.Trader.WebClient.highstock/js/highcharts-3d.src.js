@@ -1323,4 +1323,192 @@ Highcharts.wrap(Highcharts.seriesTypes.pie.prototype, 'drawDataLabels', function
 				a2 = (shapeArgs.start + shapeArgs.end) / 2,
 				labelPos = point.labelPos;
 
-			labelPos[1] += (-r * (1
+			labelPos[1] += (-r * (1 - cos(a1)) * sin(a2)) + (sin(a2) > 0 ? sin(a1) * d : 0);
+			labelPos[3] += (-r * (1 - cos(a1)) * sin(a2)) + (sin(a2) > 0 ? sin(a1) * d : 0);
+			labelPos[5] += (-r * (1 - cos(a1)) * sin(a2)) + (sin(a2) > 0 ? sin(a1) * d : 0);
+
+		});
+	} 
+
+	proceed.apply(this, [].slice.call(arguments, 1));
+});
+
+Highcharts.wrap(Highcharts.seriesTypes.pie.prototype, 'addPoint', function (proceed) {
+	proceed.apply(this, [].slice.call(arguments, 1));	
+	if (this.chart.is3d()) {
+		// destroy (and rebuild) everything!!!
+		this.update(this.userOptions, true); // #3845 pass the old options
+	}
+});
+
+Highcharts.wrap(Highcharts.seriesTypes.pie.prototype, 'animate', function (proceed) {
+	if (!this.chart.is3d()) {
+		proceed.apply(this, [].slice.call(arguments, 1));
+	} else {
+		var args = arguments,
+			init = args[1],
+			animation = this.options.animation,
+			attribs,
+			center = this.center,
+			group = this.group,
+			markerGroup = this.markerGroup;
+
+		if (Highcharts.svg) { // VML is too slow anyway
+				
+				if (animation === true) {
+					animation = {};
+				}
+				// Initialize the animation
+				if (init) {
+				
+					// Scale down the group and place it in the center
+					group.oldtranslateX = group.translateX;
+					group.oldtranslateY = group.translateY;
+					attribs = {
+						translateX: center[0],
+						translateY: center[1],
+						scaleX: 0.001, // #1499
+						scaleY: 0.001
+					};
+					
+					group.attr(attribs);
+					if (markerGroup) {
+						markerGroup.attrSetters = group.attrSetters;
+						markerGroup.attr(attribs);
+					}
+				
+				// Run the animation
+				} else {
+					attribs = {
+						translateX: group.oldtranslateX,
+						translateY: group.oldtranslateY,
+						scaleX: 1,
+						scaleY: 1
+					};
+					group.animate(attribs, animation);
+
+					if (markerGroup) {
+						markerGroup.animate(attribs, animation);
+					}
+				
+					// Delete this function to allow it only once
+					this.animate = null;
+				}
+				
+		}
+	}
+});/*** 
+	EXTENSION FOR 3D SCATTER CHART
+***/
+
+Highcharts.wrap(Highcharts.seriesTypes.scatter.prototype, 'translate', function (proceed) {
+//function translate3d(proceed) {
+	proceed.apply(this, [].slice.call(arguments, 1));
+	
+	if (!this.chart.is3d()) {
+		return;
+	}	
+
+	var series = this,
+		chart = series.chart,
+		zAxis = Highcharts.pick(series.zAxis, chart.options.zAxis[0]);
+
+	var raw_points = [],
+		raw_point,
+		projected_points,
+		projected_point,
+		i;
+
+	for (i = 0; i < series.data.length; i++) {
+		raw_point = series.data[i];
+
+		raw_point.isInside = raw_point.isInside ? (raw_point.z >= zAxis.min && raw_point.z <= zAxis.max) : false;
+
+		raw_points.push({
+			x: raw_point.plotX,
+			y: raw_point.plotY,
+			z: zAxis.translate(raw_point.z)
+		});
+	}
+
+	projected_points = perspective(raw_points, chart, true);
+
+	for (i = 0; i < series.data.length; i++) {
+		raw_point = series.data[i];
+		projected_point = projected_points[i];
+
+		raw_point.plotXold = raw_point.plotX;
+		raw_point.plotYold = raw_point.plotY;
+
+		raw_point.plotX = projected_point.x;
+		raw_point.plotY = projected_point.y;
+		raw_point.plotZ = projected_point.z;
+
+
+	}
+
+});
+
+Highcharts.wrap(Highcharts.seriesTypes.scatter.prototype, 'init', function (proceed, chart, options) {
+	if (chart.is3d()) {
+		// add a third coordinate
+		this.axisTypes = ['xAxis', 'yAxis', 'zAxis'];
+		this.pointArrayMap = ['x', 'y', 'z'];
+		this.parallelArrays = ['x', 'y', 'z'];
+	}
+
+	var result = proceed.apply(this, [chart, options]);
+
+	if (this.chart.is3d()) {
+		// Set a new default tooltip formatter
+		var default3dScatterTooltip = 'x: <b>{point.x}</b><br/>y: <b>{point.y}</b><br/>z: <b>{point.z}</b><br/>';
+		if (this.userOptions.tooltip) {
+			this.tooltipOptions.pointFormat = this.userOptions.tooltip.pointFormat || default3dScatterTooltip;
+		} else {
+			this.tooltipOptions.pointFormat = default3dScatterTooltip;
+		}
+	}
+	return result;
+});
+/**
+ *	Extension to the VML Renderer
+ */
+if (Highcharts.VMLRenderer) {
+
+Highcharts.setOptions({animate: false});
+
+Highcharts.VMLRenderer.prototype.cuboid = Highcharts.SVGRenderer.prototype.cuboid;
+Highcharts.VMLRenderer.prototype.cuboidPath = Highcharts.SVGRenderer.prototype.cuboidPath;
+
+Highcharts.VMLRenderer.prototype.toLinePath = Highcharts.SVGRenderer.prototype.toLinePath;
+
+Highcharts.VMLRenderer.prototype.createElement3D = Highcharts.SVGRenderer.prototype.createElement3D;
+
+Highcharts.VMLRenderer.prototype.arc3d = function (shapeArgs) { 
+	var result = Highcharts.SVGRenderer.prototype.arc3d.call(this, shapeArgs);
+	result.css({zIndex: result.zIndex});
+	return result;
+};
+
+Highcharts.VMLRenderer.prototype.arc3dPath = Highcharts.SVGRenderer.prototype.arc3dPath;
+
+Highcharts.wrap(Highcharts.Axis.prototype, 'render', function (proceed) {
+	proceed.apply(this, [].slice.call(arguments, 1));
+	// VML doesn't support a negative z-index
+	if (this.sideFrame) {
+		this.sideFrame.css({zIndex: 0});
+		this.sideFrame.front.attr({fill: this.sideFrame.color});
+	}
+	if (this.bottomFrame) {
+		this.bottomFrame.css({zIndex: 1});
+		this.bottomFrame.front.attr({fill: this.bottomFrame.color});
+	}	
+	if (this.backFrame) {
+		this.backFrame.css({zIndex: 0});
+		this.backFrame.front.attr({fill: this.backFrame.color});
+	}		
+});
+
+}
+
+}(Highcharts));
