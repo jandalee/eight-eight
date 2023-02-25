@@ -1,0 +1,12 @@
+/*
+ Highstock JS v2.1.7 (2015-06-26)
+
+ (c) 2009-2014 Torstein Honsi
+
+ License: www.highcharts.com/license
+*/
+(function(){function z(){var a,b=arguments,c,d={},e=function(a,b){var c,d;typeof a!=="object"&&(a={});for(d in b)b.hasOwnProperty(d)&&(c=b[d],a[d]=c&&typeof c==="object"&&Object.prototype.toString.call(c)!=="[object Array]"&&d!=="renderTo"&&typeof c.nodeType!=="number"?e(a[d]||{},c):b[d]);return a};b[0]===!0&&(d=b[1],b=Array.prototype.slice.call(b,2));c=b.length;for(a=0;a<c;a++)d=e(d,b[a]);return d}function L(a,b){return parseInt(a,b||10)}function Ja(a){return typeof a==="string"}function ia(a){return a&&
+typeof a==="object"}function Ka(a){return Object.prototype.toString.call(a)==="[object Array]"}function sa(a){return typeof a==="number"}function La(a){return X.log(a)/X.LN10}function ta(a){return X.pow(10,a)}function ua(a,b){for(var c=a.length;c--;)if(a[c]===b){a.splice(c,1);break}}function u(a){return a!==r&&a!==null}function V(a,b,c){var d,e;if(Ja(b))u(c)?a.setAttribute(b,c):a&&a.getAttribute&&(e=a.getAttribute(b));else if(u(b)&&ia(b))for(d in b)a.setAttribute(d,b[d]);return e}function pa(a){return Ka(a)?
+a:[a]}function M(a,b){if(Ea&&!ea&&b&&b.opacity!==r)b.filter="alpha(opacity="+b.opacity*100+")";w(a.style,b)}function aa(a,b,c,d,e){a=C.createElement(a);b&&w(a,b);e&&M(a,{padding:0,border:Z,margin:0});c&&M(a,c);d&&d.appendChild(a);return a}function ja(a,b){var c=function(){return r};c.prototype=new a;w(c.prototype,b);return c}function Ra(a,b){return Array((b||2)+1-String(a).length).join(0)+a}function bb(a){return(kb&&kb(a)||wb||0)*6E4}function Ma(a,b){for(var c="{",d=!1,e,f,g,h,i,k=[];(c=a.indexOf(c))!==
+-1;){e=a.slice(0,c);if(d){f=e.split(":");g=f.shift().split(".");i=g.length;e=b;for(h=0;h<i;h++)e=e[g[h]];if(f.length)f=f.join(":"),g=/\.([0-9])/,h=P.lang,i=void 0,/f$/.test(f)?(i=(i=f.match(g))?i[1]:-1,e!==null&&(e=A.numberFormat(e,i,h.decimalPoint,f.indexOf(",")>-1?h.thousandsSep:""))):e=ka(f,e)}k.push(e);a=a.slice(c+1);c=(d=!d)?"}":"{"}k.push(a);return k.join("")}function xb(a){return X.pow(10,W(X.log(a)/X.LN10))}function yb(a,b,c,d,e){var f,g=a,c=p(c,1);f=a/c;b||(b=[1,2,2.5,5,10],d===!1&&(c===
+1?b=[1,2,5,10]:c<=0.1&&(b=[1/c])));for(d=0;d<b.length;d++)if(g=b[d],e&&g*c>=a||!e&&f<=(b[d]+(b[d+1]||b[d]))/2)break;g*=c;return g}function zb(a,b){var c=a.length,d,e;for(e=0;e<c;e++)a[e].ss_i=e;a.sort(function(a,c){d=b(a,c);return d===0?a.ss_i-c.ss_i:d});for(e=0;e<c;e++)delete a[e].ss_i}function Sa(a){
