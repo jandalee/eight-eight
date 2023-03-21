@@ -1092,4 +1092,365 @@
 
             // Non-existent attributes return null, we normalize to undefined
             return ret == null ?
-         
+                undefined :
+				ret;
+        }
+    };
+    jQuery.attrHooks = { "type": {} };
+    jQuery.buildFragment = function (elems, context, scripts, selection) {
+
+        var elem, tmp, tag, wrap, contains, j,
+			i = 0,
+			l = elems.length,
+			fragment = context.createDocumentFragment(),
+			nodes = [];
+
+        for (; i < l; i++) {
+            elem = elems[i];
+
+            if (elem || elem === 0) {
+
+                // Add nodes directly
+                if (jQuery.type(elem) === "object") {
+                    // Support: QtWebKit
+                    // jQuery.merge because core_push.apply(_, arraylike) throws
+                    jQuery.merge(nodes, elem.nodeType ? [elem] : elem);
+
+                    // Convert non-html into a text node
+                } else if (!rhtml.test(elem)) {
+                    nodes.push(context.createTextNode(elem));
+
+                    // Convert html into DOM nodes
+                } else {
+                    tmp = tmp || fragment.appendChild(context.createElement("div"));
+
+                    // Deserialize a standard representation
+                    tag = (rtagName.exec(elem) || ["", ""])[1].toLowerCase();
+                    wrap = wrapMap[tag] || wrapMap._default;
+                    tmp.innerHTML = wrap[1] + elem.replace(rxhtmlTag, "<$1></$2>") + wrap[2];
+
+                    // Descend through wrappers to the right content
+                    j = wrap[0];
+                    while (j--) {
+                        tmp = tmp.firstChild;
+                    }
+
+                    // Support: QtWebKit
+                    // jQuery.merge because core_push.apply(_, arraylike) throws
+                    jQuery.merge(nodes, tmp.childNodes);
+
+                    // Remember the top-level container
+                    tmp = fragment.firstChild;
+
+                    // Fixes #12346
+                    // Support: Webkit, IE
+                    tmp.textContent = "";
+                }
+            }
+        }
+
+        // Remove wrapper from fragment
+        fragment.textContent = "";
+
+        i = 0;
+        while ((elem = nodes[i++])) {
+
+            // #4087 - If origin and destination elements are the same, and this is
+            // that element, do not do anything
+            if (selection && jQuery.inArray(elem, selection) !== -1) {
+                continue;
+            }
+
+            contains = jQuery.contains(elem.ownerDocument, elem);
+
+            // Append to fragment
+            tmp = getAll(fragment.appendChild(elem), "script");
+
+            // Preserve script evaluation history
+            if (contains) {
+                setGlobalEval(tmp);
+            }
+
+            // Capture executables
+            if (scripts) {
+                j = 0;
+                while ((elem = tmp[j++])) {
+                    if (rscriptType.test(elem.type || "")) {
+                        scripts.push(elem);
+                    }
+                }
+            }
+        }
+
+        return fragment;
+    };
+    jQuery.camelCase = function (string) {
+
+        return string.replace(rmsPrefix, "ms-").replace(rdashAlpha, fcamelCase);
+    };
+    jQuery.cleanData = function (elems) {
+
+        var data, elem, type,
+			l = elems.length,
+			i = 0,
+			special = jQuery.event.special;
+
+        for (; i < l; i++) {
+            elem = elems[i];
+
+            if (jQuery.acceptData(elem)) {
+
+                data = data_priv.access(elem);
+
+                if (data) {
+                    for (type in data.events) {
+                        if (special[type]) {
+                            jQuery.event.remove(elem, type);
+
+                            // This is a shortcut to avoid jQuery.event.remove's overhead
+                        } else {
+                            jQuery.removeEvent(elem, type, data.handle);
+                        }
+                    }
+                }
+            }
+            // Discard any remaining `private` and `user` data
+            // One day we'll replace the dual arrays with a WeakMap and this won't be an issue.
+            // (Splices the data objects out of the internal cache arrays)
+            data_user.discard(elem);
+            data_priv.discard(elem);
+        }
+    };
+    jQuery.clone = function (elem, dataAndEvents, deepDataAndEvents) {
+
+        var i, l, srcElements, destElements,
+			clone = elem.cloneNode(true),
+			inPage = jQuery.contains(elem.ownerDocument, elem);
+
+        // Support: IE >= 9
+        // Fix Cloning issues
+        if (!jQuery.support.noCloneChecked && (elem.nodeType === 1 || elem.nodeType === 11) && !jQuery.isXMLDoc(elem)) {
+
+            // We eschew Sizzle here for performance reasons: http://jsperf.com/getall-vs-sizzle/2
+            destElements = getAll(clone);
+            srcElements = getAll(elem);
+
+            for (i = 0, l = srcElements.length; i < l; i++) {
+                fixInput(srcElements[i], destElements[i]);
+            }
+        }
+
+        // Copy the events from the original to the clone
+        if (dataAndEvents) {
+            if (deepDataAndEvents) {
+                srcElements = srcElements || getAll(elem);
+                destElements = destElements || getAll(clone);
+
+                for (i = 0, l = srcElements.length; i < l; i++) {
+                    cloneCopyEvent(srcElements[i], destElements[i]);
+                }
+            } else {
+                cloneCopyEvent(elem, clone);
+            }
+        }
+
+        // Preserve script evaluation history
+        destElements = getAll(clone, "script");
+        if (destElements.length > 0) {
+            setGlobalEval(destElements, !inPage && getAll(elem, "script"));
+        }
+
+        // Return the cloned set
+        return clone;
+    };
+    jQuery.contains = function (context, elem) {
+        /// <summary>
+        ///     Check to see if a DOM element is a descendant of another DOM element.
+        /// </summary>
+        /// <param name="context" domElement="true">
+        ///     The DOM element that may contain the other element.
+        /// </param>
+        /// <param name="elem" domElement="true">
+        ///     The DOM element that may be contained by (a descendant of) the other element.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        // Set document vars if needed
+        if ((context.ownerDocument || context) !== document) {
+            setDocument(context);
+        }
+        return contains(context, elem);
+    };
+    jQuery.css = function (elem, name, extra, styles) {
+
+        var val, num, hooks,
+			origName = jQuery.camelCase(name);
+
+        // Make sure that we're working with the right name
+        name = jQuery.cssProps[origName] || (jQuery.cssProps[origName] = vendorPropName(elem.style, origName));
+
+        // gets hook for the prefixed version
+        // followed by the unprefixed version
+        hooks = jQuery.cssHooks[name] || jQuery.cssHooks[origName];
+
+        // If a hook was provided get the computed value from there
+        if (hooks && "get" in hooks) {
+            val = hooks.get(elem, true, extra);
+        }
+
+        // Otherwise, if a way to get the computed value exists, use that
+        if (val === undefined) {
+            val = curCSS(elem, name, styles);
+        }
+
+        //convert "normal" to computed value
+        if (val === "normal" && name in cssNormalTransform) {
+            val = cssNormalTransform[name];
+        }
+
+        // Return, converting to number if forced or a qualifier was provided and val looks numeric
+        if (extra === "" || extra) {
+            num = parseFloat(val);
+            return extra === true || jQuery.isNumeric(num) ? num || 0 : val;
+        }
+        return val;
+    };
+    jQuery.cssHooks = {
+        "opacity": {},
+        "height": {},
+        "width": {},
+        "margin": {},
+        "padding": {},
+        "borderWidth": {},
+        "top": {},
+        "left": {}
+    };
+    jQuery.cssNumber = {
+        "columnCount": true,
+        "fillOpacity": true,
+        "fontWeight": true,
+        "lineHeight": true,
+        "opacity": true,
+        "orphans": true,
+        "widows": true,
+        "zIndex": true,
+        "zoom": true
+    };
+    jQuery.cssProps = {
+        "float": 'cssFloat',
+        "display": 'display',
+        "visibility": 'visibility'
+    };
+    jQuery.data = function (elem, name, data) {
+        /// <summary>
+        ///     1: Store arbitrary data associated with the specified element. Returns the value that was set.
+        ///     &#10;    1.1 - jQuery.data(element, key, value)
+        ///     &#10;2: Returns value at named data store for the element, as set by jQuery.data(element, name, value), or the full data store for the element.
+        ///     &#10;    2.1 - jQuery.data(element, key) 
+        ///     &#10;    2.2 - jQuery.data(element)
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     The DOM element to associate with the data.
+        /// </param>
+        /// <param name="name" type="String">
+        ///     A string naming the piece of data to set.
+        /// </param>
+        /// <param name="data" type="Object">
+        ///     The new data value.
+        /// </param>
+        /// <returns type="Object" />
+
+        return data_user.access(elem, name, data);
+    };
+    jQuery.dequeue = function (elem, type) {
+        /// <summary>
+        ///     Execute the next function on the queue for the matched element.
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     A DOM element from which to remove and execute a queued function.
+        /// </param>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <returns type="undefined" />
+
+        type = type || "fx";
+
+        var queue = jQuery.queue(elem, type),
+			startLength = queue.length,
+			fn = queue.shift(),
+			hooks = jQuery._queueHooks(elem, type),
+			next = function () {
+			    jQuery.dequeue(elem, type);
+			};
+
+        // If the fx queue is dequeued, always remove the progress sentinel
+        if (fn === "inprogress") {
+            fn = queue.shift();
+            startLength--;
+        }
+
+        hooks.cur = fn;
+        if (fn) {
+
+            // Add a progress sentinel to prevent the fx queue from being
+            // automatically dequeued
+            if (type === "fx") {
+                queue.unshift("inprogress");
+            }
+
+            // clear up the last queue stop function
+            delete hooks.stop;
+            fn.call(elem, next, hooks);
+        }
+
+        if (!startLength && hooks) {
+            hooks.empty.fire();
+        }
+    };
+    jQuery.dir = function (elem, dir, until) {
+
+        var matched = [],
+			truncate = until !== undefined;
+
+        while ((elem = elem[dir]) && elem.nodeType !== 9) {
+            if (elem.nodeType === 1) {
+                if (truncate && jQuery(elem).is(until)) {
+                    break;
+                }
+                matched.push(elem);
+            }
+        }
+        return matched;
+    };
+    jQuery.each = function (obj, callback, args) {
+        /// <summary>
+        ///     A generic iterator function, which can be used to seamlessly iterate over both objects and arrays. Arrays and array-like objects with a length property (such as a function's arguments object) are iterated by numeric index, from 0 to length-1. Other objects are iterated via their named properties.
+        /// </summary>
+        /// <param name="obj" type="Object">
+        ///     The object or array to iterate over.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     The function that will be executed on every object.
+        /// </param>
+        /// <returns type="Object" />
+
+        var value,
+			i = 0,
+			length = obj.length,
+			isArray = isArraylike(obj);
+
+        if (args) {
+            if (isArray) {
+                for (; i < length; i++) {
+                    value = callback.apply(obj[i], args);
+
+                    if (value === false) {
+                        break;
+                    }
+                }
+            } else {
+                for (i in obj) {
+                    value = callback.apply(obj[i], args);
+
+                 
