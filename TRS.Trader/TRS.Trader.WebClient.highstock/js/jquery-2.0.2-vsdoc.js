@@ -744,4 +744,352 @@
             if (s.cache === false) {
                 s.url = rts.test(cacheURL) ?
 
-					// If there i
+					// If there is already a '_' parameter, set its value
+					cacheURL.replace(rts, "$1_=" + ajax_nonce++) :
+
+					// Otherwise add one to the end
+					cacheURL + (ajax_rquery.test(cacheURL) ? "&" : "?") + "_=" + ajax_nonce++;
+            }
+        }
+
+        // Set the If-Modified-Since and/or If-None-Match header, if in ifModified mode.
+        if (s.ifModified) {
+            if (jQuery.lastModified[cacheURL]) {
+                jqXHR.setRequestHeader("If-Modified-Since", jQuery.lastModified[cacheURL]);
+            }
+            if (jQuery.etag[cacheURL]) {
+                jqXHR.setRequestHeader("If-None-Match", jQuery.etag[cacheURL]);
+            }
+        }
+
+        // Set the correct header, if data is being sent
+        if (s.data && s.hasContent && s.contentType !== false || options.contentType) {
+            jqXHR.setRequestHeader("Content-Type", s.contentType);
+        }
+
+        // Set the Accepts header for the server, depending on the dataType
+        jqXHR.setRequestHeader(
+			"Accept",
+			s.dataTypes[0] && s.accepts[s.dataTypes[0]] ?
+				s.accepts[s.dataTypes[0]] + (s.dataTypes[0] !== "*" ? ", " + allTypes + "; q=0.01" : "") :
+				s.accepts["*"]
+		);
+
+        // Check for headers option
+        for (i in s.headers) {
+            jqXHR.setRequestHeader(i, s.headers[i]);
+        }
+
+        // Allow custom headers/mimetypes and early abort
+        if (s.beforeSend && (s.beforeSend.call(callbackContext, jqXHR, s) === false || state === 2)) {
+            // Abort if not done already and return
+            return jqXHR.abort();
+        }
+
+        // aborting is no longer a cancellation
+        strAbort = "abort";
+
+        // Install callbacks on deferreds
+        for (i in { success: 1, error: 1, complete: 1 }) {
+            jqXHR[i](s[i]);
+        }
+
+        // Get transport
+        transport = inspectPrefiltersOrTransports(transports, s, options, jqXHR);
+
+        // If no transport, we auto-abort
+        if (!transport) {
+            done(-1, "No Transport");
+        } else {
+            jqXHR.readyState = 1;
+
+            // Send global event
+            if (fireGlobals) {
+                globalEventContext.trigger("ajaxSend", [jqXHR, s]);
+            }
+            // Timeout
+            if (s.async && s.timeout > 0) {
+                timeoutTimer = setTimeout(function () {
+                    jqXHR.abort("timeout");
+                }, s.timeout);
+            }
+
+            try {
+                state = 1;
+                transport.send(requestHeaders, done);
+            } catch (e) {
+                // Propagate exception as error if not done
+                if (state < 2) {
+                    done(-1, e);
+                    // Simply rethrow otherwise
+                } else {
+                    throw e;
+                }
+            }
+        }
+
+        // Callback for when everything is done
+        function done(status, nativeStatusText, responses, headers) {
+            var isSuccess, success, error, response, modified,
+				statusText = nativeStatusText;
+
+            // Called once
+            if (state === 2) {
+                return;
+            }
+
+            // State is "done" now
+            state = 2;
+
+            // Clear timeout if it exists
+            if (timeoutTimer) {
+                clearTimeout(timeoutTimer);
+            }
+
+            // Dereference transport for early garbage collection
+            // (no matter how long the jqXHR object will be used)
+            transport = undefined;
+
+            // Cache response headers
+            responseHeadersString = headers || "";
+
+            // Set readyState
+            jqXHR.readyState = status > 0 ? 4 : 0;
+
+            // Determine if successful
+            isSuccess = status >= 200 && status < 300 || status === 304;
+
+            // Get response data
+            if (responses) {
+                response = ajaxHandleResponses(s, jqXHR, responses);
+            }
+
+            // Convert no matter what (that way responseXXX fields are always set)
+            response = ajaxConvert(s, response, jqXHR, isSuccess);
+
+            // If successful, handle type chaining
+            if (isSuccess) {
+
+                // Set the If-Modified-Since and/or If-None-Match header, if in ifModified mode.
+                if (s.ifModified) {
+                    modified = jqXHR.getResponseHeader("Last-Modified");
+                    if (modified) {
+                        jQuery.lastModified[cacheURL] = modified;
+                    }
+                    modified = jqXHR.getResponseHeader("etag");
+                    if (modified) {
+                        jQuery.etag[cacheURL] = modified;
+                    }
+                }
+
+                // if no content
+                if (status === 204) {
+                    statusText = "nocontent";
+
+                    // if not modified
+                } else if (status === 304) {
+                    statusText = "notmodified";
+
+                    // If we have data, let's convert it
+                } else {
+                    statusText = response.state;
+                    success = response.data;
+                    error = response.error;
+                    isSuccess = !error;
+                }
+            } else {
+                // We extract error from statusText
+                // then normalize statusText and status for non-aborts
+                error = statusText;
+                if (status || !statusText) {
+                    statusText = "error";
+                    if (status < 0) {
+                        status = 0;
+                    }
+                }
+            }
+
+            // Set data for the fake xhr object
+            jqXHR.status = status;
+            jqXHR.statusText = (nativeStatusText || statusText) + "";
+
+            // Success/Error
+            if (isSuccess) {
+                deferred.resolveWith(callbackContext, [success, statusText, jqXHR]);
+            } else {
+                deferred.rejectWith(callbackContext, [jqXHR, statusText, error]);
+            }
+
+            // Status-dependent callbacks
+            jqXHR.statusCode(statusCode);
+            statusCode = undefined;
+
+            if (fireGlobals) {
+                globalEventContext.trigger(isSuccess ? "ajaxSuccess" : "ajaxError",
+					[jqXHR, s, isSuccess ? success : error]);
+            }
+
+            // Complete
+            completeDeferred.fireWith(callbackContext, [jqXHR, statusText]);
+
+            if (fireGlobals) {
+                globalEventContext.trigger("ajaxComplete", [jqXHR, s]);
+                // Handle the global AJAX counter
+                if (!(--jQuery.active)) {
+                    jQuery.event.trigger("ajaxStop");
+                }
+            }
+        }
+
+        return jqXHR;
+    };
+    jQuery.ajaxPrefilter = function (dataTypeExpression, func) {
+        /// <summary>
+        ///     Handle custom Ajax options or modify existing options before each request is sent and before they are processed by $.ajax().
+        /// </summary>
+        /// <param name="dataTypeExpression" type="String">
+        ///     An optional string containing one or more space-separated dataTypes
+        /// </param>
+        /// <param name="func" type="Function">
+        ///     A handler to set default values for future Ajax requests.
+        /// </param>
+        /// <returns type="undefined" />
+
+
+        if (typeof dataTypeExpression !== "string") {
+            func = dataTypeExpression;
+            dataTypeExpression = "*";
+        }
+
+        var dataType,
+			i = 0,
+			dataTypes = dataTypeExpression.toLowerCase().match(core_rnotwhite) || [];
+
+        if (jQuery.isFunction(func)) {
+            // For each dataType in the dataTypeExpression
+            while ((dataType = dataTypes[i++])) {
+                // Prepend if requested
+                if (dataType[0] === "+") {
+                    dataType = dataType.slice(1) || "*";
+                    (structure[dataType] = structure[dataType] || []).unshift(func);
+
+                    // Otherwise append
+                } else {
+                    (structure[dataType] = structure[dataType] || []).push(func);
+                }
+            }
+        }
+    };
+    jQuery.ajaxSettings = {
+        "url": 'http://localhost:25812/?ver=2.0.2&newLineMethod=xml',
+        "type": 'GET',
+        "isLocal": false,
+        "global": true,
+        "processData": true,
+        "async": true,
+        "contentType": 'application/x-www-form-urlencoded; charset=UTF-8',
+        "accepts": {},
+        "contents": {},
+        "responseFields": {},
+        "converters": {},
+        "flatOptions": {},
+        "jsonp": 'callback'
+    };
+    jQuery.ajaxSetup = function (target, settings) {
+        /// <summary>
+        ///     Set default values for future Ajax requests. Its use is not recommended.
+        /// </summary>
+        /// <param name="target" type="PlainObject">
+        ///     A set of key/value pairs that configure the default Ajax request. All options are optional.
+        /// </param>
+
+        return settings ?
+
+			// Building a settings object
+			ajaxExtend(ajaxExtend(target, jQuery.ajaxSettings), settings) :
+
+			// Extending ajaxSettings
+			ajaxExtend(jQuery.ajaxSettings, target);
+    };
+    jQuery.ajaxTransport = function (dataTypeExpression, func) {
+        /// <summary>
+        ///     Creates an object that handles the actual transmission of Ajax data.
+        /// </summary>
+        /// <param name="dataTypeExpression" type="String">
+        ///     A string identifying the data type to use
+        /// </param>
+        /// <param name="func" type="Function">
+        ///     A handler to return the new transport object to use with the data type provided in the first argument.
+        /// </param>
+        /// <returns type="undefined" />
+
+
+        if (typeof dataTypeExpression !== "string") {
+            func = dataTypeExpression;
+            dataTypeExpression = "*";
+        }
+
+        var dataType,
+			i = 0,
+			dataTypes = dataTypeExpression.toLowerCase().match(core_rnotwhite) || [];
+
+        if (jQuery.isFunction(func)) {
+            // For each dataType in the dataTypeExpression
+            while ((dataType = dataTypes[i++])) {
+                // Prepend if requested
+                if (dataType[0] === "+") {
+                    dataType = dataType.slice(1) || "*";
+                    (structure[dataType] = structure[dataType] || []).unshift(func);
+
+                    // Otherwise append
+                } else {
+                    (structure[dataType] = structure[dataType] || []).push(func);
+                }
+            }
+        }
+    };
+    jQuery.attr = function (elem, name, value) {
+
+        var hooks, ret,
+			nType = elem.nodeType;
+
+        // don't get/set attributes on text, comment and attribute nodes
+        if (!elem || nType === 3 || nType === 8 || nType === 2) {
+            return;
+        }
+
+        // Fallback to prop when attributes are not supported
+        if (typeof elem.getAttribute === core_strundefined) {
+            return jQuery.prop(elem, name, value);
+        }
+
+        // All attributes are lowercase
+        // Grab necessary hook if one is defined
+        if (nType !== 1 || !jQuery.isXMLDoc(elem)) {
+            name = name.toLowerCase();
+            hooks = jQuery.attrHooks[name] ||
+				(jQuery.expr.match.boolean.test(name) ? boolHook : nodeHook);
+        }
+
+        if (value !== undefined) {
+
+            if (value === null) {
+                jQuery.removeAttr(elem, name);
+
+            } else if (hooks && "set" in hooks && (ret = hooks.set(elem, value, name)) !== undefined) {
+                return ret;
+
+            } else {
+                elem.setAttribute(name, value + "");
+                return value;
+            }
+
+        } else if (hooks && "get" in hooks && (ret = hooks.get(elem, name)) !== null) {
+            return ret;
+
+        } else {
+            ret = jQuery.find.attr(elem, name);
+
+            // Non-existent attributes return null, we normalize to undefined
+            return ret == null ?
+         
