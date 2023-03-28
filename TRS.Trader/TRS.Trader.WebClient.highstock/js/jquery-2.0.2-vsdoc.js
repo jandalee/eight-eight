@@ -1792,4 +1792,351 @@
         ///     A string containing the URL to which the request is sent.
         /// </param>
         /// <param name="callback" type="Function">
-        ///     A callback function that is exe
+        ///     A callback function that is executed if the request succeeds.
+        /// </param>
+
+        return jQuery.get(url, undefined, callback, "script");
+    };
+    jQuery.globalEval = function (code) {
+        /// <summary>
+        ///     Execute some JavaScript code globally.
+        /// </summary>
+        /// <param name="code" type="String">
+        ///     The JavaScript code to execute.
+        /// </param>
+
+        var script,
+				indirect = eval;
+
+        code = jQuery.trim(code);
+
+        if (code) {
+            // If the code includes a valid, prologue position
+            // strict mode pragma, execute code by injecting a
+            // script tag into the document.
+            if (code.indexOf("use strict") === 1) {
+                script = document.createElement("script");
+                script.text = code;
+                document.head.appendChild(script).parentNode.removeChild(script);
+            } else {
+                // Otherwise, avoid the DOM node creation, insertion
+                // and removal by using an indirect global eval
+                indirect(code);
+            }
+        }
+    };
+    jQuery.grep = function (elems, callback, inv) {
+        /// <summary>
+        ///     Finds the elements of an array which satisfy a filter function. The original array is not affected.
+        /// </summary>
+        /// <param name="elems" type="Array">
+        ///     The array to search through.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     The function to process each item against.  The first argument to the function is the item, and the second argument is the index.  The function should return a Boolean value.  this will be the global window object.
+        /// </param>
+        /// <param name="inv" type="Boolean">
+        ///     If "invert" is false, or not provided, then the function returns an array consisting of all elements for which "callback" returns true.  If "invert" is true, then the function returns an array consisting of all elements for which "callback" returns false.
+        /// </param>
+        /// <returns type="Array" />
+
+        var retVal,
+			ret = [],
+			i = 0,
+			length = elems.length;
+        inv = !!inv;
+
+        // Go through the array, only saving the items
+        // that pass the validator function
+        for (; i < length; i++) {
+            retVal = !!callback(elems[i], i);
+            if (inv !== retVal) {
+                ret.push(elems[i]);
+            }
+        }
+
+        return ret;
+    };
+    jQuery.guid = 1;
+    jQuery.hasData = function (elem) {
+        /// <summary>
+        ///     Determine whether an element has any jQuery data associated with it.
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     A DOM element to be checked for data.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        return data_user.hasData(elem) || data_priv.hasData(elem);
+    };
+    jQuery.holdReady = function (hold) {
+        /// <summary>
+        ///     Holds or releases the execution of jQuery's ready event.
+        /// </summary>
+        /// <param name="hold" type="Boolean">
+        ///     Indicates whether the ready hold is being requested or released
+        /// </param>
+        /// <returns type="undefined" />
+
+        if (hold) {
+            jQuery.readyWait++;
+        } else {
+            jQuery.ready(true);
+        }
+    };
+    jQuery.inArray = function (elem, arr, i) {
+        /// <summary>
+        ///     Search for a specified value within an array and return its index (or -1 if not found).
+        /// </summary>
+        /// <param name="elem" type="Anything">
+        ///     The value to search for.
+        /// </param>
+        /// <param name="arr" type="Array">
+        ///     An array through which to search.
+        /// </param>
+        /// <param name="i" type="Number">
+        ///     The index of the array at which to begin the search. The default is 0, which will search the whole array.
+        /// </param>
+        /// <returns type="Number" />
+
+        return arr == null ? -1 : core_indexOf.call(arr, elem, i);
+    };
+    jQuery.isEmptyObject = function (obj) {
+        /// <summary>
+        ///     Check to see if an object is empty (contains no enumerable properties).
+        /// </summary>
+        /// <param name="obj" type="Object">
+        ///     The object that will be checked to see if it's empty.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        var name;
+        for (name in obj) {
+            return false;
+        }
+        return true;
+    };
+    jQuery.isFunction = function (obj) {
+        /// <summary>
+        ///     Determine if the argument passed is a Javascript function object.
+        /// </summary>
+        /// <param name="obj" type="PlainObject">
+        ///     Object to test whether or not it is a function.
+        /// </param>
+        /// <returns type="boolean" />
+
+        return jQuery.type(obj) === "function";
+    };
+    jQuery.isNumeric = function (obj) {
+        /// <summary>
+        ///     Determines whether its argument is a number.
+        /// </summary>
+        /// <param name="obj" type="PlainObject">
+        ///     The value to be tested.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        return !isNaN(parseFloat(obj)) && isFinite(obj);
+    };
+    jQuery.isPlainObject = function (obj) {
+        /// <summary>
+        ///     Check to see if an object is a plain object (created using "{}" or "new Object").
+        /// </summary>
+        /// <param name="obj" type="PlainObject">
+        ///     The object that will be checked to see if it's a plain object.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        // Not plain objects:
+        // - Any object or value whose internal [[Class]] property is not "[object Object]"
+        // - DOM nodes
+        // - window
+        if (jQuery.type(obj) !== "object" || obj.nodeType || jQuery.isWindow(obj)) {
+            return false;
+        }
+
+        // Support: Firefox <20
+        // The try/catch suppresses exceptions thrown when attempting to access
+        // the "constructor" property of certain host objects, ie. |window.location|
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=814622
+        try {
+            if (obj.constructor &&
+					!core_hasOwn.call(obj.constructor.prototype, "isPrototypeOf")) {
+                return false;
+            }
+        } catch (e) {
+            return false;
+        }
+
+        // If the function hasn't returned already, we're confident that
+        // |obj| is a plain object, created by {} or constructed with new Object
+        return true;
+    };
+    jQuery.isReady = true;
+    jQuery.isWindow = function (obj) {
+        /// <summary>
+        ///     Determine whether the argument is a window.
+        /// </summary>
+        /// <param name="obj" type="PlainObject">
+        ///     Object to test whether or not it is a window.
+        /// </param>
+        /// <returns type="boolean" />
+
+        return obj != null && obj === obj.window;
+    };
+    jQuery.isXMLDoc = function (elem) {
+        /// <summary>
+        ///     Check to see if a DOM node is within an XML document (or is an XML document).
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     The DOM node that will be checked to see if it's in an XML document.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        // documentElement is verified for cases where it doesn't yet exist
+        // (such as loading iframes in IE - #4833)
+        var documentElement = elem && (elem.ownerDocument || elem).documentElement;
+        return documentElement ? documentElement.nodeName !== "HTML" : false;
+    };
+    jQuery.lastModified = {};
+    jQuery.makeArray = function (arr, results) {
+        /// <summary>
+        ///     Convert an array-like object into a true JavaScript array.
+        /// </summary>
+        /// <param name="arr" type="PlainObject">
+        ///     Any object to turn into a native Array.
+        /// </param>
+        /// <returns type="Array" />
+
+        var ret = results || [];
+
+        if (arr != null) {
+            if (isArraylike(Object(arr))) {
+                jQuery.merge(ret,
+					typeof arr === "string" ?
+					[arr] : arr
+				);
+            } else {
+                core_push.call(ret, arr);
+            }
+        }
+
+        return ret;
+    };
+    jQuery.map = function (elems, callback, arg) {
+        /// <summary>
+        ///     Translate all items in an array or object to new array of items.
+        ///     &#10;1 - jQuery.map(array, callback(elementOfArray, indexInArray)) 
+        ///     &#10;2 - jQuery.map(arrayOrObject, callback( value, indexOrKey ))
+        /// </summary>
+        /// <param name="elems" type="Array">
+        ///     The Array to translate.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     The function to process each item against.  The first argument to the function is the array item, the second argument is the index in array The function can return any value. Within the function, this refers to the global (window) object.
+        /// </param>
+        /// <returns type="Array" />
+
+        var value,
+			i = 0,
+			length = elems.length,
+			isArray = isArraylike(elems),
+			ret = [];
+
+        // Go through the array, translating each of the items to their
+        if (isArray) {
+            for (; i < length; i++) {
+                value = callback(elems[i], i, arg);
+
+                if (value != null) {
+                    ret[ret.length] = value;
+                }
+            }
+
+            // Go through every key on the object,
+        } else {
+            for (i in elems) {
+                value = callback(elems[i], i, arg);
+
+                if (value != null) {
+                    ret[ret.length] = value;
+                }
+            }
+        }
+
+        // Flatten any nested arrays
+        return core_concat.apply([], ret);
+    };
+    jQuery.merge = function (first, second) {
+        /// <summary>
+        ///     Merge the contents of two arrays together into the first array.
+        /// </summary>
+        /// <param name="first" type="Array">
+        ///     The first array to merge, the elements of second added.
+        /// </param>
+        /// <param name="second" type="Array">
+        ///     The second array to merge into the first, unaltered.
+        /// </param>
+        /// <returns type="Array" />
+
+        var l = second.length,
+			i = first.length,
+			j = 0;
+
+        if (typeof l === "number") {
+            for (; j < l; j++) {
+                first[i++] = second[j];
+            }
+        } else {
+            while (second[j] !== undefined) {
+                first[i++] = second[j++];
+            }
+        }
+
+        first.length = i;
+
+        return first;
+    };
+    jQuery.noConflict = function (deep) {
+        /// <summary>
+        ///     Relinquish jQuery's control of the $ variable.
+        /// </summary>
+        /// <param name="deep" type="Boolean">
+        ///     A Boolean indicating whether to remove all jQuery variables from the global scope (including jQuery itself).
+        /// </param>
+        /// <returns type="Object" />
+
+        if (window.$ === jQuery) {
+            window.$ = _$;
+        }
+
+        if (deep && window.jQuery === jQuery) {
+            window.jQuery = _jQuery;
+        }
+
+        return jQuery;
+    };
+    jQuery.nodeName = function (elem, name) {
+
+        return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
+    };
+    jQuery.noop = function () {
+        /// <summary>
+        ///     An empty function.
+        /// </summary>
+        /// <returns type="undefined" />
+    };
+    jQuery.offset = {};
+    jQuery.param = function (a, traditional) {
+        /// <summary>
+        ///     Create a serialized representation of an array or object, suitable for use in a URL query string or Ajax request.
+        ///     &#10;1 - jQuery.param(obj) 
+        ///     &#10;2 - jQuery.param(obj, traditional)
+        /// </summary>
+        /// <param name="a" type="">
+        ///     An array or object to serialize.
+        /// </param>
+        /// <param name="traditional" type="Boolean">
+        ///     A Boolean indicating whether to perform a traditional "shallow" serialization.
+        /// </param>
+        /// <returns type="String" /
