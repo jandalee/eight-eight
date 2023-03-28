@@ -1453,4 +1453,343 @@
                 for (i in obj) {
                     value = callback.apply(obj[i], args);
 
-                 
+                    if (value === false) {
+                        break;
+                    }
+                }
+            }
+
+            // A special, fast, case for the most common use of each
+        } else {
+            if (isArray) {
+                for (; i < length; i++) {
+                    value = callback.call(obj[i], i, obj[i]);
+
+                    if (value === false) {
+                        break;
+                    }
+                }
+            } else {
+                for (i in obj) {
+                    value = callback.call(obj[i], i, obj[i]);
+
+                    if (value === false) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return obj;
+    };
+    jQuery.easing = {};
+    jQuery.error = function (msg) {
+        /// <summary>
+        ///     Takes a string and throws an exception containing it.
+        /// </summary>
+        /// <param name="msg" type="String">
+        ///     The message to send out.
+        /// </param>
+
+        throw new Error(msg);
+    };
+    jQuery.etag = {};
+    jQuery.event = {
+        "global": {},
+        "props": ['altKey', 'bubbles', 'cancelable', 'ctrlKey', 'currentTarget', 'eventPhase', 'metaKey', 'relatedTarget', 'shiftKey', 'target', 'timeStamp', 'view', 'which'],
+        "fixHooks": {},
+        "keyHooks": {},
+        "mouseHooks": {},
+        "special": {},
+        "triggered": {}
+    };
+    jQuery.expr = {
+        "cacheLength": 50,
+        "match": {},
+        "attrHandle": {},
+        "find": {},
+        "relative": {},
+        "preFilter": {},
+        "filter": {},
+        "pseudos": {},
+        "filters": {},
+        "setFilters": {},
+        ":": {}
+    };
+    jQuery.extend = function () {
+        /// <summary>
+        ///     Merge the contents of two or more objects together into the first object.
+        ///     &#10;1 - jQuery.extend(target, object1, objectN) 
+        ///     &#10;2 - jQuery.extend(deep, target, object1, objectN)
+        /// </summary>
+        /// <param name="" type="Boolean">
+        ///     If true, the merge becomes recursive (aka. deep copy).
+        /// </param>
+        /// <param name="" type="Object">
+        ///     The object to extend. It will receive the new properties.
+        /// </param>
+        /// <param name="" type="Object">
+        ///     An object containing additional properties to merge in.
+        /// </param>
+        /// <param name="" type="Object">
+        ///     Additional objects containing properties to merge in.
+        /// </param>
+        /// <returns type="Object" />
+
+        var options, name, src, copy, copyIsArray, clone,
+            target = arguments[0] || {},
+            i = 1,
+            length = arguments.length,
+            deep = false;
+
+        // Handle a deep copy situation
+        if (typeof target === "boolean") {
+            deep = target;
+            target = arguments[1] || {};
+            // skip the boolean and the target
+            i = 2;
+        }
+
+        // Handle case when target is a string or something (possible in deep copy)
+        if (typeof target !== "object" && !jQuery.isFunction(target)) {
+            target = {};
+        }
+
+        // extend jQuery itself if only one argument is passed
+        if (length === i) {
+            target = this;
+            --i;
+        }
+
+        for (; i < length; i++) {
+            // Only deal with non-null/undefined values
+            if ((options = arguments[i]) != null) {
+                // Extend the base object
+                for (name in options) {
+                    src = target[name];
+                    copy = options[name];
+
+                    // Prevent never-ending loop
+                    if (target === copy) {
+                        continue;
+                    }
+
+                    // Recurse if we're merging plain objects or arrays
+                    if (deep && copy && (jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)))) {
+                        if (copyIsArray) {
+                            copyIsArray = false;
+                            clone = src && jQuery.isArray(src) ? src : [];
+
+                        } else {
+                            clone = src && jQuery.isPlainObject(src) ? src : {};
+                        }
+
+                        // Never move original objects, clone them
+                        target[name] = jQuery.extend(deep, clone, copy);
+
+                        // Don't bring in undefined values
+                    } else if (copy !== undefined) {
+                        target[name] = copy;
+                    }
+                }
+            }
+        }
+
+        // Return the modified object
+        return target;
+    };
+    jQuery.filter = function (expr, elems, not) {
+
+        var elem = elems[0];
+
+        if (not) {
+            expr = ":not(" + expr + ")";
+        }
+
+        return elems.length === 1 && elem.nodeType === 1 ?
+			jQuery.find.matchesSelector(elem, expr) ? [elem] : [] :
+			jQuery.find.matches(expr, jQuery.grep(elems, function (elem) {
+			    return elem.nodeType === 1;
+			}));
+    };
+    jQuery.find = function Sizzle(selector, context, results, seed) {
+
+        var match, elem, m, nodeType,
+            // QSA vars
+            i, groups, old, nid, newContext, newSelector;
+
+        if ((context ? context.ownerDocument || context : preferredDoc) !== document) {
+            setDocument(context);
+        }
+
+        context = context || document;
+        results = results || [];
+
+        if (!selector || typeof selector !== "string") {
+            return results;
+        }
+
+        if ((nodeType = context.nodeType) !== 1 && nodeType !== 9) {
+            return [];
+        }
+
+        if (documentIsHTML && !seed) {
+
+            // Shortcuts
+            if ((match = rquickExpr.exec(selector))) {
+                // Speed-up: Sizzle("#ID")
+                if ((m = match[1])) {
+                    if (nodeType === 9) {
+                        elem = context.getElementById(m);
+                        // Check parentNode to catch when Blackberry 4.6 returns
+                        // nodes that are no longer in the document #6963
+                        if (elem && elem.parentNode) {
+                            // Handle the case where IE, Opera, and Webkit return items
+                            // by name instead of ID
+                            if (elem.id === m) {
+                                results.push(elem);
+                                return results;
+                            }
+                        } else {
+                            return results;
+                        }
+                    } else {
+                        // Context is not a document
+                        if (context.ownerDocument && (elem = context.ownerDocument.getElementById(m)) &&
+                            contains(context, elem) && elem.id === m) {
+                            results.push(elem);
+                            return results;
+                        }
+                    }
+
+                    // Speed-up: Sizzle("TAG")
+                } else if (match[2]) {
+                    push.apply(results, context.getElementsByTagName(selector));
+                    return results;
+
+                    // Speed-up: Sizzle(".CLASS")
+                } else if ((m = match[3]) && support.getElementsByClassName && context.getElementsByClassName) {
+                    push.apply(results, context.getElementsByClassName(m));
+                    return results;
+                }
+            }
+
+            // QSA path
+            if (support.qsa && (!rbuggyQSA || !rbuggyQSA.test(selector))) {
+                nid = old = expando;
+                newContext = context;
+                newSelector = nodeType === 9 && selector;
+
+                // qSA works strangely on Element-rooted queries
+                // We can work around this by specifying an extra ID on the root
+                // and working up from there (Thanks to Andrew Dupont for the technique)
+                // IE 8 doesn't work on object elements
+                if (nodeType === 1 && context.nodeName.toLowerCase() !== "object") {
+                    groups = tokenize(selector);
+
+                    if ((old = context.getAttribute("id"))) {
+                        nid = old.replace(rescape, "\\$&");
+                    } else {
+                        context.setAttribute("id", nid);
+                    }
+                    nid = "[id='" + nid + "'] ";
+
+                    i = groups.length;
+                    while (i--) {
+                        groups[i] = nid + toSelector(groups[i]);
+                    }
+                    newContext = rsibling.test(selector) && context.parentNode || context;
+                    newSelector = groups.join(",");
+                }
+
+                if (newSelector) {
+                    try {
+                        push.apply(results,
+                            newContext.querySelectorAll(newSelector)
+                        );
+                        return results;
+                    } catch (qsaError) {
+                    } finally {
+                        if (!old) {
+                            context.removeAttribute("id");
+                        }
+                    }
+                }
+            }
+        }
+
+        // All others
+        return select(selector.replace(rtrim, "$1"), context, results, seed);
+    };
+    jQuery.fn = {
+        "jquery": '2.0.2',
+        "selector": '',
+        "length": 0
+    };
+    jQuery.fx = function (elem, options, prop, end, easing, unit) {
+
+        this.elem = elem;
+        this.prop = prop;
+        this.easing = easing || "swing";
+        this.options = options;
+        this.start = this.now = this.cur();
+        this.end = end;
+        this.unit = unit || (jQuery.cssNumber[prop] ? "" : "px");
+    };
+    jQuery.get = function (url, data, callback, type) {
+        /// <summary>
+        ///     Load data from the server using a HTTP GET request.
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="data" type="">
+        ///     A plain object or string that is sent to the server with the request.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is executed if the request succeeds.
+        /// </param>
+        /// <param name="type" type="String">
+        ///     The type of data expected from the server. Default: Intelligent Guess (xml, json, script, or html).
+        /// </param>
+
+        // shift arguments if data argument was omitted
+        if (jQuery.isFunction(data)) {
+            type = type || callback;
+            callback = data;
+            data = undefined;
+        }
+
+        return jQuery.ajax({
+            url: url,
+            type: method,
+            dataType: type,
+            data: data,
+            success: callback
+        });
+    };
+    jQuery.getJSON = function (url, data, callback) {
+        /// <summary>
+        ///     Load JSON-encoded data from the server using a GET HTTP request.
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="data" type="PlainObject">
+        ///     A plain object or string that is sent to the server with the request.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is executed if the request succeeds.
+        /// </param>
+
+        return jQuery.get(url, data, callback, "json");
+    };
+    jQuery.getScript = function (url, callback) {
+        /// <summary>
+        ///     Load a JavaScript file from the server using a GET HTTP request, then execute it.
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is exe
