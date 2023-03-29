@@ -2504,4 +2504,343 @@
 
         return opt;
     };
-    jQuery.style = function (elem, name, val
+    jQuery.style = function (elem, name, value, extra) {
+
+        // Don't set styles on text and comment nodes
+        if (!elem || elem.nodeType === 3 || elem.nodeType === 8 || !elem.style) {
+            return;
+        }
+
+        // Make sure that we're working with the right name
+        var ret, type, hooks,
+			origName = jQuery.camelCase(name),
+			style = elem.style;
+
+        name = jQuery.cssProps[origName] || (jQuery.cssProps[origName] = vendorPropName(style, origName));
+
+        // gets hook for the prefixed version
+        // followed by the unprefixed version
+        hooks = jQuery.cssHooks[name] || jQuery.cssHooks[origName];
+
+        // Check if we're setting a value
+        if (value !== undefined) {
+            type = typeof value;
+
+            // convert relative number strings (+= or -=) to relative numbers. #7345
+            if (type === "string" && (ret = rrelNum.exec(value))) {
+                value = (ret[1] + 1) * ret[2] + parseFloat(jQuery.css(elem, name));
+                // Fixes bug #9237
+                type = "number";
+            }
+
+            // Make sure that NaN and null values aren't set. See: #7116
+            if (value == null || type === "number" && isNaN(value)) {
+                return;
+            }
+
+            // If a number was passed in, add 'px' to the (except for certain CSS properties)
+            if (type === "number" && !jQuery.cssNumber[origName]) {
+                value += "px";
+            }
+
+            // Fixes #8908, it can be done more correctly by specifying setters in cssHooks,
+            // but it would mean to define eight (for every problematic property) identical functions
+            if (!jQuery.support.clearCloneStyle && value === "" && name.indexOf("background") === 0) {
+                style[name] = "inherit";
+            }
+
+            // If a hook was provided, use that value, otherwise just set the specified value
+            if (!hooks || !("set" in hooks) || (value = hooks.set(elem, value, extra)) !== undefined) {
+                style[name] = value;
+            }
+
+        } else {
+            // If a hook was provided get the non-computed value from there
+            if (hooks && "get" in hooks && (ret = hooks.get(elem, false, extra)) !== undefined) {
+                return ret;
+            }
+
+            // Otherwise just get the value from the style object
+            return style[name];
+        }
+    };
+    jQuery.support = {
+        "checkOn": true,
+        "optSelected": true,
+        "reliableMarginRight": true,
+        "boxSizingReliable": true,
+        "pixelPosition": false,
+        "noCloneChecked": true,
+        "optDisabled": true,
+        "radioValue": true,
+        "checkClone": true,
+        "focusinBubbles": false,
+        "clearCloneStyle": true,
+        "cors": true,
+        "ajax": true,
+        "boxSizing": true
+    };
+    jQuery.swap = function (elem, options, callback, args) {
+
+        var ret, name,
+			old = {};
+
+        // Remember the old values, and insert the new ones
+        for (name in options) {
+            old[name] = elem.style[name];
+            elem.style[name] = options[name];
+        }
+
+        ret = callback.apply(elem, args || []);
+
+        // Revert the old values
+        for (name in options) {
+            elem.style[name] = old[name];
+        }
+
+        return ret;
+    };
+    jQuery.text = function (elem) {
+
+        var node,
+            ret = "",
+            i = 0,
+            nodeType = elem.nodeType;
+
+        if (!nodeType) {
+            // If no nodeType, this is expected to be an array
+            for (; (node = elem[i]) ; i++) {
+                // Do not traverse comment nodes
+                ret += getText(node);
+            }
+        } else if (nodeType === 1 || nodeType === 9 || nodeType === 11) {
+            // Use textContent for elements
+            // innerText usage removed for consistency of new lines (see #11153)
+            if (typeof elem.textContent === "string") {
+                return elem.textContent;
+            } else {
+                // Traverse its children
+                for (elem = elem.firstChild; elem; elem = elem.nextSibling) {
+                    ret += getText(elem);
+                }
+            }
+        } else if (nodeType === 3 || nodeType === 4) {
+            return elem.nodeValue;
+        }
+        // Do not include comment or processing instruction nodes
+
+        return ret;
+    };
+    jQuery.trim = function (text) {
+        /// <summary>
+        ///     Remove the whitespace from the beginning and end of a string.
+        /// </summary>
+        /// <param name="text" type="String">
+        ///     The string to trim.
+        /// </param>
+        /// <returns type="String" />
+
+        return text == null ? "" : core_trim.call(text);
+    };
+    jQuery.type = function (obj) {
+        /// <summary>
+        ///     Determine the internal JavaScript [[Class]] of an object.
+        /// </summary>
+        /// <param name="obj" type="PlainObject">
+        ///     Object to get the internal JavaScript [[Class]] of.
+        /// </param>
+        /// <returns type="String" />
+
+        if (obj == null) {
+            return String(obj);
+        }
+        // Support: Safari <= 5.1 (functionish RegExp)
+        return typeof obj === "object" || typeof obj === "function" ?
+			class2type[core_toString.call(obj)] || "object" :
+			typeof obj;
+    };
+    jQuery.unique = function (results) {
+        /// <summary>
+        ///     Sorts an array of DOM elements, in place, with the duplicates removed. Note that this only works on arrays of DOM elements, not strings or numbers.
+        /// </summary>
+        /// <param name="results" type="Array">
+        ///     The Array of DOM elements.
+        /// </param>
+        /// <returns type="Array" />
+
+        var elem,
+            duplicates = [],
+            j = 0,
+            i = 0;
+
+        // Unless we *know* we can detect duplicates, assume their presence
+        hasDuplicate = !support.detectDuplicates;
+        sortInput = !support.sortStable && results.slice(0);
+        results.sort(sortOrder);
+
+        if (hasDuplicate) {
+            while ((elem = results[i++])) {
+                if (elem === results[i]) {
+                    j = duplicates.push(i);
+                }
+            }
+            while (j--) {
+                results.splice(duplicates[j], 1);
+            }
+        }
+
+        return results;
+    };
+    jQuery.valHooks = {
+        "option": {},
+        "select": {},
+        "radio": {},
+        "checkbox": {}
+    };
+    jQuery.when = function (subordinate /* , ..., subordinateN */) {
+        /// <summary>
+        ///     Provides a way to execute callback functions based on one or more objects, usually Deferred objects that represent asynchronous events.
+        /// </summary>
+        /// <param name="subordinate/*" type="Deferred">
+        ///     One or more Deferred objects, or plain JavaScript objects.
+        /// </param>
+        /// <returns type="Promise" />
+
+        var i = 0,
+			resolveValues = core_slice.call(arguments),
+			length = resolveValues.length,
+
+			// the count of uncompleted subordinates
+			remaining = length !== 1 || (subordinate && jQuery.isFunction(subordinate.promise)) ? length : 0,
+
+			// the master Deferred. If resolveValues consist of only a single Deferred, just use that.
+			deferred = remaining === 1 ? subordinate : jQuery.Deferred(),
+
+			// Update function for both resolve and progress values
+			updateFunc = function (i, contexts, values) {
+			    return function (value) {
+			        contexts[i] = this;
+			        values[i] = arguments.length > 1 ? core_slice.call(arguments) : value;
+			        if (values === progressValues) {
+			            deferred.notifyWith(contexts, values);
+			        } else if (!(--remaining)) {
+			            deferred.resolveWith(contexts, values);
+			        }
+			    };
+			},
+
+			progressValues, progressContexts, resolveContexts;
+
+        // add listeners to Deferred subordinates; treat others as resolved
+        if (length > 1) {
+            progressValues = new Array(length);
+            progressContexts = new Array(length);
+            resolveContexts = new Array(length);
+            for (; i < length; i++) {
+                if (resolveValues[i] && jQuery.isFunction(resolveValues[i].promise)) {
+                    resolveValues[i].promise()
+						.done(updateFunc(i, resolveContexts, resolveValues))
+						.fail(deferred.reject)
+						.progress(updateFunc(i, progressContexts, progressValues));
+                } else {
+                    --remaining;
+                }
+            }
+        }
+
+        // if we're not waiting on anything, resolve the master
+        if (!remaining) {
+            deferred.resolveWith(resolveContexts, resolveValues);
+        }
+
+        return deferred.promise();
+    };
+    jQuery.Event.prototype.isDefaultPrevented = function returnFalse() {
+        /// <summary>
+        ///     Returns whether event.preventDefault() was ever called on this event object.
+        /// </summary>
+        /// <returns type="Boolean" />
+
+        return false;
+    };
+    jQuery.Event.prototype.isImmediatePropagationStopped = function returnFalse() {
+        /// <summary>
+        ///     Returns whether event.stopImmediatePropagation() was ever called on this event object.
+        /// </summary>
+        /// <returns type="Boolean" />
+
+        return false;
+    };
+    jQuery.Event.prototype.isPropagationStopped = function returnFalse() {
+        /// <summary>
+        ///     Returns whether event.stopPropagation() was ever called on this event object.
+        /// </summary>
+        /// <returns type="Boolean" />
+
+        return false;
+    };
+    jQuery.Event.prototype.preventDefault = function () {
+        /// <summary>
+        ///     If this method is called, the default action of the event will not be triggered.
+        /// </summary>
+        /// <returns type="undefined" />
+
+        var e = this.originalEvent;
+
+        this.isDefaultPrevented = returnTrue;
+
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
+    };
+    jQuery.Event.prototype.stopImmediatePropagation = function () {
+        /// <summary>
+        ///     Keeps the rest of the handlers from being executed and prevents the event from bubbling up the DOM tree.
+        /// </summary>
+
+        this.isImmediatePropagationStopped = returnTrue;
+        this.stopPropagation();
+    };
+    jQuery.Event.prototype.stopPropagation = function () {
+        /// <summary>
+        ///     Prevents the event from bubbling up the DOM tree, preventing any parent handlers from being notified of the event.
+        /// </summary>
+
+        var e = this.originalEvent;
+
+        this.isPropagationStopped = returnTrue;
+
+        if (e && e.stopPropagation) {
+            e.stopPropagation();
+        }
+    };
+    jQuery.prototype.add = function (selector, context) {
+        /// <summary>
+        ///     Add elements to the set of matched elements.
+        ///     &#10;1 - add(selector) 
+        ///     &#10;2 - add(elements) 
+        ///     &#10;3 - add(html) 
+        ///     &#10;4 - add(jQuery object) 
+        ///     &#10;5 - add(selector, context)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string representing a selector expression to find additional elements to add to the set of matched elements.
+        /// </param>
+        /// <param name="context" domElement="true">
+        ///     The point in the document at which the selector should begin matching; similar to the context argument of the $(selector, context) method.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var set = typeof selector === "string" ?
+				jQuery(selector, context) :
+				jQuery.makeArray(selector && selector.nodeType ? [selector] : selector),
+			all = jQuery.merge(this.get(), set);
+
+        return this.pushStack(jQuery.unique(all));
+    };
+    jQuery.prototype.addBack = function (selector) {
+        /// <summary>
+        ///     Add the previous set of elements on the stack to the current set, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selec
