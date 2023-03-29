@@ -2139,4 +2139,369 @@
         /// <param name="traditional" type="Boolean">
         ///     A Boolean indicating whether to perform a traditional "shallow" serialization.
         /// </param>
-        /// <returns type="String" /
+        /// <returns type="String" />
+
+        var prefix,
+            s = [],
+            add = function (key, value) {
+                // If value is a function, invoke it and return its value
+                value = jQuery.isFunction(value) ? value() : (value == null ? "" : value);
+                s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value);
+            };
+
+        // Set traditional to true for jQuery <= 1.3.2 behavior.
+        if (traditional === undefined) {
+            traditional = jQuery.ajaxSettings && jQuery.ajaxSettings.traditional;
+        }
+
+        // If an array was passed in, assume that it is an array of form elements.
+        if (jQuery.isArray(a) || (a.jquery && !jQuery.isPlainObject(a))) {
+            // Serialize the form elements
+            jQuery.each(a, function () {
+                add(this.name, this.value);
+            });
+
+        } else {
+            // If traditional, encode the "old" way (the way 1.3.2 or older
+            // did it), otherwise encode params recursively.
+            for (prefix in a) {
+                buildParams(prefix, a[prefix], traditional, add);
+            }
+        }
+
+        // Return the resulting serialization
+        return s.join("&").replace(r20, "+");
+    };
+    jQuery.parseHTML = function (data, context, keepScripts) {
+        /// <summary>
+        ///     Parses a string into an array of DOM nodes.
+        /// </summary>
+        /// <param name="data" type="String">
+        ///     HTML string to be parsed
+        /// </param>
+        /// <param name="context" domElement="true">
+        ///     DOM element to serve as the context in which the HTML fragment will be created
+        /// </param>
+        /// <param name="keepScripts" type="Boolean">
+        ///     A Boolean indicating whether to include scripts passed in the HTML string
+        /// </param>
+        /// <returns type="Array" />
+
+        if (!data || typeof data !== "string") {
+            return null;
+        }
+        if (typeof context === "boolean") {
+            keepScripts = context;
+            context = false;
+        }
+        context = context || document;
+
+        var parsed = rsingleTag.exec(data),
+			scripts = !keepScripts && [];
+
+        // Single tag
+        if (parsed) {
+            return [context.createElement(parsed[1])];
+        }
+
+        parsed = jQuery.buildFragment([data], context, scripts);
+
+        if (scripts) {
+            jQuery(scripts).remove();
+        }
+
+        return jQuery.merge([], parsed.childNodes);
+    };
+    jQuery.parseXML = function (data) {
+        /// <summary>
+        ///     Parses a string into an XML document.
+        /// </summary>
+        /// <param name="data" type="String">
+        ///     a well-formed XML string to be parsed
+        /// </param>
+        /// <returns type="XMLDocument" />
+
+        var xml, tmp;
+        if (!data || typeof data !== "string") {
+            return null;
+        }
+
+        // Support: IE9
+        try {
+            tmp = new DOMParser();
+            xml = tmp.parseFromString(data, "text/xml");
+        } catch (e) {
+            xml = undefined;
+        }
+
+        if (!xml || xml.getElementsByTagName("parsererror").length) {
+            jQuery.error("Invalid XML: " + data);
+        }
+        return xml;
+    };
+    jQuery.post = function (url, data, callback, type) {
+        /// <summary>
+        ///     Load data from the server using a HTTP POST request.
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="data" type="">
+        ///     A plain object or string that is sent to the server with the request.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is executed if the request succeeds.
+        /// </param>
+        /// <param name="type" type="String">
+        ///     The type of data expected from the server. Default: Intelligent Guess (xml, json, script, text, html).
+        /// </param>
+
+        // shift arguments if data argument was omitted
+        if (jQuery.isFunction(data)) {
+            type = type || callback;
+            callback = data;
+            data = undefined;
+        }
+
+        return jQuery.ajax({
+            url: url,
+            type: method,
+            dataType: type,
+            data: data,
+            success: callback
+        });
+    };
+    jQuery.prop = function (elem, name, value) {
+
+        var ret, hooks, notxml,
+			nType = elem.nodeType;
+
+        // don't get/set properties on text, comment and attribute nodes
+        if (!elem || nType === 3 || nType === 8 || nType === 2) {
+            return;
+        }
+
+        notxml = nType !== 1 || !jQuery.isXMLDoc(elem);
+
+        if (notxml) {
+            // Fix name and attach hooks
+            name = jQuery.propFix[name] || name;
+            hooks = jQuery.propHooks[name];
+        }
+
+        if (value !== undefined) {
+            return hooks && "set" in hooks && (ret = hooks.set(elem, value, name)) !== undefined ?
+                ret :
+				(elem[name] = value);
+
+        } else {
+            return hooks && "get" in hooks && (ret = hooks.get(elem, name)) !== null ?
+                ret :
+				elem[name];
+        }
+    };
+    jQuery.propFix = {
+        "for": 'htmlFor',
+        "class": 'className',
+        "tabindex": {},
+        "readonly": {},
+        "maxlength": {},
+        "cellspacing": {},
+        "cellpadding": {},
+        "rowspan": {},
+        "colspan": {},
+        "usemap": {},
+        "frameborder": {},
+        "contenteditable": {}
+    };
+    jQuery.propHooks = { "tabIndex": {} };
+    jQuery.proxy = function (fn, context) {
+        /// <summary>
+        ///     Takes a function and returns a new one that will always have a particular context.
+        ///     &#10;1 - jQuery.proxy(function, context) 
+        ///     &#10;2 - jQuery.proxy(context, name) 
+        ///     &#10;3 - jQuery.proxy(function, context, additionalArguments) 
+        ///     &#10;4 - jQuery.proxy(context, name, additionalArguments)
+        /// </summary>
+        /// <param name="fn" type="Function">
+        ///     The function whose context will be changed.
+        /// </param>
+        /// <param name="context" type="PlainObject">
+        ///     The object to which the context (this) of the function should be set.
+        /// </param>
+        /// <param name="" type="Anything">
+        ///     Any number of arguments to be passed to the function referenced in the function argument.
+        /// </param>
+        /// <returns type="Function" />
+
+        var tmp, args, proxy;
+
+        if (typeof context === "string") {
+            tmp = fn[context];
+            context = fn;
+            fn = tmp;
+        }
+
+        // Quick check to determine if target is callable, in the spec
+        // this throws a TypeError, but we will just return undefined.
+        if (!jQuery.isFunction(fn)) {
+            return undefined;
+        }
+
+        // Simulated bind
+        args = core_slice.call(arguments, 2);
+        proxy = function () {
+            return fn.apply(context || this, args.concat(core_slice.call(arguments)));
+        };
+
+        // Set the guid of unique handler to the same of original handler, so it can be removed
+        proxy.guid = fn.guid = fn.guid || jQuery.guid++;
+
+        return proxy;
+    };
+    jQuery.queue = function (elem, type, data) {
+        /// <summary>
+        ///     1: Show the queue of functions to be executed on the matched element.
+        ///     &#10;    1.1 - jQuery.queue(element, queueName)
+        ///     &#10;2: Manipulate the queue of functions to be executed on the matched element.
+        ///     &#10;    2.1 - jQuery.queue(element, queueName, newQueue) 
+        ///     &#10;    2.2 - jQuery.queue(element, queueName, callback())
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     A DOM element where the array of queued functions is attached.
+        /// </param>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <param name="data" type="Array">
+        ///     An array of functions to replace the current queue contents.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var queue;
+
+        if (elem) {
+            type = (type || "fx") + "queue";
+            queue = data_priv.get(elem, type);
+
+            // Speed up dequeue by getting out quickly if this is just a lookup
+            if (data) {
+                if (!queue || jQuery.isArray(data)) {
+                    queue = data_priv.access(elem, type, jQuery.makeArray(data));
+                } else {
+                    queue.push(data);
+                }
+            }
+            return queue || [];
+        }
+    };
+    jQuery.ready = function (wait) {
+
+
+        // Abort if there are pending holds or we're already ready
+        if (wait === true ? --jQuery.readyWait : jQuery.isReady) {
+            return;
+        }
+
+        // Remember that the DOM is ready
+        jQuery.isReady = true;
+
+        // If a normal DOM Ready event fired, decrement, and wait if need be
+        if (wait !== true && --jQuery.readyWait > 0) {
+            return;
+        }
+
+        // If there are functions bound, to execute
+        readyList.resolveWith(document, [jQuery]);
+
+        // Trigger any bound ready events
+        if (jQuery.fn.trigger) {
+            jQuery(document).trigger("ready").off("ready");
+        }
+    };
+    jQuery.readyWait = 0;
+    jQuery.removeAttr = function (elem, value) {
+
+        var name, propName,
+			i = 0,
+			attrNames = value && value.match(core_rnotwhite);
+
+        if (attrNames && elem.nodeType === 1) {
+            while ((name = attrNames[i++])) {
+                propName = jQuery.propFix[name] || name;
+
+                // Boolean attributes get special treatment (#10870)
+                if (jQuery.expr.match.boolean.test(name)) {
+                    // Set corresponding property to false
+                    elem[propName] = false;
+                }
+
+                elem.removeAttribute(name);
+            }
+        }
+    };
+    jQuery.removeData = function (elem, name) {
+        /// <summary>
+        ///     Remove a previously-stored piece of data.
+        /// </summary>
+        /// <param name="elem" domElement="true">
+        ///     A DOM element from which to remove data.
+        /// </param>
+        /// <param name="name" type="String">
+        ///     A string naming the piece of data to remove.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        data_user.remove(elem, name);
+    };
+    jQuery.removeEvent = function (elem, type, handle) {
+
+        if (elem.removeEventListener) {
+            elem.removeEventListener(type, handle, false);
+        }
+    };
+    jQuery.sibling = function (n, elem) {
+
+        var matched = [];
+
+        for (; n; n = n.nextSibling) {
+            if (n.nodeType === 1 && n !== elem) {
+                matched.push(n);
+            }
+        }
+
+        return matched;
+    };
+    jQuery.speed = function (speed, easing, fn) {
+
+        var opt = speed && typeof speed === "object" ? jQuery.extend({}, speed) : {
+            complete: fn || !fn && easing ||
+                jQuery.isFunction(speed) && speed,
+            duration: speed,
+            easing: fn && easing || easing && !jQuery.isFunction(easing) && easing
+        };
+
+        opt.duration = jQuery.fx.off ? 0 : typeof opt.duration === "number" ? opt.duration :
+            opt.duration in jQuery.fx.speeds ? jQuery.fx.speeds[opt.duration] : jQuery.fx.speeds._default;
+
+        // normalize opt.queue - true/undefined/null -> "fx"
+        if (opt.queue == null || opt.queue === true) {
+            opt.queue = "fx";
+        }
+
+        // Queueing
+        opt.old = opt.complete;
+
+        opt.complete = function () {
+            if (jQuery.isFunction(opt.old)) {
+                opt.old.call(this);
+            }
+
+            if (opt.queue) {
+                jQuery.dequeue(this, opt.queue);
+            }
+        };
+
+        return opt;
+    };
+    jQuery.style = function (elem, name, val
