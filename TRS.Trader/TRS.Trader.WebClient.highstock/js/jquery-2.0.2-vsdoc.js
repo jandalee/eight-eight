@@ -3145,4 +3145,316 @@
         ///     Bind an event handler to the "blur" JavaScript event, or trigger that event on an element.
         ///     &#10;1 - blur(handler(eventObject)) 
         ///     &#10;2 - blur(eventData, handler(eventObject)) 
-        ///
+        ///     &#10;3 - blur()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.change = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "change" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - change(handler(eventObject)) 
+        ///     &#10;2 - change(eventData, handler(eventObject)) 
+        ///     &#10;3 - change()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.children = function (until, selector) {
+        /// <summary>
+        ///     Get the children of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.clearQueue = function (type) {
+        /// <summary>
+        ///     Remove from the queue all items that have not yet been run.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.queue(type || "fx", []);
+    };
+    jQuery.prototype.click = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "click" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - click(handler(eventObject)) 
+        ///     &#10;2 - click(eventData, handler(eventObject)) 
+        ///     &#10;3 - click()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.clone = function (dataAndEvents, deepDataAndEvents) {
+        /// <summary>
+        ///     Create a deep copy of the set of matched elements.
+        ///     &#10;1 - clone(withDataAndEvents) 
+        ///     &#10;2 - clone(withDataAndEvents, deepWithDataAndEvents)
+        /// </summary>
+        /// <param name="dataAndEvents" type="Boolean">
+        ///     A Boolean indicating whether event handlers and data should be copied along with the elements. The default value is false. *In jQuery 1.5.0 the default value was incorrectly true; it was changed back to false in 1.5.1 and up.
+        /// </param>
+        /// <param name="deepDataAndEvents" type="Boolean">
+        ///     A Boolean indicating whether event handlers and data for all children of the cloned element should be copied. By default its value matches the first argument's value (which defaults to false).
+        /// </param>
+        /// <returns type="jQuery" />
+
+        dataAndEvents = dataAndEvents == null ? false : dataAndEvents;
+        deepDataAndEvents = deepDataAndEvents == null ? dataAndEvents : deepDataAndEvents;
+
+        return this.map(function () {
+            return jQuery.clone(this, dataAndEvents, deepDataAndEvents);
+        });
+    };
+    jQuery.prototype.closest = function (selectors, context) {
+        /// <summary>
+        ///     1: For each element in the set, get the first element that matches the selector by testing the element itself and traversing up through its ancestors in the DOM tree.
+        ///     &#10;    1.1 - closest(selector) 
+        ///     &#10;    1.2 - closest(selector, context) 
+        ///     &#10;    1.3 - closest(jQuery object) 
+        ///     &#10;    1.4 - closest(element)
+        ///     &#10;2: Get an array of all the elements and selectors matched against the current element up through the DOM tree.
+        ///     &#10;    2.1 - closest(selectors, context)
+        /// </summary>
+        /// <param name="selectors" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <param name="context" domElement="true">
+        ///     A DOM element within which a matching element may be found. If no context is passed in then the context of the jQuery set will be used instead.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var cur,
+			i = 0,
+			l = this.length,
+			matched = [],
+			pos = (rneedsContext.test(selectors) || typeof selectors !== "string") ?
+				jQuery(selectors, context || this.context) :
+				0;
+
+        for (; i < l; i++) {
+            for (cur = this[i]; cur && cur !== context; cur = cur.parentNode) {
+                // Always skip document fragments
+                if (cur.nodeType < 11 && (pos ?
+					pos.index(cur) > -1 :
+
+                    // Don't pass non-elements to Sizzle
+					cur.nodeType === 1 &&
+						jQuery.find.matchesSelector(cur, selectors))) {
+
+                    cur = matched.push(cur);
+                    break;
+                }
+            }
+        }
+
+        return this.pushStack(matched.length > 1 ? jQuery.unique(matched) : matched);
+    };
+    jQuery.prototype.constructor = function (selector, context) {
+
+        // The jQuery object is actually just the init constructor 'enhanced'
+        return new jQuery.fn.init(selector, context, rootjQuery);
+    };
+    jQuery.prototype.contents = function (until, selector) {
+        /// <summary>
+        ///     Get the children of each element in the set of matched elements, including text and comment nodes.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.contextmenu = function (data, fn) {
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.css = function (name, value) {
+        /// <summary>
+        ///     1: Get the value of style properties for the first element in the set of matched elements.
+        ///     &#10;    1.1 - css(propertyName) 
+        ///     &#10;    1.2 - css(propertyNames)
+        ///     &#10;2: Set one or more CSS properties for the set of matched elements.
+        ///     &#10;    2.1 - css(propertyName, value) 
+        ///     &#10;    2.2 - css(propertyName, function(index, value)) 
+        ///     &#10;    2.3 - css(properties)
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     A CSS property name.
+        /// </param>
+        /// <param name="value" type="">
+        ///     A value to set for the property.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (elem, name, value) {
+            var styles, len,
+				map = {},
+				i = 0;
+
+            if (jQuery.isArray(name)) {
+                styles = getStyles(elem);
+                len = name.length;
+
+                for (; i < len; i++) {
+                    map[name[i]] = jQuery.css(elem, name[i], false, styles);
+                }
+
+                return map;
+            }
+
+            return value !== undefined ?
+				jQuery.style(elem, name, value) :
+				jQuery.css(elem, name);
+        }, name, value, arguments.length > 1);
+    };
+    jQuery.prototype.data = function (key, value) {
+        /// <summary>
+        ///     1: Store arbitrary data associated with the matched elements.
+        ///     &#10;    1.1 - data(key, value) 
+        ///     &#10;    1.2 - data(obj)
+        ///     &#10;2: Return the value at the named data store for the first element in the jQuery collection, as set by data(name, value) or by an HTML5 data-* attribute.
+        ///     &#10;    2.1 - data(key) 
+        ///     &#10;    2.2 - data()
+        /// </summary>
+        /// <param name="key" type="String">
+        ///     A string naming the piece of data to set.
+        /// </param>
+        /// <param name="value" type="Object">
+        ///     The new data value; it can be any Javascript type including Array or Object.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var attrs, name,
+			elem = this[0],
+			i = 0,
+			data = null;
+
+        // Gets all values
+        if (key === undefined) {
+            if (this.length) {
+                data = data_user.get(elem);
+
+                if (elem.nodeType === 1 && !data_priv.get(elem, "hasDataAttrs")) {
+                    attrs = elem.attributes;
+                    for (; i < attrs.length; i++) {
+                        name = attrs[i].name;
+
+                        if (name.indexOf("data-") === 0) {
+                            name = jQuery.camelCase(name.substring(5));
+                            dataAttr(elem, name, data[name]);
+                        }
+                    }
+                    data_priv.set(elem, "hasDataAttrs", true);
+                }
+            }
+
+            return data;
+        }
+
+        // Sets multiple values
+        if (typeof key === "object") {
+            return this.each(function () {
+                data_user.set(this, key);
+            });
+        }
+
+        return jQuery.access(this, function (value) {
+            var data,
+				camelKey = jQuery.camelCase(key);
+
+            // The calling jQuery object (element matches) is not empty
+            // (and therefore has an element appears at this[ 0 ]) and the
+            // `value` parameter was not undefined. An empty jQuery object
+            // will result in `undefined` for elem = this[ 0 ] which will
+            // throw an exception if an attempt to read a data cache is made.
+            if (elem && value === undefined) {
+                // Attempt to get data from the cache
+                // with the key as-is
+                data = data_user.get(elem, key);
+                if (data !== undefined) {
+                    return data;
+                }
+
+                // Attempt to get data from the cache
+                // with the key camelized
+                data = data_user.get(elem, camelKey);
+        
