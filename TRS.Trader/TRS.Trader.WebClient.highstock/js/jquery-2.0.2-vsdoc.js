@@ -3457,4 +3457,324 @@
                 // Attempt to get data from the cache
                 // with the key camelized
                 data = data_user.get(elem, camelKey);
-        
+                if (data !== undefined) {
+                    return data;
+                }
+
+                // Attempt to "discover" the data in
+                // HTML5 custom data-* attrs
+                data = dataAttr(elem, camelKey, undefined);
+                if (data !== undefined) {
+                    return data;
+                }
+
+                // We tried really hard, but the data doesn't exist.
+                return;
+            }
+
+            // Set the data...
+            this.each(function () {
+                // First, attempt to store a copy or reference of any
+                // data that might've been store with a camelCased key.
+                var data = data_user.get(this, camelKey);
+
+                // For HTML5 data-* attribute interop, we have to
+                // store property names with dashes in a camelCase form.
+                // This might not apply to all properties...*
+                data_user.set(this, camelKey, value);
+
+                // *... In the case of properties that might _actually_
+                // have dashes, we need to also store a copy of that
+                // unchanged property.
+                if (key.indexOf("-") !== -1 && data !== undefined) {
+                    data_user.set(this, key, value);
+                }
+            });
+        }, null, value, arguments.length > 1, null, true);
+    };
+    jQuery.prototype.dblclick = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "dblclick" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - dblclick(handler(eventObject)) 
+        ///     &#10;2 - dblclick(eventData, handler(eventObject)) 
+        ///     &#10;3 - dblclick()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.delay = function (time, type) {
+        /// <summary>
+        ///     Set a timer to delay execution of subsequent items in the queue.
+        /// </summary>
+        /// <param name="time" type="Number">
+        ///     An integer indicating the number of milliseconds to delay execution of the next item in the queue.
+        /// </param>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        time = jQuery.fx ? jQuery.fx.speeds[time] || time : time;
+        type = type || "fx";
+
+        return this.queue(type, function (next, hooks) {
+            var timeout = setTimeout(next, time);
+            hooks.stop = function () {
+                clearTimeout(timeout);
+            };
+        });
+    };
+    jQuery.prototype.delegate = function (selector, types, data, fn) {
+        /// <summary>
+        ///     Attach a handler to one or more events for all elements that match the selector, now or in the future, based on a specific set of root elements.
+        ///     &#10;1 - delegate(selector, eventType, handler(eventObject)) 
+        ///     &#10;2 - delegate(selector, eventType, eventData, handler(eventObject)) 
+        ///     &#10;3 - delegate(selector, events)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector to filter the elements that trigger the event.
+        /// </param>
+        /// <param name="types" type="String">
+        ///     A string containing one or more space-separated JavaScript event types, such as "click" or "keydown," or custom event names.
+        /// </param>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute at the time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.on(types, selector, data, fn);
+    };
+    jQuery.prototype.dequeue = function (type) {
+        /// <summary>
+        ///     Execute the next function on the queue for the matched elements.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            jQuery.dequeue(this, type);
+        });
+    };
+    jQuery.prototype.detach = function (selector) {
+        /// <summary>
+        ///     Remove the set of matched elements from the DOM.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector expression that filters the set of matched elements to be removed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.remove(selector, true);
+    };
+    jQuery.prototype.domManip = function (args, callback, allowIntersection) {
+
+
+        // Flatten any nested arrays
+        args = core_concat.apply([], args);
+
+        var fragment, first, scripts, hasScripts, node, doc,
+			i = 0,
+			l = this.length,
+			set = this,
+			iNoClone = l - 1,
+			value = args[0],
+			isFunction = jQuery.isFunction(value);
+
+        // We can't cloneNode fragments that contain checked, in WebKit
+        if (isFunction || !(l <= 1 || typeof value !== "string" || jQuery.support.checkClone || !rchecked.test(value))) {
+            return this.each(function (index) {
+                var self = set.eq(index);
+                if (isFunction) {
+                    args[0] = value.call(this, index, self.html());
+                }
+                self.domManip(args, callback, allowIntersection);
+            });
+        }
+
+        if (l) {
+            fragment = jQuery.buildFragment(args, this[0].ownerDocument, false, !allowIntersection && this);
+            first = fragment.firstChild;
+
+            if (fragment.childNodes.length === 1) {
+                fragment = first;
+            }
+
+            if (first) {
+                scripts = jQuery.map(getAll(fragment, "script"), disableScript);
+                hasScripts = scripts.length;
+
+                // Use the original fragment for the last item instead of the first because it can end up
+                // being emptied incorrectly in certain situations (#8070).
+                for (; i < l; i++) {
+                    node = fragment;
+
+                    if (i !== iNoClone) {
+                        node = jQuery.clone(node, true, true);
+
+                        // Keep references to cloned scripts for later restoration
+                        if (hasScripts) {
+                            // Support: QtWebKit
+                            // jQuery.merge because core_push.apply(_, arraylike) throws
+                            jQuery.merge(scripts, getAll(node, "script"));
+                        }
+                    }
+
+                    callback.call(this[i], node, i);
+                }
+
+                if (hasScripts) {
+                    doc = scripts[scripts.length - 1].ownerDocument;
+
+                    // Reenable scripts
+                    jQuery.map(scripts, restoreScript);
+
+                    // Evaluate executable scripts on first document insertion
+                    for (i = 0; i < hasScripts; i++) {
+                        node = scripts[i];
+                        if (rscriptType.test(node.type || "") &&
+							!data_priv.access(node, "globalEval") && jQuery.contains(doc, node)) {
+
+                            if (node.src) {
+                                // Hope ajax is available...
+                                jQuery._evalUrl(node.src);
+                            } else {
+                                jQuery.globalEval(node.textContent.replace(rcleanScript, ""));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.each = function (callback, args) {
+        /// <summary>
+        ///     Iterate over a jQuery object, executing a function for each matched element.
+        /// </summary>
+        /// <param name="callback" type="Function">
+        ///     A function to execute for each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.each(this, callback, args);
+    };
+    jQuery.prototype.empty = function () {
+        /// <summary>
+        ///     Remove all child nodes of the set of matched elements from the DOM.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        var elem,
+			i = 0;
+
+        for (; (elem = this[i]) != null; i++) {
+            if (elem.nodeType === 1) {
+
+                // Prevent memory leaks
+                jQuery.cleanData(getAll(elem, false));
+
+                // Remove any remaining nodes
+                elem.textContent = "";
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.end = function () {
+        /// <summary>
+        ///     End the most recent filtering operation in the current chain and return the set of matched elements to its previous state.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.prevObject || this.constructor(null);
+    };
+    jQuery.prototype.eq = function (i) {
+        /// <summary>
+        ///     Reduce the set of matched elements to the one at the specified index.
+        ///     &#10;1 - eq(index) 
+        ///     &#10;2 - eq(-index)
+        /// </summary>
+        /// <param name="i" type="Number">
+        ///     An integer indicating the 0-based position of the element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var len = this.length,
+			j = +i + (i < 0 ? len : 0);
+        return this.pushStack(j >= 0 && j < len ? [this[j]] : []);
+    };
+    jQuery.prototype.error = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "error" JavaScript event.
+        ///     &#10;1 - error(handler(eventObject)) 
+        ///     &#10;2 - error(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.extend = function () {
+
+        var options, name, src, copy, copyIsArray, clone,
+            target = arguments[0] || {},
+            i = 1,
+            length = arguments.length,
+            deep = false;
+
+        // Handle a deep copy situation
+        if (typeof target === "boolean") {
+            deep = target;
+            target = arguments[1] || {};
+            // skip the boolean and the target
+            i = 2;
+        }
+
+        // Handle case when target is a string or something (possible in deep copy)
+        if (typeof target !== "object" && !jQuery.isFunction(target)) {
+            target = {};
+        }
+
+        // extend jQuery itself if only one argument is passed
+        if (length === i) {
+            target = this;
+            --i;
+        }
+
+        for (; i < length; i++) {
+            // Only deal with non-null/undefined values
+            if ((options = arguments[i]) != null) {
+                // Extend the base object
+                for (name in options) {
+                    src = target[name];
+                    copy = options[name];
+
+                    // Prevent never-ending loop
+                    if (target === copy) {
+                        continue;
+                    }
+
+                    // Recurse if we're merging plain objects or arrays
+                    if (deep && copy && (jQuery.isPlainObject(copy) || (cop
