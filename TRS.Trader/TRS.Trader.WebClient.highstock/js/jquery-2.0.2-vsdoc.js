@@ -3777,4 +3777,318 @@
                     }
 
                     // Recurse if we're merging plain objects or arrays
-                    if (deep && copy && (jQuery.isPlainObject(copy) || (cop
+                    if (deep && copy && (jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)))) {
+                        if (copyIsArray) {
+                            copyIsArray = false;
+                            clone = src && jQuery.isArray(src) ? src : [];
+
+                        } else {
+                            clone = src && jQuery.isPlainObject(src) ? src : {};
+                        }
+
+                        // Never move original objects, clone them
+                        target[name] = jQuery.extend(deep, clone, copy);
+
+                        // Don't bring in undefined values
+                    } else if (copy !== undefined) {
+                        target[name] = copy;
+                    }
+                }
+            }
+        }
+
+        // Return the modified object
+        return target;
+    };
+    jQuery.prototype.fadeIn = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display the matched elements by fading them to opaque.
+        ///     &#10;1 - fadeIn(duration, complete) 
+        ///     &#10;2 - fadeIn(options) 
+        ///     &#10;3 - fadeIn(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.fadeOut = function (speed, easing, callback) {
+        /// <summary>
+        ///     Hide the matched elements by fading them to transparent.
+        ///     &#10;1 - fadeOut(duration, complete) 
+        ///     &#10;2 - fadeOut(options) 
+        ///     &#10;3 - fadeOut(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.fadeTo = function (speed, to, easing, callback) {
+        /// <summary>
+        ///     Adjust the opacity of the matched elements.
+        ///     &#10;1 - fadeTo(duration, opacity, complete) 
+        ///     &#10;2 - fadeTo(duration, opacity, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="to" type="Number">
+        ///     A number between 0 and 1 denoting the target opacity.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+
+        // show any hidden elements after setting opacity to 0
+        return this.filter(isHidden).css("opacity", 0).show()
+
+			// animate to the value specified
+			.end().animate({ opacity: to }, speed, easing, callback);
+    };
+    jQuery.prototype.fadeToggle = function (speed, easing, callback) {
+        /// <summary>
+        ///     Display or hide the matched elements by animating their opacity.
+        ///     &#10;1 - fadeToggle(duration, easing, complete) 
+        ///     &#10;2 - fadeToggle(options)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.animate(props, speed, easing, callback);
+    };
+    jQuery.prototype.filter = function (selector) {
+        /// <summary>
+        ///     Reduce the set of matched elements to those that match the selector or pass the function's test.
+        ///     &#10;1 - filter(selector) 
+        ///     &#10;2 - filter(function(index)) 
+        ///     &#10;3 - filter(element) 
+        ///     &#10;4 - filter(jQuery object)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match the current set of elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(winnow(this, selector || [], false));
+    };
+    jQuery.prototype.find = function (selector) {
+        /// <summary>
+        ///     Get the descendants of each element in the current set of matched elements, filtered by a selector, jQuery object, or element.
+        ///     &#10;1 - find(selector) 
+        ///     &#10;2 - find(jQuery object) 
+        ///     &#10;3 - find(element)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var self, matched, i,
+			l = this.length;
+
+        if (typeof selector !== "string") {
+            self = this;
+            return this.pushStack(jQuery(selector).filter(function () {
+                for (i = 0; i < l; i++) {
+                    if (jQuery.contains(self[i], this)) {
+                        return true;
+                    }
+                }
+            }));
+        }
+
+        matched = [];
+        for (i = 0; i < l; i++) {
+            jQuery.find(selector, this[i], matched);
+        }
+
+        // Needed because $( selector, context ) becomes $( context ).find( selector )
+        matched = this.pushStack(l > 1 ? jQuery.unique(matched) : matched);
+        matched.selector = (this.selector ? this.selector + " " : "") + selector;
+        return matched;
+    };
+    jQuery.prototype.finish = function (type) {
+        /// <summary>
+        ///     Stop the currently-running animation, remove all queued animations, and complete all animations for the matched elements.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     The name of the queue in which to stop animations.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (type !== false) {
+            type = type || "fx";
+        }
+        return this.each(function () {
+            var index,
+				data = data_priv.get(this),
+				queue = data[type + "queue"],
+				hooks = data[type + "queueHooks"],
+				timers = jQuery.timers,
+				length = queue ? queue.length : 0;
+
+            // enable finishing flag on private data
+            data.finish = true;
+
+            // empty the queue first
+            jQuery.queue(this, type, []);
+
+            if (hooks && hooks.cur && hooks.cur.finish) {
+                hooks.cur.finish.call(this);
+            }
+
+            // look for any active animations, and finish them
+            for (index = timers.length; index--;) {
+                if (timers[index].elem === this && timers[index].queue === type) {
+                    timers[index].anim.stop(true);
+                    timers.splice(index, 1);
+                }
+            }
+
+            // look for any animations in the old queue and finish them
+            for (index = 0; index < length; index++) {
+                if (queue[index] && queue[index].finish) {
+                    queue[index].finish.call(this);
+                }
+            }
+
+            // turn off finishing flag
+            delete data.finish;
+        });
+    };
+    jQuery.prototype.first = function () {
+        /// <summary>
+        ///     Reduce the set of matched elements to the first in the set.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.eq(0);
+    };
+    jQuery.prototype.focus = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focus" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - focus(handler(eventObject)) 
+        ///     &#10;2 - focus(eventData, handler(eventObject)) 
+        ///     &#10;3 - focus()
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.focusin = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focusin" event.
+        ///     &#10;1 - focusin(handler(eventObject)) 
+        ///     &#10;2 - focusin(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.focusout = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "focusout" JavaScript event.
+        ///     &#10;1 - focusout(handler(eventObject)) 
+        ///     &#10;2 - focusout(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.get = function (num) {
+        /// <summary>
+        ///     Retrieve the DOM elements matched by the jQuery object.
+        /// </summary>
+        /// <param name="num" type="Number">
+        ///     A zero-based integer indicating which element to retrieve.
+        /// </param>
+        /// <returns type="Array" />
+
+        return num == null ?
+
+			// Return a 'clean' array
+			this.toArray() :
+
+			// Return just the object
+			(num < 0 ? this[this.length + num] : this[num]);
+    };
+    jQuery.prototype.has = function (target) {
+        /// <summary>
+        ///     Reduce the set of matched elements to those that have a descendant that matches the selector or DOM element.
+        ///     &#10;1 - has(selector) 
+        ///     &#10;2 - has(contained)
+        /// </summary>
+        /// <param name="target" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var targets = jQuery(target, this),
+			l = targets.length;
+
+        return this.filter(function () {
+            var i = 0;
+            for (; i < l; i++) {
+                if (jQuery.contains(this, targets[i])) {
+                    return true;
+                }
+            }
+        });
+    };
+    jQuery.prototype.hasClass = function (selector) {
+        /// <summary>
+        ///     Determine whether a
