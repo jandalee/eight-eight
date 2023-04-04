@@ -4091,4 +4091,310 @@
     };
     jQuery.prototype.hasClass = function (selector) {
         /// <summary>
-        ///     Determine whether a
+        ///     Determine whether any of the matched elements are assigned the given class.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     The class name to search for.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        var className = " " + selector + " ",
+			i = 0,
+			l = this.length;
+        for (; i < l; i++) {
+            if (this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf(className) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+    jQuery.prototype.height = function (margin, value) {
+        /// <summary>
+        ///     1: Get the current computed height for the first element in the set of matched elements.
+        ///     &#10;    1.1 - height()
+        ///     &#10;2: Set the CSS height of every matched element.
+        ///     &#10;    2.1 - height(value) 
+        ///     &#10;    2.2 - height(function(index, height))
+        /// </summary>
+        /// <param name="margin" type="">
+        ///     An integer representing the number of pixels, or an integer with an optional unit of measure appended (as a string).
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.hide = function (speed, easing, callback) {
+        /// <summary>
+        ///     Hide the matched elements.
+        ///     &#10;1 - hide() 
+        ///     &#10;2 - hide(duration, complete) 
+        ///     &#10;3 - hide(options) 
+        ///     &#10;4 - hide(duration, easing, complete)
+        /// </summary>
+        /// <param name="speed" type="">
+        ///     A string or number determining how long the animation will run.
+        /// </param>
+        /// <param name="easing" type="String">
+        ///     A string indicating which easing function to use for the transition.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A function to call once the animation is complete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return speed == null || typeof speed === "boolean" ?
+			cssFn.apply(this, arguments) :
+			this.animate(genFx(name, true), speed, easing, callback);
+    };
+    jQuery.prototype.hover = function (fnOver, fnOut) {
+        /// <summary>
+        ///     1: Bind two handlers to the matched elements, to be executed when the mouse pointer enters and leaves the elements.
+        ///     &#10;    1.1 - hover(handlerIn(eventObject), handlerOut(eventObject))
+        ///     &#10;2: Bind a single handler to the matched elements, to be executed when the mouse pointer enters or leaves the elements.
+        ///     &#10;    2.1 - hover(handlerInOut(eventObject))
+        /// </summary>
+        /// <param name="fnOver" type="Function">
+        ///     A function to execute when the mouse pointer enters the element.
+        /// </param>
+        /// <param name="fnOut" type="Function">
+        ///     A function to execute when the mouse pointer leaves the element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.mouseenter(fnOver).mouseleave(fnOut || fnOver);
+    };
+    jQuery.prototype.html = function (value) {
+        /// <summary>
+        ///     1: Get the HTML contents of the first element in the set of matched elements.
+        ///     &#10;    1.1 - html()
+        ///     &#10;2: Set the HTML contents of each element in the set of matched elements.
+        ///     &#10;    2.1 - html(htmlString) 
+        ///     &#10;    2.2 - html(function(index, oldhtml))
+        /// </summary>
+        /// <param name="value" type="htmlString">
+        ///     A string of HTML to set as the content of each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (value) {
+            var elem = this[0] || {},
+				i = 0,
+				l = this.length;
+
+            if (value === undefined && elem.nodeType === 1) {
+                return elem.innerHTML;
+            }
+
+            // See if we can take a shortcut and just use innerHTML
+            if (typeof value === "string" && !rnoInnerhtml.test(value) &&
+				!wrapMap[(rtagName.exec(value) || ["", ""])[1].toLowerCase()]) {
+
+                value = value.replace(rxhtmlTag, "<$1></$2>");
+
+                try {
+                    for (; i < l; i++) {
+                        elem = this[i] || {};
+
+                        // Remove element nodes and prevent memory leaks
+                        if (elem.nodeType === 1) {
+                            jQuery.cleanData(getAll(elem, false));
+                            elem.innerHTML = value;
+                        }
+                    }
+
+                    elem = 0;
+
+                    // If using innerHTML throws an exception, use the fallback method
+                } catch (e) { }
+            }
+
+            if (elem) {
+                this.empty().append(value);
+            }
+        }, null, value, arguments.length);
+    };
+    jQuery.prototype.index = function (elem) {
+        /// <summary>
+        ///     Search for a given element from among the matched elements.
+        ///     &#10;1 - index() 
+        ///     &#10;2 - index(selector) 
+        ///     &#10;3 - index(element)
+        /// </summary>
+        /// <param name="elem" type="String">
+        ///     A selector representing a jQuery collection in which to look for an element.
+        /// </param>
+        /// <returns type="Number" />
+
+
+        // No argument, return index in parent
+        if (!elem) {
+            return (this[0] && this[0].parentNode) ? this.first().prevAll().length : -1;
+        }
+
+        // index in selector
+        if (typeof elem === "string") {
+            return core_indexOf.call(jQuery(elem), this[0]);
+        }
+
+        // Locate the position of the desired element
+        return core_indexOf.call(this,
+
+			// If it receives a jQuery object, the first element is used
+			elem.jquery ? elem[0] : elem
+		);
+    };
+    jQuery.prototype.init = function (selector, context, rootjQuery) {
+
+        var match, elem;
+
+        // HANDLE: $(""), $(null), $(undefined), $(false)
+        if (!selector) {
+            return this;
+        }
+
+        // Handle HTML strings
+        if (typeof selector === "string") {
+            if (selector.charAt(0) === "<" && selector.charAt(selector.length - 1) === ">" && selector.length >= 3) {
+                // Assume that strings that start and end with <> are HTML and skip the regex check
+                match = [null, selector, null];
+
+            } else {
+                match = rquickExpr.exec(selector);
+            }
+
+            // Match html or make sure no context is specified for #id
+            if (match && (match[1] || !context)) {
+
+                // HANDLE: $(html) -> $(array)
+                if (match[1]) {
+                    context = context instanceof jQuery ? context[0] : context;
+
+                    // scripts is true for back-compat
+                    jQuery.merge(this, jQuery.parseHTML(
+						match[1],
+						context && context.nodeType ? context.ownerDocument || context : document,
+						true
+					));
+
+                    // HANDLE: $(html, props)
+                    if (rsingleTag.test(match[1]) && jQuery.isPlainObject(context)) {
+                        for (match in context) {
+                            // Properties of context are called as methods if possible
+                            if (jQuery.isFunction(this[match])) {
+                                this[match](context[match]);
+
+                                // ...and otherwise set as attributes
+                            } else {
+                                this.attr(match, context[match]);
+                            }
+                        }
+                    }
+
+                    return this;
+
+                    // HANDLE: $(#id)
+                } else {
+                    elem = document.getElementById(match[2]);
+
+                    // Check parentNode to catch when Blackberry 4.6 returns
+                    // nodes that are no longer in the document #6963
+                    if (elem && elem.parentNode) {
+                        // Inject the element directly into the jQuery object
+                        this.length = 1;
+                        this[0] = elem;
+                    }
+
+                    this.context = document;
+                    this.selector = selector;
+                    return this;
+                }
+
+                // HANDLE: $(expr, $(...))
+            } else if (!context || context.jquery) {
+                return (context || rootjQuery).find(selector);
+
+                // HANDLE: $(expr, context)
+                // (which is just equivalent to: $(context).find(expr)
+            } else {
+                return this.constructor(context).find(selector);
+            }
+
+            // HANDLE: $(DOMElement)
+        } else if (selector.nodeType) {
+            this.context = this[0] = selector;
+            this.length = 1;
+            return this;
+
+            // HANDLE: $(function)
+            // Shortcut for document ready
+        } else if (jQuery.isFunction(selector)) {
+            return rootjQuery.ready(selector);
+        }
+
+        if (selector.selector !== undefined) {
+            this.selector = selector.selector;
+            this.context = selector.context;
+        }
+
+        return jQuery.makeArray(selector, this);
+    };
+    jQuery.prototype.innerHeight = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed height for the first element in the set of matched elements, including padding but not border.
+        /// </summary>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+     
