@@ -4397,4 +4397,306 @@
                 // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
                 // whichever is greatest
                 return Math.max(
-     
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.innerWidth = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed width for the first element in the set of matched elements, including padding but not border.
+        /// </summary>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.insertAfter = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements after the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted after the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.insertBefore = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements before the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted before the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.is = function (selector) {
+        /// <summary>
+        ///     Check the current matched set of elements against a selector, element, or jQuery object and return true if at least one of these elements matches the given arguments.
+        ///     &#10;1 - is(selector) 
+        ///     &#10;2 - is(function(index)) 
+        ///     &#10;3 - is(jQuery object) 
+        ///     &#10;4 - is(element)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="Boolean" />
+
+        return !!selector && (
+			typeof selector === "string" ?
+				// If this is a positional/relative selector, check membership in the returned set
+				// so $("p:first").is("p:last") won't return true for a doc with two "p".
+				rneedsContext.test(selector) ?
+					jQuery(selector, this.context).index(this[0]) >= 0 :
+					jQuery.filter(selector, this).length > 0 :
+				this.filter(selector).length > 0);
+    };
+    jQuery.prototype.keydown = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keydown" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keydown(handler(eventObject)) 
+        ///     &#10;2 - keydown(eventData, handler(eventObject)) 
+        ///     &#10;3 - keydown()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.keypress = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keypress" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keypress(handler(eventObject)) 
+        ///     &#10;2 - keypress(eventData, handler(eventObject)) 
+        ///     &#10;3 - keypress()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.keyup = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "keyup" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - keyup(handler(eventObject)) 
+        ///     &#10;2 - keyup(eventData, handler(eventObject)) 
+        ///     &#10;3 - keyup()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.last = function () {
+        /// <summary>
+        ///     Reduce the set of matched elements to the final one in the set.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.eq(-1);
+    };
+    jQuery.prototype.length = 0;
+    jQuery.prototype.load = function (url, params, callback) {
+        /// <summary>
+        ///     1: Bind an event handler to the "load" JavaScript event.
+        ///     &#10;    1.1 - load(handler(eventObject)) 
+        ///     &#10;    1.2 - load(eventData, handler(eventObject))
+        ///     &#10;2: Load data from the server and place the returned HTML into the matched element.
+        ///     &#10;    2.1 - load(url, data, complete(responseText, textStatus, XMLHttpRequest))
+        /// </summary>
+        /// <param name="url" type="String">
+        ///     A string containing the URL to which the request is sent.
+        /// </param>
+        /// <param name="params" type="">
+        ///     A plain object or string that is sent to the server with the request.
+        /// </param>
+        /// <param name="callback" type="Function">
+        ///     A callback function that is executed when the request completes.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (typeof url !== "string" && _load) {
+            return _load.apply(this, arguments);
+        }
+
+        var selector, type, response,
+            self = this,
+            off = url.indexOf(" ");
+
+        if (off >= 0) {
+            selector = url.slice(off);
+            url = url.slice(0, off);
+        }
+
+        // If it's a function
+        if (jQuery.isFunction(params)) {
+
+            // We assume that it's the callback
+            callback = params;
+            params = undefined;
+
+            // Otherwise, build a param string
+        } else if (params && typeof params === "object") {
+            type = "POST";
+        }
+
+        // If we have elements to modify, make the request
+        if (self.length > 0) {
+            jQuery.ajax({
+                url: url,
+
+                // if "type" variable is undefined, then "GET" method will be used
+                type: type,
+                dataType: "html",
+                data: params
+            }).done(function (responseText) {
+
+                // Save response for use in complete callback
+                response = arguments;
+
+                self.html(selector ?
+
+                    // If a selector was specified, locate the right elements in a dummy div
+                    // Exclude scripts to avoid IE 'Permission Denied' errors
+                    jQuery("<div>").append(jQuery.parseHTML(responseText)).find(selector) :
+
+                    // Otherwise use the full result
+                    responseText);
+
+            }).complete(callback && function (jqXHR, status) {
+                self.each(callback, response || [jqXHR.responseText, status, jqXHR]);
+            });
+        }
+
+        return this;
+    };
+    jQuery.prototype.map = function (callback) {
+        /// <summary>
+        ///     Pass each element in the current matched set through a function, producing a new jQuery object containing the return values.
+        /// </summary>
+        /// <param name="callback" type="Function">
+        ///     A function object that will be invoked for each element in the current set.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.pushStack(jQuery.map(this, function (elem, i) {
+            return callback.call(elem, i, elem);
+        }));
+    };
+    jQuery.prototype.mousedown = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "mousedown" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - mousedown(handler(eventObject)) 
+        ///     &#10;2 - mousedown(eventData, handler(eventObject)) 
+        ///     &#10;3 - mousedown()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.mouseenter = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to be fired when the mouse enters an element, or trigger that handler on an element.
