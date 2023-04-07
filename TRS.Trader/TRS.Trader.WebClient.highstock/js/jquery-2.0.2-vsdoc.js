@@ -5016,4 +5016,296 @@
 
         // If we don't have gBCR, just use 0,0 rather than error
         // BlackBerry 5, iOS 3 (original iPhone)
-        if (typeof elem.getBoundingClient
+        if (typeof elem.getBoundingClientRect !== core_strundefined) {
+            box = elem.getBoundingClientRect();
+        }
+        win = getWindow(doc);
+        return {
+            top: box.top + win.pageYOffset - docElem.clientTop,
+            left: box.left + win.pageXOffset - docElem.clientLeft
+        };
+    };
+    jQuery.prototype.offsetParent = function () {
+        /// <summary>
+        ///     Get the closest ancestor element that is positioned.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.map(function () {
+            var offsetParent = this.offsetParent || docElem;
+
+            while (offsetParent && (!jQuery.nodeName(offsetParent, "html") && jQuery.css(offsetParent, "position") === "static")) {
+                offsetParent = offsetParent.offsetParent;
+            }
+
+            return offsetParent || docElem;
+        });
+    };
+    jQuery.prototype.on = function (types, selector, data, fn, /*INTERNAL*/ one) {
+        /// <summary>
+        ///     Attach an event handler function for one or more events to the selected elements.
+        ///     &#10;1 - on(events, selector, data, handler(eventObject)) 
+        ///     &#10;2 - on(events, selector, data)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     One or more space-separated event types and optional namespaces, such as "click" or "keydown.myPlugin".
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A selector string to filter the descendants of the selected elements that trigger the event. If the selector is null or omitted, the event is always triggered when it reaches the selected element.
+        /// </param>
+        /// <param name="data" type="Anything">
+        ///     Data to be passed to the handler in event.data when an event is triggered.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute when the event is triggered. The value false is also allowed as a shorthand for a function that simply does return false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var origFn, type;
+
+        // Types can be a map of types/handlers
+        if (typeof types === "object") {
+            // ( types-Object, selector, data )
+            if (typeof selector !== "string") {
+                // ( types-Object, data )
+                data = data || selector;
+                selector = undefined;
+            }
+            for (type in types) {
+                this.on(type, selector, data, types[type], one);
+            }
+            return this;
+        }
+
+        if (data == null && fn == null) {
+            // ( types, fn )
+            fn = selector;
+            data = selector = undefined;
+        } else if (fn == null) {
+            if (typeof selector === "string") {
+                // ( types, selector, fn )
+                fn = data;
+                data = undefined;
+            } else {
+                // ( types, data, fn )
+                fn = data;
+                data = selector;
+                selector = undefined;
+            }
+        }
+        if (fn === false) {
+            fn = returnFalse;
+        } else if (!fn) {
+            return this;
+        }
+
+        if (one === 1) {
+            origFn = fn;
+            fn = function (event) {
+                // Can use an empty set, since event contains the info
+                jQuery().off(event);
+                return origFn.apply(this, arguments);
+            };
+            // Use same guid so caller can remove using origFn
+            fn.guid = origFn.guid || (origFn.guid = jQuery.guid++);
+        }
+        return this.each(function () {
+            jQuery.event.add(this, types, fn, data, selector);
+        });
+    };
+    jQuery.prototype.one = function (types, selector, data, fn) {
+        /// <summary>
+        ///     Attach a handler to an event for the elements. The handler is executed at most once per element.
+        ///     &#10;1 - one(events, data, handler(eventObject)) 
+        ///     &#10;2 - one(events, selector, data, handler(eventObject)) 
+        ///     &#10;3 - one(events, selector, data)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     One or more space-separated event types and optional namespaces, such as "click" or "keydown.myPlugin".
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A selector string to filter the descendants of the selected elements that trigger the event. If the selector is null or omitted, the event is always triggered when it reaches the selected element.
+        /// </param>
+        /// <param name="data" type="Anything">
+        ///     Data to be passed to the handler in event.data when an event is triggered.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute when the event is triggered. The value false is also allowed as a shorthand for a function that simply does return false.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.on(types, selector, data, fn, 1);
+    };
+    jQuery.prototype.outerHeight = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed height for the first element in the set of matched elements, including padding, border, and optionally margin. Returns an integer (without "px") representation of the value or null if called on an empty set of elements.
+        /// </summary>
+        /// <param name="margin" type="Boolean">
+        ///     A Boolean indicating whether to include the element's margin in the calculation.
+        /// </param>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.outerWidth = function (margin, value) {
+        /// <summary>
+        ///     Get the current computed width for the first element in the set of matched elements, including padding and border.
+        /// </summary>
+        /// <param name="margin" type="Boolean">
+        ///     A Boolean indicating whether to include the element's margin in the calculation.
+        /// </param>
+        /// <returns type="Number" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.parent = function (until, selector) {
+        /// <summary>
+        ///     Get the parent of each element in the current set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.parents = function (until, selector) {
+        /// <summary>
+        ///     Get the ancestors of each element in the current set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.parentsUntil = function (until, selector) {
+        /// <summary>
+        ///     Get the ancestors of each element in the current set of matched elements, up to but not including the element matched by the selector, DOM node, or jQuery object.
+        ///     &#10;1 - parentsUntil(selector, filter) 
+        ///     &#10;2 - parentsUntil(element, filter)
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to indicate where to stop matching ancestor elements.
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "s
