@@ -5308,4 +5308,342 @@
             selector = until;
         }
 
-        if (selector && typeof selector === "s
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.position = function () {
+        /// <summary>
+        ///     Get the current coordinates of the first element in the set of matched elements, relative to the offset parent.
+        /// </summary>
+        /// <returns type="Object" />
+
+        if (!this[0]) {
+            return;
+        }
+
+        var offsetParent, offset,
+			elem = this[0],
+			parentOffset = { top: 0, left: 0 };
+
+        // Fixed elements are offset from window (parentOffset = {top:0, left: 0}, because it is it's only offset parent
+        if (jQuery.css(elem, "position") === "fixed") {
+            // We assume that getBoundingClientRect is available when computed position is fixed
+            offset = elem.getBoundingClientRect();
+
+        } else {
+            // Get *real* offsetParent
+            offsetParent = this.offsetParent();
+
+            // Get correct offsets
+            offset = this.offset();
+            if (!jQuery.nodeName(offsetParent[0], "html")) {
+                parentOffset = offsetParent.offset();
+            }
+
+            // Add offsetParent borders
+            parentOffset.top += jQuery.css(offsetParent[0], "borderTopWidth", true);
+            parentOffset.left += jQuery.css(offsetParent[0], "borderLeftWidth", true);
+        }
+
+        // Subtract parent offsets and element margins
+        return {
+            top: offset.top - parentOffset.top - jQuery.css(elem, "marginTop", true),
+            left: offset.left - parentOffset.left - jQuery.css(elem, "marginLeft", true)
+        };
+    };
+    jQuery.prototype.prepend = function () {
+        /// <summary>
+        ///     Insert content, specified by the parameter, to the beginning of each element in the set of matched elements.
+        ///     &#10;1 - prepend(content, content) 
+        ///     &#10;2 - prepend(function(index, html))
+        /// </summary>
+        /// <param name="" type="">
+        ///     DOM element, array of elements, HTML string, or jQuery object to insert at the beginning of each element in the set of matched elements.
+        /// </param>
+        /// <param name="" type="">
+        ///     One or more additional DOM elements, arrays of elements, HTML strings, or jQuery objects to insert at the beginning of each element in the set of matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.domManip(arguments, function (elem) {
+            if (this.nodeType === 1 || this.nodeType === 11 || this.nodeType === 9) {
+                var target = manipulationTarget(this, elem);
+                target.insertBefore(elem, target.firstChild);
+            }
+        });
+    };
+    jQuery.prototype.prependTo = function (selector) {
+        /// <summary>
+        ///     Insert every element in the set of matched elements to the beginning of the target.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector, element, HTML string, or jQuery object; the matched set of elements will be inserted at the beginning of the element(s) specified by this parameter.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.prev = function (until, selector) {
+        /// <summary>
+        ///     Get the immediately preceding sibling of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.prevAll = function (until, selector) {
+        /// <summary>
+        ///     Get all preceding siblings of each element in the set of matched elements, optionally filtered by a selector.
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.prevUntil = function (until, selector) {
+        /// <summary>
+        ///     Get all preceding siblings of each element up to but not including the element matched by the selector, DOM node, or jQuery object.
+        ///     &#10;1 - prevUntil(selector, filter) 
+        ///     &#10;2 - prevUntil(element, filter)
+        /// </summary>
+        /// <param name="until" type="String">
+        ///     A string containing a selector expression to indicate where to stop matching preceding sibling elements.
+        /// </param>
+        /// <param name="selector" type="String">
+        ///     A string containing a selector expression to match elements against.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var matched = jQuery.map(this, fn, until);
+
+        if (name.slice(-5) !== "Until") {
+            selector = until;
+        }
+
+        if (selector && typeof selector === "string") {
+            matched = jQuery.filter(selector, matched);
+        }
+
+        if (this.length > 1) {
+            // Remove duplicates
+            if (!guaranteedUnique[name]) {
+                jQuery.unique(matched);
+            }
+
+            // Reverse order for parents* and prev*
+            if (name[0] === "p") {
+                matched.reverse();
+            }
+        }
+
+        return this.pushStack(matched);
+    };
+    jQuery.prototype.promise = function (type, obj) {
+        /// <summary>
+        ///     Return a Promise object to observe when all actions of a certain type bound to the collection, queued or not, have finished.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     The type of queue that needs to be observed.
+        /// </param>
+        /// <param name="obj" type="PlainObject">
+        ///     Object onto which the promise methods have to be attached
+        /// </param>
+        /// <returns type="Promise" />
+
+        var tmp,
+			count = 1,
+			defer = jQuery.Deferred(),
+			elements = this,
+			i = this.length,
+			resolve = function () {
+			    if (!(--count)) {
+			        defer.resolveWith(elements, [elements]);
+			    }
+			};
+
+        if (typeof type !== "string") {
+            obj = type;
+            type = undefined;
+        }
+        type = type || "fx";
+
+        while (i--) {
+            tmp = data_priv.get(elements[i], type + "queueHooks");
+            if (tmp && tmp.empty) {
+                count++;
+                tmp.empty.add(resolve);
+            }
+        }
+        resolve();
+        return defer.promise(obj);
+    };
+    jQuery.prototype.prop = function (name, value) {
+        /// <summary>
+        ///     1: Get the value of a property for the first element in the set of matched elements.
+        ///     &#10;    1.1 - prop(propertyName)
+        ///     &#10;2: Set one or more properties for the set of matched elements.
+        ///     &#10;    2.1 - prop(propertyName, value) 
+        ///     &#10;    2.2 - prop(properties) 
+        ///     &#10;    2.3 - prop(propertyName, function(index, oldPropertyValue))
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     The name of the property to set.
+        /// </param>
+        /// <param name="value" type="">
+        ///     A value to set for the property.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, jQuery.prop, name, value, arguments.length > 1);
+    };
+    jQuery.prototype.pushStack = function (elems) {
+        /// <summary>
+        ///     Add a collection of DOM elements onto the jQuery stack.
+        ///     &#10;1 - pushStack(elements) 
+        ///     &#10;2 - pushStack(elements, name, arguments)
+        /// </summary>
+        /// <param name="elems" type="Array">
+        ///     An array of elements to push onto the stack and make into a new jQuery object.
+        /// </param>
+        /// <param name="" type="String">
+        ///     The name of a jQuery method that generated the array of elements.
+        /// </param>
+        /// <param name="" type="Array">
+        ///     The arguments that were passed in to the jQuery method (for serialization).
+        /// </param>
+        /// <returns type="jQuery" />
+
+
+        // Build a new jQuery matched element set
+        var ret = jQuery.merge(this.constructor(), elems);
+
+        // Add the old object onto the stack (as a reference)
+        ret.prevObject = this;
+        ret.context = this.context;
+
+        // Return the newly-formed element set
+        return ret;
+    };
+    jQuery.prototype.queue = function (type, data) {
+        /// <summary>
+        ///     1: Show the queue of functions to be executed on the matched elements.
+        ///     &#10;    1.1 - queue(queueName)
+        ///     &#10;2: Manipulate the queue of functions to be executed, once for each matched element.
+        ///     &#10;    2.1 - queue(queueName, newQueue) 
+        ///     &#10;    2.2 - queue(queueName, callback( next ))
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing the name of the queue. Defaults to fx, the standard effects queue.
+        /// </param>
+        /// <param name="data" type="Array">
+        ///     An array of functions to replace the current queue contents.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var setter = 2;
+
+        if (typeof type !== "string") {
+            data = type;
+            type = "fx";
+            setter--;
+        }
+
+        if (arguments.length < setter) {
+            return jQuery.queue(this[0], type);
+        }
+
+        return data === undefined ?
+			this :
+			this.each(function () {
+			    var queue = jQuery.queue(this, type, data);
+
+			    // ensure a hooks for this queue
+			    jQuery._queueHooks(this, type);
+
+			    if (type === "fx" && queue[0] !== "inprogress") {
+			        jQuery.dequeue(this, type);
+			    }
+			});
+    };
+    jQuery.prototype.ready = function (fn) {
+        /// <summary>
+        ///     Specify a function to execute when the DOM is fully lo
