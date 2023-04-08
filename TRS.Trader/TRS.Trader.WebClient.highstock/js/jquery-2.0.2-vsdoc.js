@@ -5646,4 +5646,332 @@
     };
     jQuery.prototype.ready = function (fn) {
         /// <summary>
-        ///     Specify a function to execute when the DOM is fully lo
+        ///     Specify a function to execute when the DOM is fully loaded.
+        /// </summary>
+        /// <param name="fn" type="Function">
+        ///     A function to execute after the DOM is ready.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        // Add the callback
+        jQuery.ready.promise().done(fn);
+
+        return this;
+    };
+    jQuery.prototype.remove = function (selector, keepData) {
+        /// <summary>
+        ///     Remove the set of matched elements from the DOM.
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector expression that filters the set of matched elements to be removed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elem,
+			elems = selector ? jQuery.filter(selector, this) : this,
+			i = 0;
+
+        for (; (elem = elems[i]) != null; i++) {
+            if (!keepData && elem.nodeType === 1) {
+                jQuery.cleanData(getAll(elem));
+            }
+
+            if (elem.parentNode) {
+                if (keepData && jQuery.contains(elem.ownerDocument, elem)) {
+                    setGlobalEval(getAll(elem, "script"));
+                }
+                elem.parentNode.removeChild(elem);
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.removeAttr = function (name) {
+        /// <summary>
+        ///     Remove an attribute from each element in the set of matched elements.
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     An attribute to remove; as of version 1.7, it can be a space-separated list of attributes.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            jQuery.removeAttr(this, name);
+        });
+    };
+    jQuery.prototype.removeClass = function (value) {
+        /// <summary>
+        ///     Remove a single class, multiple classes, or all classes from each element in the set of matched elements.
+        ///     &#10;1 - removeClass(className) 
+        ///     &#10;2 - removeClass(function(index, class))
+        /// </summary>
+        /// <param name="value" type="String">
+        ///     One or more space-separated classes to be removed from the class attribute of each matched element.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var classes, elem, cur, clazz, j,
+			i = 0,
+			len = this.length,
+			proceed = arguments.length === 0 || typeof value === "string" && value;
+
+        if (jQuery.isFunction(value)) {
+            return this.each(function (j) {
+                jQuery(this).removeClass(value.call(this, j, this.className));
+            });
+        }
+        if (proceed) {
+            classes = (value || "").match(core_rnotwhite) || [];
+
+            for (; i < len; i++) {
+                elem = this[i];
+                // This expression is here for better compressibility (see addClass)
+                cur = elem.nodeType === 1 && (elem.className ?
+					(" " + elem.className + " ").replace(rclass, " ") :
+					""
+				);
+
+                if (cur) {
+                    j = 0;
+                    while ((clazz = classes[j++])) {
+                        // Remove *all* instances
+                        while (cur.indexOf(" " + clazz + " ") >= 0) {
+                            cur = cur.replace(" " + clazz + " ", " ");
+                        }
+                    }
+                    elem.className = value ? jQuery.trim(cur) : "";
+                }
+            }
+        }
+
+        return this;
+    };
+    jQuery.prototype.removeData = function (key) {
+        /// <summary>
+        ///     Remove a previously-stored piece of data.
+        ///     &#10;1 - removeData(name) 
+        ///     &#10;2 - removeData(list)
+        /// </summary>
+        /// <param name="key" type="String">
+        ///     A string naming the piece of data to delete.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            data_user.remove(this, key);
+        });
+    };
+    jQuery.prototype.removeProp = function (name) {
+        /// <summary>
+        ///     Remove a property for the set of matched elements.
+        /// </summary>
+        /// <param name="name" type="String">
+        ///     The name of the property to remove.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            delete this[jQuery.propFix[name] || name];
+        });
+    };
+    jQuery.prototype.replaceAll = function (selector) {
+        /// <summary>
+        ///     Replace each target element with the set of matched elements.
+        /// </summary>
+        /// <param name="selector" type="">
+        ///     A selector string, jQuery object, or DOM element reference indicating which element(s) to replace.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var elems,
+			ret = [],
+			insert = jQuery(selector),
+			last = insert.length - 1,
+			i = 0;
+
+        for (; i <= last; i++) {
+            elems = i === last ? this : this.clone(true);
+            jQuery(insert[i])[original](elems);
+
+            // Support: QtWebKit
+            // .get() because core_push.apply(_, arraylike) throws
+            core_push.apply(ret, elems.get());
+        }
+
+        return this.pushStack(ret);
+    };
+    jQuery.prototype.replaceWith = function () {
+        /// <summary>
+        ///     Replace each element in the set of matched elements with the provided new content and return the set of elements that was removed.
+        ///     &#10;1 - replaceWith(newContent) 
+        ///     &#10;2 - replaceWith(function)
+        /// </summary>
+        /// <param name="" type="">
+        ///     The content to insert. May be an HTML string, DOM element, or jQuery object.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var
+			// Snapshot the DOM in case .domManip sweeps something relevant into its fragment
+			args = jQuery.map(this, function (elem) {
+			    return [elem.nextSibling, elem.parentNode];
+			}),
+			i = 0;
+
+        // Make the changes, replacing each context element with the new content
+        this.domManip(arguments, function (elem) {
+            var next = args[i++],
+				parent = args[i++];
+
+            if (parent) {
+                jQuery(this).remove();
+                parent.insertBefore(elem, next);
+            }
+            // Allow new content to include elements from the context set
+        }, true);
+
+        // Force removal if there was no new content (e.g., from empty arguments)
+        return i ? this : this.remove();
+    };
+    jQuery.prototype.resize = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "resize" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - resize(handler(eventObject)) 
+        ///     &#10;2 - resize(eventData, handler(eventObject)) 
+        ///     &#10;3 - resize()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.scroll = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "scroll" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - scroll(handler(eventObject)) 
+        ///     &#10;2 - scroll(eventData, handler(eventObject)) 
+        ///     &#10;3 - scroll()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.scrollLeft = function (val) {
+        /// <summary>
+        ///     1: Get the current horizontal position of the scroll bar for the first element in the set of matched elements.
+        ///     &#10;    1.1 - scrollLeft()
+        ///     &#10;2: Set the current horizontal position of the scroll bar for each of the set of matched elements.
+        ///     &#10;    2.1 - scrollLeft(value)
+        /// </summary>
+        /// <param name="val" type="Number">
+        ///     An integer indicating the new position to set the scroll bar to.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (elem, method, val) {
+            var win = getWindow(elem);
+
+            if (val === undefined) {
+                return win ? win[prop] : elem[method];
+            }
+
+            if (win) {
+                win.scrollTo(
+					!top ? val : window.pageXOffset,
+					top ? val : window.pageYOffset
+				);
+
+            } else {
+                elem[method] = val;
+            }
+        }, method, val, arguments.length, null);
+    };
+    jQuery.prototype.scrollTop = function (val) {
+        /// <summary>
+        ///     1: Get the current vertical position of the scroll bar for the first element in the set of matched elements or set the vertical position of the scroll bar for every matched element.
+        ///     &#10;    1.1 - scrollTop()
+        ///     &#10;2: Set the current vertical position of the scroll bar for each of the set of matched elements.
+        ///     &#10;    2.1 - scrollTop(value)
+        /// </summary>
+        /// <param name="val" type="Number">
+        ///     An integer indicating the new position to set the scroll bar to.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return jQuery.access(this, function (elem, method, val) {
+            var win = getWindow(elem);
+
+            if (val === undefined) {
+                return win ? win[prop] : elem[method];
+            }
+
+            if (win) {
+                win.scrollTo(
+					!top ? val : window.pageXOffset,
+					top ? val : window.pageYOffset
+				);
+
+            } else {
+                elem[method] = val;
+            }
+        }, method, val, arguments.length, null);
+    };
+    jQuery.prototype.select = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "select" JavaScript event, or trigger that event on an element.
+        ///     &#10;1 - select(handler(eventObject)) 
+        ///     &#10;2 - select(eventData, handler(eventObject)) 
+        ///     &#10;3 - select()
+        /// </summary>
+        /// <param name="data" type="PlainObject">
+        ///     An object containing data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.serialize = function () {
+        /// <summary>
+        ///     Encode a set of form elements as a string for submission.
+        /// </summary>
+        /// <returns type="String" />
+
+        return jQuery.param(this.serializeArray());
+    };
+    jQuery.prototype.serializeArray = function () {
+        /// <summary>
+        ///     Encode a set of form elements as an array of names and values.
+        /// </summary>
+        /// <returns type="Array" />
+
+        return this.map(function () {
+            // Can add propHook for "elements" to filter or add form elements
+            var elements = jQuery.prop(this, "elements");
+            return elements ? jQuery.makeArray(elements) : this;
+        })
+		.filter(function () {
+		    var type = this.type;
+		    // Use .is(":disabled") so that fieldset[disabled] works
+		    return this.name && !jQuery(this).is(":disabled") &&
+				rsubmittable.test(this.nodeName) && !rsubmitterTypes.test(type) &&
+				(this.checked || !manipulation_rc
