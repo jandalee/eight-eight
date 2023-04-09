@@ -6571,4 +6571,62 @@
 
         if (jQuery.isFunction(html)) {
             return this.each(function (i) {
-                jQuery(this).wrapAll(html.c
+                jQuery(this).wrapAll(html.call(this, i));
+            });
+        }
+
+        if (this[0]) {
+
+            // The elements to wrap the target around
+            wrap = jQuery(html, this[0].ownerDocument).eq(0).clone(true);
+
+            if (this[0].parentNode) {
+                wrap.insertBefore(this[0]);
+            }
+
+            wrap.map(function () {
+                var elem = this;
+
+                while (elem.firstElementChild) {
+                    elem = elem.firstElementChild;
+                }
+
+                return elem;
+            }).append(this);
+        }
+
+        return this;
+    };
+    jQuery.prototype.wrapInner = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around the content of each element in the set of matched elements.
+        ///     &#10;1 - wrapInner(wrappingElement) 
+        ///     &#10;2 - wrapInner(function(index))
+        /// </summary>
+        /// <param name="html" type="String">
+        ///     An HTML snippet, selector expression, jQuery object, or DOM element specifying the structure to wrap around the content of the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        if (jQuery.isFunction(html)) {
+            return this.each(function (i) {
+                jQuery(this).wrapInner(html.call(this, i));
+            });
+        }
+
+        return this.each(function () {
+            var self = jQuery(this),
+				contents = self.contents();
+
+            if (contents.length) {
+                contents.wrapAll(html);
+
+            } else {
+                self.append(html);
+            }
+        });
+    };
+    jQuery.fn = jQuery.prototype;
+    jQuery.fn.init.prototype = jQuery.fn;
+    window.jQuery = window.$ = jQuery;
+})(window);
