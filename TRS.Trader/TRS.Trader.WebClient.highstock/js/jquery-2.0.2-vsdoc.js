@@ -6272,4 +6272,303 @@
         ///     &#10;4 - toggleClass(function(index, class, switch), switch)
         /// </summary>
         /// <param name="value" type="String">
-        ///     One or more class n
+        ///     One or more class names (separated by spaces) to be toggled for each element in the matched set.
+        /// </param>
+        /// <param name="stateVal" type="Boolean">
+        ///     A Boolean (not just truthy/falsy) value to determine whether the class should be added or removed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var type = typeof value,
+			isBool = typeof stateVal === "boolean";
+
+        if (jQuery.isFunction(value)) {
+            return this.each(function (i) {
+                jQuery(this).toggleClass(value.call(this, i, this.className, stateVal), stateVal);
+            });
+        }
+
+        return this.each(function () {
+            if (type === "string") {
+                // toggle individual class names
+                var className,
+					i = 0,
+					self = jQuery(this),
+					state = stateVal,
+					classNames = value.match(core_rnotwhite) || [];
+
+                while ((className = classNames[i++])) {
+                    // check each className given, space separated list
+                    state = isBool ? state : !self.hasClass(className);
+                    self[state ? "addClass" : "removeClass"](className);
+                }
+
+                // Toggle whole class name
+            } else if (type === core_strundefined || type === "boolean") {
+                if (this.className) {
+                    // store className if set
+                    data_priv.set(this, "__className__", this.className);
+                }
+
+                // If the element has a class name or if we're passed "false",
+                // then remove the whole classname (if there was one, the above saved it).
+                // Otherwise bring back whatever was previously saved (if anything),
+                // falling back to the empty string if nothing was stored.
+                this.className = this.className || value === false ? "" : data_priv.get(this, "__className__") || "";
+            }
+        });
+    };
+    jQuery.prototype.trigger = function (type, data) {
+        /// <summary>
+        ///     Execute all handlers and behaviors attached to the matched elements for the given event type.
+        ///     &#10;1 - trigger(eventType, extraParameters) 
+        ///     &#10;2 - trigger(event, extraParameters)
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="data" type="">
+        ///     Additional parameters to pass along to the event handler.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.each(function () {
+            jQuery.event.trigger(type, data, this);
+        });
+    };
+    jQuery.prototype.triggerHandler = function (type, data) {
+        /// <summary>
+        ///     Execute all handlers attached to an element for an event.
+        /// </summary>
+        /// <param name="type" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="data" type="Array">
+        ///     An array of additional parameters to pass along to the event handler.
+        /// </param>
+        /// <returns type="Object" />
+
+        var elem = this[0];
+        if (elem) {
+            return jQuery.event.trigger(type, data, elem, true);
+        }
+    };
+    jQuery.prototype.unbind = function (types, fn) {
+        /// <summary>
+        ///     Remove a previously-attached event handler from the elements.
+        ///     &#10;1 - unbind(eventType, handler(eventObject)) 
+        ///     &#10;2 - unbind(eventType, false) 
+        ///     &#10;3 - unbind(event)
+        /// </summary>
+        /// <param name="types" type="String">
+        ///     A string containing a JavaScript event type, such as click or submit.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     The function that is to be no longer executed.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return this.off(types, null, fn);
+    };
+    jQuery.prototype.undelegate = function (selector, types, fn) {
+        /// <summary>
+        ///     Remove a handler from the event for all elements which match the current selector, based upon a specific set of root elements.
+        ///     &#10;1 - undelegate() 
+        ///     &#10;2 - undelegate(selector, eventType) 
+        ///     &#10;3 - undelegate(selector, eventType, handler(eventObject)) 
+        ///     &#10;4 - undelegate(selector, events) 
+        ///     &#10;5 - undelegate(namespace)
+        /// </summary>
+        /// <param name="selector" type="String">
+        ///     A selector which will be used to filter the event results.
+        /// </param>
+        /// <param name="types" type="String">
+        ///     A string containing a JavaScript event type, such as "click" or "keydown"
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute at the time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        // ( namespace ) or ( selector, types [, fn] )
+        return arguments.length === 1 ? this.off(selector, "**") : this.off(types, selector || "**", fn);
+    };
+    jQuery.prototype.unload = function (data, fn) {
+        /// <summary>
+        ///     Bind an event handler to the "unload" JavaScript event.
+        ///     &#10;1 - unload(handler(eventObject)) 
+        ///     &#10;2 - unload(eventData, handler(eventObject))
+        /// </summary>
+        /// <param name="data" type="Object">
+        ///     A plain object of data that will be passed to the event handler.
+        /// </param>
+        /// <param name="fn" type="Function">
+        ///     A function to execute each time the event is triggered.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        return arguments.length > 0 ?
+			this.on(name, null, data, fn) :
+			this.trigger(name);
+    };
+    jQuery.prototype.unwrap = function () {
+        /// <summary>
+        ///     Remove the parents of the set of matched elements from the DOM, leaving the matched elements in their place.
+        /// </summary>
+        /// <returns type="jQuery" />
+
+        return this.parent().each(function () {
+            if (!jQuery.nodeName(this, "body")) {
+                jQuery(this).replaceWith(this.childNodes);
+            }
+        }).end();
+    };
+    jQuery.prototype.val = function (value) {
+        /// <summary>
+        ///     1: Get the current value of the first element in the set of matched elements.
+        ///     &#10;    1.1 - val()
+        ///     &#10;2: Set the value of each element in the set of matched elements.
+        ///     &#10;    2.1 - val(value) 
+        ///     &#10;    2.2 - val(function(index, value))
+        /// </summary>
+        /// <param name="value" type="">
+        ///     A string of text or an array of strings corresponding to the value of each matched element to set as selected/checked.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var hooks, ret, isFunction,
+			elem = this[0];
+
+        if (!arguments.length) {
+            if (elem) {
+                hooks = jQuery.valHooks[elem.type] || jQuery.valHooks[elem.nodeName.toLowerCase()];
+
+                if (hooks && "get" in hooks && (ret = hooks.get(elem, "value")) !== undefined) {
+                    return ret;
+                }
+
+                ret = elem.value;
+
+                return typeof ret === "string" ?
+					// handle most common string cases
+					ret.replace(rreturn, "") :
+					// handle cases where value is null/undef or number
+					ret == null ? "" : ret;
+            }
+
+            return;
+        }
+
+        isFunction = jQuery.isFunction(value);
+
+        return this.each(function (i) {
+            var val,
+				self = jQuery(this);
+
+            if (this.nodeType !== 1) {
+                return;
+            }
+
+            if (isFunction) {
+                val = value.call(this, i, self.val());
+            } else {
+                val = value;
+            }
+
+            // Treat null/undefined as ""; convert numbers to string
+            if (val == null) {
+                val = "";
+            } else if (typeof val === "number") {
+                val += "";
+            } else if (jQuery.isArray(val)) {
+                val = jQuery.map(val, function (value) {
+                    return value == null ? "" : value + "";
+                });
+            }
+
+            hooks = jQuery.valHooks[this.type] || jQuery.valHooks[this.nodeName.toLowerCase()];
+
+            // If set returns undefined, fall back to normal setting
+            if (!hooks || !("set" in hooks) || hooks.set(this, val, "value") === undefined) {
+                this.value = val;
+            }
+        });
+    };
+    jQuery.prototype.width = function (margin, value) {
+        /// <summary>
+        ///     1: Get the current computed width for the first element in the set of matched elements.
+        ///     &#10;    1.1 - width()
+        ///     &#10;2: Set the CSS width of each element in the set of matched elements.
+        ///     &#10;    2.1 - width(value) 
+        ///     &#10;    2.2 - width(function(index, width))
+        /// </summary>
+        /// <param name="margin" type="">
+        ///     An integer representing the number of pixels, or an integer along with an optional unit of measure appended (as a string).
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var chainable = arguments.length && (defaultExtra || typeof margin !== "boolean"),
+            extra = defaultExtra || (margin === true || value === true ? "margin" : "border");
+
+        return jQuery.access(this, function (elem, type, value) {
+            var doc;
+
+            if (jQuery.isWindow(elem)) {
+                // As of 5/8/2012 this will yield incorrect results for Mobile Safari, but there
+                // isn't a whole lot we can do. See pull request at this URL for discussion:
+                // https://github.com/jquery/jquery/pull/764
+                return elem.document.documentElement["client" + name];
+            }
+
+            // Get document width or height
+            if (elem.nodeType === 9) {
+                doc = elem.documentElement;
+
+                // Either scroll[Width/Height] or offset[Width/Height] or client[Width/Height],
+                // whichever is greatest
+                return Math.max(
+                    elem.body["scroll" + name], doc["scroll" + name],
+                    elem.body["offset" + name], doc["offset" + name],
+                    doc["client" + name]
+                );
+            }
+
+            return value === undefined ?
+                // Get width or height on the element, requesting but not forcing parseFloat
+                jQuery.css(elem, type, extra) :
+
+                // Set width or height on the element
+                jQuery.style(elem, type, value, extra);
+        }, type, chainable ? margin : undefined, chainable, null);
+    };
+    jQuery.prototype.wrap = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around each element in the set of matched elements.
+        ///     &#10;1 - wrap(wrappingElement) 
+        ///     &#10;2 - wrap(function(index))
+        /// </summary>
+        /// <param name="html" type="">
+        ///     A selector, element, HTML string, or jQuery object specifying the structure to wrap around the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var isFunction = jQuery.isFunction(html);
+
+        return this.each(function (i) {
+            jQuery(this).wrapAll(isFunction ? html.call(this, i) : html);
+        });
+    };
+    jQuery.prototype.wrapAll = function (html) {
+        /// <summary>
+        ///     Wrap an HTML structure around all elements in the set of matched elements.
+        /// </summary>
+        /// <param name="html" type="">
+        ///     A selector, element, HTML string, or jQuery object specifying the structure to wrap around the matched elements.
+        /// </param>
+        /// <returns type="jQuery" />
+
+        var wrap;
+
+        if (jQuery.isFunction(html)) {
+            return this.each(function (i) {
+                jQuery(this).wrapAll(html.c
