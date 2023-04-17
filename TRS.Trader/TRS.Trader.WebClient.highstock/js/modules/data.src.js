@@ -410,3 +410,545 @@
 				} else {
 					column.isNumeric = true;
 				}
+
+				if (column[row + 1] !== undefined) {
+					descending = floatVal > column[row + 1];
+				}
+			
+			// String, continue to determine if it is a date string or really a string
+			} else {
+				dateVal = this.parseDate(val);
+				// Only allow parsing of dates if this column is an x-column
+				if (isXColumn && typeof dateVal === 'number' && !isNaN(dateVal) && columnType !== 'float') { // is date
+					backup[row] = val; 
+					column[row] = dateVal;
+					column.isDatetime = true;
+
+					// Check if the dates are uniformly descending or ascending. If they 
+					// are not, chances are that they are a different time format, so check
+					// for alternative.
+					if (column[row + 1] !== undefined) {
+						diff = dateVal > column[row + 1];
+						if (diff !== descending && descending !== undefined) {
+							if (this.alternativeFormat) {
+								this.dateFormat = this.alternativeFormat;
+								row = column.length;
+								this.alternativeFormat = this.dateFormats[this.dateFormat].alternative;
+							} else {
+								column.unsorted = true;
+							}
+						}
+						descending = diff;
+					}
+				
+				} else { // string
+					column[row] = trimVal === '' ? null : trimVal;
+					if (row !== 0 && (column.isDatetime || column.isNumeric)) {
+						column.mixed = true;
+					}
+				}
+			}
+		}
+
+		// If strings are intermixed with numbers or dates in a parsed column, it is an indication
+		// that parsing went wrong or the data was not intended to display as numbers or dates and 
+		// parsing is too aggressive. Fall back to categories. Demonstrated in the 
+		// highcharts/demo/column-drilldown sample.
+		if (isXColumn && column.mixed) {
+			columns[col] = rawColumns[col];
+		}
+
+		// If the 0 column is date or number and descending, reverse all columns. 
+		if (isXColumn && descending && this.options.sort) {
+			for (col = 0; col < columns.length; col++) {
+				columns[col].reverse();
+				if (firstRowAsNames) {
+					columns[col].unshift(columns[col].pop());
+				}
+			}
+		}
+	},
+	
+	/**
+	 * A collection of available date formats, extendable from the outside to support
+	 * custom date formats.
+	 */
+	dateFormats: {
+		'YYYY-mm-dd': {
+			regex: /^([0-9]{4})[\-\/\.]([0-9]{2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[1], match[2] - 1, +match[3]);
+			}
+		},
+		'dd/mm/YYYY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{4})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3], match[2] - 1, +match[1]);
+			},
+			alternative: 'mm/dd/YYYY' // different format with the same regex
+		},
+		'mm/dd/YYYY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{4})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3], match[1] - 1, +match[2]);
+			}
+		},
+		'dd/mm/YY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3] + 2000, match[2] - 1, +match[1]);
+			},
+			alternative: 'mm/dd/YY' // different format with the same regex
+		},
+		'mm/dd/YY': {
+			regex: /^([0-9]{1,2})[\-\/\.]([0-9]{1,2})[\-\/\.]([0-9]{2})$/,
+			parser: function (match) {
+				return Date.UTC(+match[3] + 2000, match[1] - 1, +match[2]);
+			}
+		}
+	},
+	
+	/**
+	 * Parse a date and return it as a number. Overridable through options.parseDate.
+	 */
+	parseDate: function (val) {
+		var parseDate = this.options.parseDate,
+			ret,
+			key,
+			format,
+			dateFormat = this.options.dateFormat || this.dateFormat,
+			match;
+
+		if (parseDate) {
+			ret = parseDate(val);
+		
+		} else if (typeof val === 'string') {
+			// Auto-detect the date format the first time
+			if (!dateFormat) {
+				for (key in this.dateFormats) {
+					format = this.dateFormats[key];
+					match = val.match(format.regex);
+					if (match) {
+						this.dateFormat = dateFormat = key;
+						this.alternativeFormat = format.alternative;
+						ret = format.parser(match);
+						break;
+					}
+				}
+			// Next time, use the one previously found
+			} else {
+				format = this.dateFormats[dateFormat];
+				match = val.match(format.regex);
+				if (match) {
+					ret = format.parser(match);
+				}
+			}
+			// Fall back to Date.parse		
+			if (!match) {
+				match = Date.parse(val);
+				// External tools like Date.js and MooTools extend Date object and
+				// returns a date.
+				if (typeof match === 'object' && match !== null && match.getTime) {
+					ret = match.getTime() - match.getTimezoneOffset() * 60000;
+				
+				// Timestamp
+				} else if (typeof match === 'number' && !isNaN(match)) {
+					ret = match - (new Date(match)).getTimezoneOffset() * 60000;
+				}
+			}
+		}
+		return ret;
+	},
+	
+	/**
+	 * Reorganize rows into columns
+	 */
+	rowsToColumns: function (rows) {
+		var row,
+			rowsLength,
+			col,
+			colsLength,
+			columns;
+
+		if (rows) {
+			columns = [];
+			rowsLength = rows.length;
+			for (row = 0; row < rowsLength; row++) {
+				colsLength = rows[row].length;
+				for (col = 0; col < colsLength; col++) {
+					if (!columns[col]) {
+						columns[col] = [];
+					}
+					columns[col][row] = rows[row][col];
+				}
+			}
+		}
+		return columns;
+	},
+	
+	/**
+	 * A hook for working directly on the parsed columns
+	 */
+	parsed: function () {
+		if (this.options.parsed) {
+			return this.options.parsed.call(this, this.columns);
+		}
+	},
+
+	getFreeIndexes: function (numberOfColumns, seriesBuilders) {
+		var s,
+			i,
+			freeIndexes = [],
+			freeIndexValues = [],
+			referencedIndexes;
+
+		// Add all columns as free
+		for (i = 0; i < numberOfColumns; i = i + 1) {
+			freeIndexes.push(true);
+		}
+
+		// Loop all defined builders and remove their referenced columns
+		for (s = 0; s < seriesBuilders.length; s = s + 1) {
+			referencedIndexes = seriesBuilders[s].getReferencedColumnIndexes();
+
+			for (i = 0; i < referencedIndexes.length; i = i + 1) {
+				freeIndexes[referencedIndexes[i]] = false;
+			}
+		}
+
+		// Collect the values for the free indexes
+		for (i = 0; i < freeIndexes.length; i = i + 1) {
+			if (freeIndexes[i]) {
+				freeIndexValues.push(i);
+			}
+		}
+
+		return freeIndexValues;
+	},
+	
+	/**
+	 * If a complete callback function is provided in the options, interpret the 
+	 * columns into a Highcharts options object.
+	 */
+	complete: function () {
+		
+		var columns = this.columns,
+			xColumns = [],
+			type,
+			options = this.options,
+			series,
+			data,
+			i,
+			j,
+			r,
+			seriesIndex,
+			chartOptions,
+			allSeriesBuilders = [],
+			builder,
+			freeIndexes,
+			typeCol,
+			index;
+
+		xColumns.length = columns.length;
+		if (options.complete || options.afterComplete) {
+
+			// Get the names and shift the top row
+			for (i = 0; i < columns.length; i++) {
+				if (this.firstRowAsNames) {
+					columns[i].name = columns[i].shift();
+				}
+			}
+			
+			// Use the next columns for series
+			series = [];
+			freeIndexes = this.getFreeIndexes(columns.length, this.valueCount.seriesBuilders);
+
+			// Populate defined series
+			for (seriesIndex = 0; seriesIndex < this.valueCount.seriesBuilders.length; seriesIndex++) {
+				builder = this.valueCount.seriesBuilders[seriesIndex];
+
+				// If the builder can be populated with remaining columns, then add it to allBuilders
+				if (builder.populateColumns(freeIndexes)) {
+					allSeriesBuilders.push(builder);
+				}
+			}
+
+			// Populate dynamic series
+			while (freeIndexes.length > 0) {
+				builder = new SeriesBuilder();
+				builder.addColumnReader(0, 'x');
+				
+				// Mark index as used (not free)
+				index = inArray(0, freeIndexes);
+				if (index !== -1) {
+					freeIndexes.splice(index, 1);
+				}
+
+				for (i = 0; i < this.valueCount.global; i++) {
+					// Create and add a column reader for the next free column index
+					builder.addColumnReader(undefined, this.valueCount.globalPointArrayMap[i]);
+				}
+
+				// If the builder can be populated with remaining columns, then add it to allBuilders
+				if (builder.populateColumns(freeIndexes)) {
+					allSeriesBuilders.push(builder);
+				}
+			}
+
+			// Get the data-type from the first series x column
+			if (allSeriesBuilders.length > 0 && allSeriesBuilders[0].readers.length > 0) {
+				typeCol = columns[allSeriesBuilders[0].readers[0].columnIndex];
+				if (typeCol !== undefined) {
+					if (typeCol.isDatetime) {
+						type = 'datetime';
+					} else if (!typeCol.isNumeric) {
+						type = 'category';
+					}
+				}
+			}
+			// Axis type is category, then the "x" column should be called "name"
+			if (type === 'category') {
+				for (seriesIndex = 0; seriesIndex < allSeriesBuilders.length; seriesIndex++) {
+					builder = allSeriesBuilders[seriesIndex];
+					for (r = 0; r < builder.readers.length; r++) {
+						if (builder.readers[r].configName === 'x') {
+							builder.readers[r].configName = 'name';
+						}
+					}
+				}
+			}
+
+			// Read data for all builders
+			for (seriesIndex = 0; seriesIndex < allSeriesBuilders.length; seriesIndex++) {
+				builder = allSeriesBuilders[seriesIndex];
+
+				// Iterate down the cells of each column and add data to the series
+				data = [];
+				for (j = 0; j < columns[0].length; j++) { // TODO: which column's length should we use here
+					data[j] = builder.read(columns, j);
+				}
+
+				// Add the series
+				series[seriesIndex] = {
+					data: data
+				};
+				if (builder.name) {
+					series[seriesIndex].name = builder.name;
+				}
+				if (type === 'category') {
+					series[seriesIndex].turboThreshold = 0;
+				}
+			}
+
+
+
+			// Do the callback
+			chartOptions = {
+				series: series
+			};
+			if (type) {
+				chartOptions.xAxis = {
+					type: type
+				};
+			}
+			
+			if (options.complete) {
+				options.complete(chartOptions);
+			}
+
+			// The afterComplete hook is used internally to avoid conflict with the externally
+			// available complete option.
+			if (options.afterComplete) {
+				options.afterComplete(chartOptions);
+			}
+		}
+	}
+	});
+	
+	// Register the Data prototype and data function on Highcharts
+	Highcharts.Data = Data;
+	Highcharts.data = function (options, chartOptions) {
+		return new Data(options, chartOptions);
+	};
+
+	// Extend Chart.init so that the Chart constructor accepts a new configuration
+	// option group, data.
+	Highcharts.wrap(Highcharts.Chart.prototype, 'init', function (proceed, userOptions, callback) {
+		var chart = this;
+
+		if (userOptions && userOptions.data) {
+			Highcharts.data(Highcharts.extend(userOptions.data, {
+
+				afterComplete: function (dataOptions) {
+					var i, series;
+					
+					// Merge series configs
+					if (userOptions.hasOwnProperty('series')) {
+						if (typeof userOptions.series === 'object') {
+							i = Math.max(userOptions.series.length, dataOptions.series.length);
+							while (i--) {
+								series = userOptions.series[i] || {};
+								userOptions.series[i] = Highcharts.merge(series, dataOptions.series[i]);
+							}
+						} else { // Allow merging in dataOptions.series (#2856)
+							delete userOptions.series;
+						}
+					}
+
+					// Do the merge
+					userOptions = Highcharts.merge(dataOptions, userOptions);
+
+					proceed.call(chart, userOptions, callback);
+				}
+			}), userOptions);
+		} else {
+			proceed.call(chart, userOptions, callback);
+		}
+	});
+
+	/**
+	 * Creates a new SeriesBuilder. A SeriesBuilder consists of a number
+	 * of ColumnReaders that reads columns and give them a name.
+	 * Ex: A series builder can be constructed to read column 3 as 'x' and
+	 * column 7 and 8 as 'y1' and 'y2'.
+	 * The output would then be points/rows of the form {x: 11, y1: 22, y2: 33}
+	 * 
+	 * The name of the builder is taken from the second column. In the above
+	 * example it would be the column with index 7.
+	 * @constructor
+	 */
+	SeriesBuilder = function () {
+		this.readers = [];
+		this.pointIsArray = true;
+	};
+
+	/**
+	 * Populates readers with column indexes. A reader can be added without
+	 * a specific index and for those readers the index is taken sequentially
+	 * from the free columns (this is handled by the ColumnCursor instance).
+	 * @returns {boolean}
+	 */
+	SeriesBuilder.prototype.populateColumns = function (freeIndexes) {
+		var builder = this,
+			enoughColumns = true;
+
+		// Loop each reader and give it an index if its missing.
+		// The freeIndexes.shift() will return undefined if there
+		// are no more columns.
+		each(builder.readers, function (reader) {
+			if (reader.columnIndex === undefined) {
+				reader.columnIndex = freeIndexes.shift();
+			}
+		});
+
+		// Now, all readers should have columns mapped. If not
+		// then return false to signal that this series should
+		// not be added.
+		each(builder.readers, function (reader) {
+			if (reader.columnIndex === undefined) {
+				enoughColumns = false;
+			}
+		});
+
+		return enoughColumns;
+	};
+
+	/**
+	 * Reads a row from the dataset and returns a point or array depending
+	 * on the names of the readers.
+	 * @param columns
+	 * @param rowIndex
+	 * @returns {Array | Object}
+	 */
+	SeriesBuilder.prototype.read = function (columns, rowIndex) {
+		var builder = this,
+			pointIsArray = builder.pointIsArray,
+			point = pointIsArray ? [] : {},
+			columnIndexes;
+
+		// Loop each reader and ask it to read its value.
+		// Then, build an array or point based on the readers names.
+		each(builder.readers, function (reader) {
+			var value = columns[reader.columnIndex][rowIndex];
+			if (pointIsArray) {
+				point.push(value);
+			} else {
+				point[reader.configName] = value; 
+			}
+		});
+
+		// The name comes from the first column (excluding the x column)
+		if (this.name === undefined && builder.readers.length >= 2) {
+			columnIndexes = builder.getReferencedColumnIndexes();
+			if (columnIndexes.length >= 2) {
+				// remove the first one (x col)
+				columnIndexes.shift();
+
+				// Sort the remaining
+				columnIndexes.sort();
+
+				// Now use the lowest index as name column
+				this.name = columns[columnIndexes.shift()].name;
+			}
+		}
+
+		return point;
+	};
+
+	/**
+	 * Creates and adds ColumnReader from the given columnIndex and configName.
+	 * ColumnIndex can be undefined and in that case the reader will be given
+	 * an index when columns are populated.
+	 * @param columnIndex {Number | undefined}
+	 * @param configName
+	 */
+	SeriesBuilder.prototype.addColumnReader = function (columnIndex, configName) {
+		this.readers.push({
+			columnIndex: columnIndex, 
+			configName: configName
+		});
+
+		if (!(configName === 'x' || configName === 'y' || configName === undefined)) {
+			this.pointIsArray = false;
+		}
+	};
+
+	/**
+	 * Returns an array of column indexes that the builder will use when
+	 * reading data.
+	 * @returns {Array}
+	 */
+	SeriesBuilder.prototype.getReferencedColumnIndexes = function () {
+		var i,
+			referencedColumnIndexes = [],
+			columnReader;
+		
+		for (i = 0; i < this.readers.length; i = i + 1) {
+			columnReader = this.readers[i];
+			if (columnReader.columnIndex !== undefined) {
+				referencedColumnIndexes.push(columnReader.columnIndex);
+			}
+		}
+
+		return referencedColumnIndexes;
+	};
+
+	/**
+	 * Returns true if the builder has a reader for the given configName.
+	 * @param configName
+	 * @returns {boolean}
+	 */
+	SeriesBuilder.prototype.hasReader = function (configName) {
+		var i, columnReader;
+		for (i = 0; i < this.readers.length; i = i + 1) {
+			columnReader = this.readers[i];
+			if (columnReader.configName === configName) {
+				return true;
+			}
+		}
+		// Else return undefined
+	};
+
+
+
+}(Highcharts));
