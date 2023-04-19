@@ -53,4 +53,85 @@
 	});
 
 	H.Series.prototype.hasData = function () {
-		return this.visible && this.dataMax !== undefined && this.dataMin !== undefined; 
+		return this.visible && this.dataMax !== undefined && this.dataMin !== undefined; // #3703
+	};
+	
+	/**
+	 * Display a no-data message.
+	 *
+	 * @param {String} str An optional message to show in place of the default one 
+	 */
+	chartPrototype.showNoData = function (str) {
+		var chart = this,
+			options = chart.options,
+			text = str || options.lang.noData,
+			noDataOptions = options.noData;
+
+		if (!chart.noDataLabel) {
+			chart.noDataLabel = chart.renderer
+				.label(
+					text, 
+					0, 
+					0, 
+					null, 
+					null, 
+					null, 
+					noDataOptions.useHTML, 
+					null, 
+					'no-data'
+				)
+				.attr(noDataOptions.attr)
+				.css(noDataOptions.style)
+				.add();
+			chart.noDataLabel.align(extend(chart.noDataLabel.getBBox(), noDataOptions.position), false, 'plotBox');
+		}
+	};
+
+	/**
+	 * Hide no-data message	
+	 */	
+	chartPrototype.hideNoData = function () {
+		var chart = this;
+		if (chart.noDataLabel) {
+			chart.noDataLabel = chart.noDataLabel.destroy();
+		}
+	};
+
+	/**
+	 * Returns true if there are data points within the plot area now
+	 */	
+	chartPrototype.hasData = function () {
+		var chart = this,
+			series = chart.series,
+			i = series.length;
+
+		while (i--) {
+			if (series[i].hasData() && !series[i].options.isInternal) { 
+				return true;
+			}	
+		}
+
+		return false;
+	};
+
+	/**
+	 * Show no-data message if there is no data in sight. Otherwise, hide it.
+	 */
+	function handleNoData() {
+		var chart = this;
+		if (chart.hasData()) {
+			chart.hideNoData();
+		} else {
+			chart.showNoData();
+		}
+	}
+
+	/**
+	 * Add event listener to handle automatic display of no-data message
+	 */
+	chartPrototype.callbacks.push(function (chart) {
+		H.addEvent(chart, 'load', handleNoData);
+		H.addEvent(chart, 'redraw', handleNoData);
+	});
+
+}(Highcharts));
