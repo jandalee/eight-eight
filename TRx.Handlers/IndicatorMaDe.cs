@@ -105,4 +105,116 @@ namespace TRx.Handlers
         //    this.HandlersValueMa = new List<ItemAddedNotification<ValueDouble>>();
         //    this.HandlersValueDe = new List<ItemAddedNotification<ValueDouble>>();
 
-        //    this.Ma =
+        //    this.Ma = new List<double>();
+        //    this.De = new List<double>();
+
+        //    this.ValueMa = new List<ValueDouble>();
+        //    this.ValueDe = new List<ValueDouble>();
+        //}
+
+        public IndicatorMaDe(double period, IDataInput<double> dataInput, ILogger logger):base(2)
+        {
+            this.Period = period;
+            this.Input = dataInput;
+            this.logger = logger;
+            this.Output[0] = this.Ma;
+            this.Output[1] = this.De;
+        }
+
+        /// <summary>
+        /// Обработчик появления новых данных
+        /// Вычисляет среднюю за период
+        /// Вычисляет отклонение источника от средней за период
+        /// </summary>
+        ///// <param name="item">Bar</param>
+        //public override void OnEvent(long id)
+        public void Do(long id)
+        {
+            ///вычисляем новые занчения
+            ///Input
+            //double iMa = Indicator.EMAi(closePrices.ToList<double>(), Period, Ma.ToList<double>());
+            //double iDe = closePrices.Last() - iMa;
+            double iMa = Indicator.Ema_i(Input.Value.ToList<double>(), Period, Ma.ToList<double>());
+            double iDe = Input.Value.Last() - iMa;
+
+
+            Ma.Add(iMa);
+            De.Add(iDe);
+
+            ///вызываем обработчики значений
+            foreach (var handler in HandlersMa)
+            {
+                handler.Invoke(Ma.Last());
+            }
+
+            foreach (var handler in HandlersDe)
+            {
+                handler.Invoke(De.Last());
+            }
+
+            ///упаковка посчитанных значений
+            ValueMa.Add(new ValueDouble()
+            {
+                Id = id,
+                //DateTime = item.DateTime,
+                Name = "Ma",
+                Value = iMa
+            });
+
+            ValueDe.Add(new ValueDouble()
+            {
+                Id = id,
+                //DateTime = item.DateTime,
+                Name = "De",
+                //TODO 4. сейчас отрисовывается по имени MaFast, надо переделать на стороне отрисовки
+                //Name = "MaDeviation",
+                Value = iDe
+            });
+
+            ///отправка посчитанных значений
+            foreach (var handler in HandlersValueMa)
+            {
+                handler.Invoke(ValueMa.Last());
+            }
+
+            foreach (var handler in HandlersValueDe)
+            {
+                handler.Invoke(ValueDe.Last());
+            }
+        }
+
+        /// <summary>
+        /// добавить сторонний обработчик ValueMa
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddHandlerValueMa(ItemAddedNotification<ValueDouble> handler)
+        {
+            this.HandlersValueMa.Add(handler);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик ValueDe
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddHandlerValueDe(ItemAddedNotification<ValueDouble> handler)
+        {
+            this.HandlersValueDe.Add(handler);
+        }
+
+        /// <summary>
+        /// добавить сторонний обработчик Ma
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddHandlerMa(ItemAddedNotification<double> handler)
+        {
+            this.HandlersMa.Add(handler);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик De
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddHandlerDe(ItemAddedNotification<double> handler)
+        {
+            this.HandlersDe.Add(handler);
+        }
+    }
+}
