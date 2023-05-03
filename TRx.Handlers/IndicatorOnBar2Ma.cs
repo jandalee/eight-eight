@@ -219,4 +219,104 @@ namespace TRx.Handlers
             //    }
             //    else if (hasShort)
             //    {
-            //        signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.B
+            //        signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, Price, 0, Price);
+            //        signal.Amount = strategyHeader.Amount * 2;
+            //        this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал на закрытие короткой позиции {2}", DateTime.Now, this.GetType().Name, signal.ToString()));
+            //        this.signalQueue.Enqueue(signal);
+            //    }
+            //    else if ((MaSlow.Count > 1) && (MaFast.Count > 1))
+            //    {
+            //        if (MaSlow[MaSlow.Count - 2] >= MaFast[MaFast.Count - 2])
+            //        {
+            //            signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Buy, OrderType.Market, Price, 0, Price);
+            //            this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал на открытие длинной позиции {2}", DateTime.Now, this.GetType().Name, signal.ToString()));
+            //            this.signalQueue.Enqueue(signal);
+            //        }
+            //    }
+            //}
+            ////надо шорт
+            //else if (MaSlow.Last() > MaFast.Last())
+            //{
+            //    bool hasLong = this.tradingData.HasLongPosition(this.strategyHeader);
+            //    bool hasShort = this.tradingData.HasShortPosition(this.strategyHeader);
+            //    double Price = item.Close;
+
+            //    Signal signal;
+            //    if (this.tradingData.UnfilledExists(this.strategyHeader))
+            //    {
+            //        return;
+            //    }
+            //    else if (hasShort)
+            //    {
+            //        return;
+            //    }
+            //    else if (hasLong)
+            //    {
+            //        signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Sell, OrderType.Market, Price, 0, Price);
+            //        signal.Amount = strategyHeader.Amount * 2;
+            //        this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал на закрытие длинной позиции {2}", DateTime.Now, this.GetType().Name, signal.ToString()));
+            //        this.signalQueue.Enqueue(signal);
+            //    }
+            //    else if ((MaSlow.Count > 1) && (MaFast.Count > 1))
+            //    {
+            //        if (MaSlow[MaSlow.Count - 2] <= MaFast[MaFast.Count - 2])
+            //        {
+            //            signal = new Signal(this.strategyHeader, BrokerDateTime.Make(DateTime.Now), TradeAction.Sell, OrderType.Market, Price, 0, Price);
+            //            this.logger.Log(String.Format("{0:dd/MM/yyyy H:mm:ss.fff}, {1}, сигнал на открытие короткой позиции {2}", DateTime.Now, this.GetType().Name, signal.ToString()));
+            //            this.signalQueue.Enqueue(signal);
+            //        }
+            //    }
+            //}
+        }
+
+        ///// <summary>
+        ///// добавить сторонний обработчик Ma1
+        ///// </summary>
+        ///// <param name="handler"></param>
+        //public void AddMa1Handler(ItemAddedNotification<double> handler)
+        //{
+        //    this.Ma1Handlers.Add(handler);
+        //}
+        ///// <summary>
+        ///// добавить сторонний обработчик Ma2
+        ///// </summary>
+        ///// <param name="handler"></param>
+        //public void AddMa2Handler(ItemAddedNotification<double> handler)
+        //{
+        //    this.Ma2Handlers.Add(handler);
+        //}
+
+        /// <summary>
+        /// добавить сторонний обработчик Ma1
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddMa1Handler(ItemAddedNotification<ValueDouble> handler)
+        {
+            this.Ma1Handlers.Add(handler);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик Ma2
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddMa2Handler(ItemAddedNotification<ValueDouble> handler)
+        {
+            this.Ma2Handlers.Add(handler);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик CrossUp
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddCrossUpHandler(ItemAddedNotification<ValueBool> handler)
+        {
+            this.CrossUpHandlers.Add(handler);
+        }
+        /// <summary>
+        /// добавить сторонний обработчик CrossDn
+        /// </summary>
+        /// <param name="handler"></param>
+        public void AddCrossDnHandler(ItemAddedNotification<ValueBool> handler)
+        {
+            this.CrossDnHandlers.Add(handler);
+        }
+    }
+}
