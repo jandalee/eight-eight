@@ -8,16 +8,18 @@ using TRL.Common;
 using TRL.Emulation;
 using TRL.Logging;
 
-namespace TRx.Trader.BackTest.Test
+namespace TRx.Handlers.Test
 {
     [TestClass]
-    public class BreakOutOnBarTests
+    public class HandlerDeviationTest
     {
         private IDataContext tradingData;
         private ObservableQueue<Signal> signalQueue;
 
         private StrategyHeader strategyHeader;
         private BarSettings barSettings;
+        private double Period = 10;
+        private IndicatorOnBarMaDeviation handler;
 
         [TestInitialize]
         public void Setup()
@@ -31,27 +33,27 @@ namespace TRx.Trader.BackTest.Test
             this.barSettings = new BarSettings(this.strategyHeader, this.strategyHeader.Symbol, 60, 3);
             this.tradingData.Get<ICollection<BarSettings>>().Add(this.barSettings);
 
-            BreakOutOnBar handler =
-                new BreakOutOnBar(this.strategyHeader,
+            handler =
+                new IndicatorOnBarMaDeviation(this.strategyHeader,
                     this.tradingData,
-                    this.signalQueue,
+                    this.Period,
                     new NullLogger());
 
             Assert.AreEqual(0, this.signalQueue.Count);
+            Assert.IsNotNull(handler);
         }
 
         [TestMethod]
-        public void BreakOutOnBar_make_signal_to_buy_on_break_to_high_test()
+        public void IndicatorOnBarMaDeviation_value_count_test()
         {
             AddBreakToHighBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
 
-            Assert.AreEqual(1, this.signalQueue.Count);
-
-            Signal signal = this.signalQueue.Dequeue();
-            Assert.AreEqual(this.strategyHeader.Id, signal.StrategyId);
-            Assert.AreEqual(TradeAction.Buy, signal.TradeAction);
-            Assert.AreEqual(OrderType.Market, signal.OrderType);
-            Assert.AreEqual(19, signal.Price);
+            Assert.AreEqual(3, this.handler.Ma.Count);
+            Assert.AreEqual(3, this.handler.De.Count);
+            Assert.AreEqual(3, this.handler.ValueMa.Count);
+            Assert.AreEqual(3, this.handler.ValueDe.Count);
+            Assert.AreEqual(15, Math.Round(this.handler.Ma[2]));
+            Assert.AreEqual(1, Math.Round(this.handler.De[2]));
         }
 
         private void AddBreakToHighBars(string symbol, ObservableCollection<Bar> collection)
@@ -68,19 +70,19 @@ namespace TRx.Trader.BackTest.Test
             collection.Add(new Bar(symbol, this.barSettings.Interval, new DateTime(2014, 1, 10, 11, 2, 0), 12, 13, 8, 11, 100));
         }
 
-        [TestMethod]
-        public void BreakOutOnBar_make_signal_to_sell_on_break_to_low_test()
-        {
-            AddBreakToLowBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
+        //[TestMethod]
+        //public void BreakOutOnBar_make_signal_to_sell_on_break_to_low_test()
+        //{
+        //    AddBreakToLowBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
 
-            Assert.AreEqual(1, this.signalQueue.Count);
+        //    //Assert.AreEqual(1, this.signalQueue.Count);
 
-            Signal signal = this.signalQueue.Dequeue();
-            Assert.AreEqual(this.strategyHeader.Id, signal.StrategyId);
-            Assert.AreEqual(TradeAction.Sell, signal.TradeAction);
-            Assert.AreEqual(OrderType.Market, signal.OrderType);
-            Assert.AreEqual(8, signal.Price);
-        }
+        //    //Signal signal = this.signalQueue.Dequeue();
+        //    //Assert.AreEqual(this.strategyHeader.Id, signal.StrategyId);
+        //    //Assert.AreEqual(TradeAction.Sell, signal.TradeAction);
+        //    //Assert.AreEqual(OrderType.Market, signal.OrderType);
+        //    //Assert.AreEqual(8, signal.Price);
+        //}
 
         private void AddNeutralBars(string symbol, ObservableCollection<Bar> collection)
         {
@@ -89,57 +91,10 @@ namespace TRx.Trader.BackTest.Test
             collection.Add(new Bar(symbol, this.barSettings.Interval, new DateTime(2014, 1, 10, 11, 2, 0), 12, 16, 11, 14, 100));
         }
 
-        [TestMethod]
-        public void BreakOutOnBar_ignore_neutral_bars_test()
-        {
-            AddNeutralBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
-
-            Assert.AreEqual(0, this.signalQueue.Count);
-        }
-
         private void AddInsufficientBars(string symbol, ObservableCollection<Bar> collection)
         {
             collection.Add(new Bar(symbol, this.barSettings.Interval, new DateTime(2014, 1, 10, 11, 0, 0), 12, 16, 10, 15, 100));
             collection.Add(new Bar(symbol, this.barSettings.Interval, new DateTime(2014, 1, 10, 11, 1, 0), 11, 15, 10, 14, 100));
         }
-
-        [TestMethod]
-        public void BreakOutOnBar_ignore_insufficient_quantity_of_bars_test()
-        {
-            AddInsufficientBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
-
-            Assert.AreEqual(0, this.signalQueue.Count);
-        }
-
-        [TestMethod]
-        public void BreakOutOnBar_ignore_other_symbol_than_strategy_bars_test()
-        {
-            AddBreakToHighBars("Si", this.tradingData.Get<ObservableCollection<Bar>>());
-
-            Assert.AreEqual(0, this.signalQueue.Count);
-        }
-
-        [TestMethod]
-        public void BreakOutOnBar_do_nothing_if_position_exists_test()
-        {
-            Signal signal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 10, 0, 0);
-            this.tradingData.AddSignalAndItsOrderAndTrade(signal);
-
-            AddBreakToHighBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
-
-            Assert.AreEqual(0, this.signalQueue.Count);
-        }
-
-        [TestMethod]
-        public void BreakOutOnBar_do_nothing_if_unfilled_strategy_order_exists_test()
-        {
-            Signal signal = new Signal(this.strategyHeader, DateTime.Now, TradeAction.Buy, OrderType.Market, 10, 0, 0);
-            this.tradingData.AddSignalAndItsOrder(signal);
-
-            AddBreakToHighBars("RTS", this.tradingData.Get<ObservableCollection<Bar>>());
-
-            Assert.AreEqual(0, this.signalQueue.Count);
-        }
-
     }
 }
