@@ -53,4 +53,39 @@ namespace TRx.Indicators
                 throw new ArgumentOutOfRangeException("StopDelta", "delta должен быть положительным числом или 0.");
 
             if (a <= 0)
-       
+                throw new ArgumentOutOfRangeException("k", "k должен быть положительным числом.");
+
+            var x = barNumber - posEntryBarNum + 1;      // Время удержания позиции
+
+            double c;
+            if (posIsLong)
+            {
+                //a = a;
+                c = posEntryPrice - StopDelta;
+            }
+            else {
+                a = -a;
+                c = posEntryPrice + StopDelta;
+            }
+            //a*x*x + c;
+            return Parabola(x, a, 0, c);
+        }
+        /// <summary>
+        /// y = a*x^2 + b*x + c
+        /// вершина xe = -b/(2*a)
+        /// вершина ye = -(b^2 - 4*a*c)/4*a
+        /// </summary>
+        /// <remarks>
+        /// <see ref="https://ru.wikipedia.org/wiki/%D0%9A%D0%B2%D0%B0%D0%B4%D1%80%D0%B0%D1%82%D0%B8%D1%87%D0%BD%D0%B0%D1%8F_%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D1%8F"/>
+        /// </remarks> 
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="c"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        public static double Parabola(double x, double a, double b, double c)
+        {
+            return a*x*x + b*x + c;
+        }
+    }
+}
