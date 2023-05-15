@@ -49,4 +49,64 @@ namespace TRx.Indicators.Test
             List<double> second = new List<double>();
 
             Assert.IsFalse(Indicator.CrossOver(first, second, 3, 3));
-            Assert.IsFalse(Indicator.Cr
+            Assert.IsFalse(Indicator.CrossOver(second, first, 3, 3));
+        }
+
+        [TestMethod]
+        public void IndicatorCross_Check_crossed_lines_of_unequals_length_test()
+        {
+            List<double> first = new List<double>(
+                        new[] { 2.0, 4.0, 5.0, 3.0, 6.0, 7.0 });
+            double[] second = { 1.0, 3.0, 4.0, 4.0 };
+            //                  0    1    2    3    4   
+            Assert.IsFalse(Indicator.CrossOver(first, second, 3, 3));
+            Assert.IsTrue(Indicator.CrossUnder(first, second, 3, 3));
+
+            Assert.IsTrue(Indicator.CrossOver(first, second, 4, 3));
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 4, 3));
+
+            Assert.IsTrue(Indicator.CrossOver(second, first, 3, 3));
+            Assert.IsFalse(Indicator.CrossUnder(second, first, 3, 3));
+
+            Assert.IsFalse(Indicator.CrossOver(second, first, 4, 3));
+            Assert.IsFalse(Indicator.CrossUnder(second, first, 4, 3));
+        }
+
+        [TestMethod]
+        public void IndicatorCross_line_cross_over_value_test()
+        {
+            double first = 5.0;
+            double[] second = { 2.0, 2.0, 4.0, 6.0, 8.0 };
+
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 1));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 1));
+
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 2));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 2));
+
+            Assert.IsTrue(Indicator.CrossUnder(first, second, 3));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 3));
+
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 4));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 4));
+        }
+        [TestMethod]
+        public void IndicatorCross_line_cross_under_value_test()
+        {
+            double first = 5.0;
+            double[] second = { 2.0, 2.0, 6.0, 4.0, 8.0 };
+
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 1));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 1));
+
+            Assert.IsTrue(Indicator.CrossUnder(first, second, 2));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 2));
+
+            Assert.IsFalse(Indicator.CrossUnder(first, second, 3));
+            Assert.IsTrue(Indicator.CrossOver(first, second, 3));
+
+            Assert.IsTrue(Indicator.CrossUnder(first, second, 4));
+            Assert.IsFalse(Indicator.CrossOver(first, second, 4));
+        }
+    }
+}
