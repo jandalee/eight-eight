@@ -1,3 +1,4 @@
+
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,9 +36,9 @@ using TRx.Base;
 
 namespace TRx.Program
 {
-    class ProgramSample1 : TRx.Program.Template
+    class ProgramSample2 : TRx.Program.Template
     {
-        public ProgramSample1(string[] args) : base(args)
+        public ProgramSample2(string[] args) : base(args)
         {
         }
 
@@ -46,7 +47,7 @@ namespace TRx.Program
         //private static SmartComAdapter adapter { get; set; }
         //private static string[] assemblies = { "Interop.SmartCOM3Lib.dll", "TRL.Common.dll", "TRL.Connect.Smartcom.dll" };
 
-        private static TRx.Strategy.Sample1 strategySample1  { get; set; }
+        private static TRx.Strategy.Sample2 strategySample2 { get; set; }
 
         /// <summary>
         /// The main entry point for the application.
@@ -54,10 +55,10 @@ namespace TRx.Program
         //[STAThread]
         static void Main(string[] args)
         {
-            Template tmp = new ProgramSample1(args);
+            Template tmp = new ProgramSample2(args);
             tmp.Do();
         }
-        
+
         #region // переопределение базовых методов
         ///// <summary>
         ///// пример
@@ -80,7 +81,7 @@ namespace TRx.Program
         /// </summary>
         override public void Initialize()
         {
-            Console.WriteLine("Program.Sample1.Initialize()");
+            Console.WriteLine("Оverride Program.Sample1.Initialize()");
             marketDataProvider = new MarketDataProvider();
             rawTradingDataProvider = new RawTradingDataProvider(DefaultLogger.Instance);
             symbolsDataProvider = new SymbolsDataProvider();
@@ -115,10 +116,10 @@ namespace TRx.Program
         /// <param name="args"></param>
         override public void SetupStrategy(string[] args)
         {
-            Console.WriteLine("Оverride Program.Sample1.SetupStrategy()");
+            Console.WriteLine("Оverride Program.Sample2.SetupStrategy()");
             // инициализация обработчиков стратегии
-            strategySample1 = new Strategy.Sample1(args);
-            strategyHeader = strategySample1.strategyHeader;
+            strategySample2 = new Strategy.Sample2(args);
+            strategyHeader = strategySample2.strategyHeader;
         }
         #endregion //
 
@@ -129,7 +130,7 @@ namespace TRx.Program
         /// </summary>
         override public void ConsoleHandlerB()
         {
-            Console.WriteLine("Оverride Program.Sample1.ConsoleHandlerB()");
+            Console.WriteLine("Оverride Program.Sample2.ConsoleHandlerB()");
             // здесь вызвать базовый метод
             base.ConsoleHandlerB();
             {
@@ -145,26 +146,11 @@ namespace TRx.Program
                 }
                 */
             }
-
             // здесь вызвать метод стратегии
-            strategySample1.ConsoleHandlerB();
-            {
-                // здесь вызвать метод стратегии
-                //foreach (var item in indicatorsOnBar.MaFastValue)
-                //{
-                //    TradeHubStarter.sendValueDouble1(item);
-                //}
-                //foreach (var item in indicatorsOnBar.MaSlowValue)
-                //{
-                //    TradeHubStarter.sendValueDouble2(item);
-                //}
-                //foreach (var item in indicatorsOnBar.CrossX)
-                //{
-                //    TradeHubStarter.sendValueBool(item);
-                //}
-            }
+            strategySample2.ConsoleHandlerB();
         }
-
-        #endregion //
-    }
-}
+        override public void IsConnected()
+        {
+            Console.WriteLine("Оverride Program.Sample2.IsConnected()");
+            // здесь вызвать базовый метод
+            base.IsConnected();
