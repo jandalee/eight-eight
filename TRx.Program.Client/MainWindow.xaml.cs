@@ -714,3 +714,518 @@ namespace TRx.Program.Client
                 //var _candleArray = (TRL.Common.Models.Bar[])(this._barList);
                 TRL.Common.Models.Bar[] _candleArray = (this._barList as List<Bar>).ToArray();                                
                 
+                if (_candleArray == null)
+                {
+                    return;
+                }
+                if (_candleArray.Length == 0)
+                {
+                    return;
+                }
+                // свечи
+                MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+                MWC.ChartArea candleArea = _chartForCandle.ChartAreas.FindByName("ChartAreaCandle");
+
+                if (candleArea == null ||
+                    candleSeries == null)
+                {
+                    return;
+                }
+
+                int startPozition = 0; // первая отображаемая свеча
+                int endPozition = candleSeries.Points.Count; // последняя отображаемая свеча
+
+                if (_chartForCandle.ChartAreas[0].AxisX.ScrollBar.IsVisible)
+                {
+                    // если уже выбран какой-то диапазон, назначаем первую и последнюю исходя из этого диапазона
+
+                    startPozition = Convert.ToInt32(candleArea.AxisX.ScaleView.Position);
+                    endPozition = Convert.ToInt32(candleArea.AxisX.ScaleView.Position) +
+                                  Convert.ToInt32(candleArea.AxisX.ScaleView.Size);
+                }
+
+                //candleArea.AxisY2.Maximum = (double)GetMaxValueOnChart(_candleArray, startPozition, endPozition);
+                //candleArea.AxisY2.Minimum = (double)GetMinValueOnChart(_candleArray, startPozition, endPozition);
+
+
+                candleArea.AxisY.Maximum = (double)GetMaxValueOnChart(_candleArray, startPozition, endPozition);
+                candleArea.AxisY.Minimum = (double)GetMinValueOnChart(_candleArray, startPozition, endPozition);
+
+                // объёмы
+                MWC.Series volumeSeries = _chartForCandle.Series.FindByName("Volume");
+                MWC.ChartArea volumeArea = _chartForCandle.ChartAreas.FindByName("ChartAreaVolume");
+
+                if (volumeSeries != null &&
+                    volumeArea != null)
+                {
+                    //volumeArea.AxisY2.Maximum = GetMaxVolume(_candleArray, startPozition, endPozition);
+                    //volumeArea.AxisY2.Minimum = 0;
+                    volumeArea.AxisY.Maximum = GetMaxVolume(_candleArray, startPozition, endPozition);
+                    volumeArea.AxisY.Minimum = 0;
+                }
+
+                _chartForCandle.Refresh();
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show("Обибка при изменении ширины представления. Ошибка: " + error);
+            }
+        }
+        /// <summary>
+        /// берёт минимальное значение из массива свечек
+        /// </summary>
+        /// <param name="book"></param>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        private double GetMinValueOnChart(Bar[] book, int start, int end)
+        {
+            double result = double.MaxValue;
+
+            for (int i = start; i < end && i < book.Length; i++)
+            {
+                if (book[i].Low < result)
+                {
+                    result = book[i].Low;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// берёт максимальное значение из массива свечек
+        /// </summary>
+        /// <param name="book"></param>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        private double GetMaxValueOnChart(Bar[] book, int start, int end)
+        {
+            double result = 0;
+
+            for (int i = start; i < end && i < book.Length; i++)
+            {
+                if ((double)book[i].High > result)
+                {
+                    result = (double)book[i].High;
+                }
+            }
+
+            return result;
+        }
+        /// <summary>
+        /// берёт максимальное значение объёма за период
+        /// </summary>
+        /// <param name="book"></param>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        private double GetMaxVolume(Bar[] book, int start, int end)
+        {
+            double result = double.MinValue;
+
+            for (int i = start; i < end && i < book.Length; i++)
+            {
+                if ((double)book[i].Volume > result)
+                {
+                    result = (double)book[i].Volume;
+                }
+            }
+
+            return result;
+        }
+        //-----------------------------------------------------------
+        #endregion
+        //-----------------------------------------------------------
+
+        //-----------------------------------------------------------
+        #region Slow
+        //-----------------------------------------------------------
+        /// <summary>
+        /// прогрузить свечки на график по одной
+        /// </summary>
+        private void LoadCandleOnChartSlow()
+        {
+            var _candleArray = (this._barList as List<Bar>).ToArray();
+            //var _candleArray = (TRL.Common.Models.Bar[])(this._barList);
+
+            if (_candleArray == null)
+            {
+                //если наш массив пуст по каким-то причинам
+                return;
+            }
+
+            for (int i = 0; i < _candleArray.Length; i++)
+            {
+                // отправляем наш массив по свечкам на прорисовку
+                System.Threading.Thread.Sleep(1);
+                // спим 5ть миллисекунд между свечками, чтобы форма не висела и могла отвечать на запросы пользователя 
+                //LoadNewCandle(_candleArray[i], i);
+                ChartLoadNewCandle(_candleArray[i]);
+            }
+
+            StopLoadHistory();
+
+        }
+        /// <summary>
+        /// добавить одну свечу на график
+        /// </summary>
+        /// <param name="newCandle"></param>
+        /// <param name="index"></param>
+        private void ChartLoadNewCandle(Bar newCandle, int numberInArray)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<Bar, int>(ChartLoadNewCandle), newCandle, numberInArray);
+                return;
+            }
+            // свечи
+            MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            //System.Windows.Forms.DataVisualization.Charting
+
+            if (candleSeries != null)
+            {
+                // забиваем новую свечку
+                candleSeries.Points.AddXY(numberInArray, newCandle.Low, newCandle.High, newCandle.Open, newCandle.Close);
+
+                // подписываем время
+                candleSeries.Points[candleSeries.Points.Count - 1].AxisLabel =
+                    newCandle.DateTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                // разукрышиваем в привычные цвета
+                if (newCandle.Close > newCandle.Open)
+                {
+                    candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                }
+                else
+                {
+                    candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                }
+
+                MWC.ChartArea candleArea = _chartForCandle.ChartAreas.FindByName("ChartAreaCandle");
+                if (candleArea != null && candleArea.AxisX.ScrollBar.IsVisible) // если уже выбран какой-то диапазон
+                {
+                    // сдвигаем представление вправо
+                    candleArea.AxisX.ScaleView.Scroll(_chartForCandle.ChartAreas[0].AxisX.Maximum);
+                }
+            }
+            // объём
+            MWC.Series volumeSeries = _chartForCandle.Series.FindByName("Volume");
+
+            if (volumeSeries != null)
+            {
+                volumeSeries.Points.AddXY(numberInArray, newCandle.Volume);
+                // разукрышиваем в привычные цвета
+                if (volumeSeries.Points.Count > 1)
+                {
+                    if (volumeSeries.Points[volumeSeries.Points.Count - 2].YValues[0] < (double)newCandle.Volume)
+                    {
+                        volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                    }
+                    else
+                    {
+                        volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                    }
+                }
+            }
+
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        /// <summary>
+        /// добавить одну свечу на график
+        /// </summary>
+        /// <param name="newCandle"></param>
+        /// <param name="index"></param>
+        private void ChartLoadNewCandle(Bar newCandle)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<Bar>(ChartLoadNewCandle), newCandle);
+                return;
+            }
+            // свечи
+            MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            //System.Windows.Forms.DataVisualization.Charting
+
+            if (candleSeries != null)
+            {
+                // забиваем новую свечку
+                candleSeries.Points.AddXY(candleSeries.Points.Count, newCandle.Low, newCandle.High, newCandle.Open, newCandle.Close);
+
+                // подписываем время
+                candleSeries.Points[candleSeries.Points.Count - 1].AxisLabel =
+                    newCandle.DateTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                // разукрышиваем в привычные цвета
+                if (newCandle.Close > newCandle.Open)
+                {
+                    candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                }
+                else
+                {
+                    candleSeries.Points[candleSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                }
+
+                MWC.ChartArea candleArea = _chartForCandle.ChartAreas.FindByName("ChartAreaCandle");
+                if (candleArea != null && candleArea.AxisX.ScrollBar.IsVisible) // если уже выбран какой-то диапазон
+                {
+                    // сдвигаем представление вправо
+                    candleArea.AxisX.ScaleView.Scroll(_chartForCandle.ChartAreas[0].AxisX.Maximum);
+                }
+            }
+            // объём
+            MWC.Series volumeSeries = _chartForCandle.Series.FindByName("Volume");
+
+            if (volumeSeries != null)
+            {
+                volumeSeries.Points.AddXY(volumeSeries.Points.Count, newCandle.Volume);
+                // разукрышиваем в привычные цвета
+                if (volumeSeries.Points.Count > 1)
+                {
+                    if (volumeSeries.Points[volumeSeries.Points.Count - 2].YValues[0] < (double)newCandle.Volume)
+                    {
+                        volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Green;
+                    }
+                    else
+                    {
+                        volumeSeries.Points[volumeSeries.Points.Count - 1].Color = System.Drawing.Color.Red;
+                    }
+                }
+            }
+
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        private void ChartLoadNewValueDouble2(ValueDouble item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<ValueDouble>(ChartLoadNewValueDouble2), item);
+                return;
+            }
+            // свечи
+            //MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            MWC.Series series1 = _chartForCandle.Series.FindByName("Ma2");
+
+            //if ((series1 != null)&&(candleSeries != null))
+            //{
+            //    while (candleSeries.Points.Count - series1.Points.Count > 1)
+            //    {
+            //        //series1.Points.AddXY(series1.Points.Count, item);
+            //        series1.Points.AddXY(series1.Points.Count, double.NaN);
+            //    }
+            //}
+
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                //series1.Points.AddXY(series1.Points.Count, item);
+                series1.Points.AddXY(item.Id, item.Value);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        private void ChartLoadNewValueDouble1(ValueDouble item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<ValueDouble>(ChartLoadNewValueDouble1), item);
+                return;
+            }
+            // свечи
+            //MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            MWC.Series series1 = _chartForCandle.Series.FindByName("Ma1");
+
+            //if ((series1 != null)&&(candleSeries != null))
+            //{
+            //    while (candleSeries.Points.Count - series1.Points.Count > 1)
+            //    {
+            //        //series1.Points.AddXY(series1.Points.Count, item);
+            //        series1.Points.AddXY(series1.Points.Count, double.NaN);
+            //    }
+            //}
+
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                //series1.Points.AddXY(series1.Points.Count, item);
+                series1.Points.AddXY(item.Id, item.Value);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+        private void ChartLoadNewValueBool(ValueBool item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<ValueBool>(ChartLoadNewValueBool), item);
+                return;
+            }
+            // свечи
+            MWC.Series series1 = _chartForCandle.Series.FindByName("Signal1");
+
+            if ((series1 != null))
+            {
+                while (item.Id - series1.Points.Count  > 0)
+                {
+                    series1.Points.AddXY(series1.Points.Count, double.NaN);
+                }
+            }
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                //series1.Points.AddXY(series1.Points.Count, item);
+                int val = item.Value == true ? 1 : 0;
+                series1.Points.AddXY(item.Id, val);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        private void ChartLoadNewDouble1(double item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<double>(ChartLoadNewDouble1), item);
+                return;
+            }
+            
+            // свечи
+            MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            MWC.Series series1 = _chartForCandle.Series.FindByName("Ma1");
+
+            //if ((series1 != null)&&(candleSeries != null))
+            //{
+            //    while (candleSeries.Points.Count - series1.Points.Count > 1)
+            //    {
+            //        //series1.Points.AddXY(series1.Points.Count, item);
+            //        series1.Points.AddXY(series1.Points.Count, double.NaN);
+            //    }
+            //}
+
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                series1.Points.AddXY(series1.Points.Count, item);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        private void ChartLoadNewDouble2(double item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<double>(ChartLoadNewDouble2), item);
+                return;
+            }
+
+            // свечи
+            MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            MWC.Series series1 = _chartForCandle.Series.FindByName("Ma2");
+
+            //if ((series1 != null) && (candleSeries != null))
+            //{
+            //    while (candleSeries.Points.Count - series1.Points.Count > 1)
+            //    {
+            //        //series1.Points.AddXY(series1.Points.Count, item);
+            //        series1.Points.AddXY(series1.Points.Count, double.NaN);
+            //    }
+            //}
+
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                series1.Points.AddXY(series1.Points.Count, item);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        private void ChartLoadNewTrade(Trade item)
+        {
+            if (!CheckAccess())
+            {
+                // перезаходим в метод потоком формы, чтобы не было исключения
+                Dispatcher.Invoke(new Action<Trade>(ChartLoadNewTrade), item);
+                return;
+            }
+
+            // свечи
+            MWC.Series candleSeries = _chartForCandle.Series.FindByName("Candle");
+            MWC.Series series1;
+            if (item.Buy)
+            {
+                series1 = _chartForCandle.Series.FindByName("Trade");
+            }
+            else 
+            {
+                series1 = _chartForCandle.Series.FindByName("TradeX");
+            }
+            
+
+            if ((series1 != null) && (candleSeries != null))
+            {
+                while (candleSeries.Points.Count - series1.Points.Count > 1)
+                {
+                    //series1.Points.AddXY(series1.Points.Count, item);
+                    series1.Points.AddXY(series1.Points.Count, double.NaN);
+                }
+            }
+
+            if (series1 != null)
+            {
+                // забиваем новую точку
+                series1.Points.AddXY(series1.Points.Count, item.Price);
+            }
+            ChartResize(); // Выводим нормальные рамки
+        }
+
+        //-----------------------------------------------------------
+        #endregion
+        //-----------------------------------------------------------
+
+        //-----------------------------------------------------------
+        #endregion
+        //-----------------------------------------------------------
+    }
+}
+
+/*
+                    <Button x:Name="btnCreate" Content="Create" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnConnect" Content="Connect" HorizontalAlignment="Left" Margin="10,60,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnDisconnect" Content="Disconnect" HorizontalAlignment="Left" Margin="10,231,0,0" VerticalAlignment="Top" Width="75"/>
+                    <TextBox x:Name="tbServer" HorizontalAlignment="Left" Height="20" Margin="114,10,0,0" TextWrapping="Wrap" Text="mxdemo.ittrade.ru" VerticalAlignment="Top" Width="120"/>
+                    <TextBox x:Name="tbLogin" HorizontalAlignment="Left" Height="20" Margin="114,60,0,0" TextWrapping="Wrap" Text="H8J28UGS" VerticalAlignment="Top" Width="120"/>
+                    <PasswordBox x:Name="tbPassword" HorizontalAlignment="Left" Margin="114,85,0,0" VerticalAlignment="Top" Width="120" Height="20" Password="PZ542H"/>
+                    <TextBox x:Name="tbServerPort" HorizontalAlignment="Left" Height="20" Margin="114,35,0,0" TextWrapping="Wrap" Text="8443" VerticalAlignment="Top" Width="120"/>
+                    <TextBox x:Name="tbPortfolio" HorizontalAlignment="Left" Margin="281,35,0,0" TextWrapping="Wrap" Text="Портфель" VerticalAlignment="Top" Width="120" Height="20"/>
+                    <TextBox x:Name="tbTicker" HorizontalAlignment="Left" Height="20" Margin="281,60,0,0" TextWrapping="Wrap" Text="SBRF-6.15_FT" VerticalAlignment="Top" Width="120"/>
+                    <Button x:Name="btnStart" Content="Start" HorizontalAlignment="Left" Margin="426,85,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnStop" Content="Stop" HorizontalAlignment="Left" Margin="426,110,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnClearLog" Content="ClearLog" HorizontalAlignment="Left" Margin="10,206,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnGetPortfolio" Content="Portfolio" HorizontalAlignment="Left" Margin="426,35,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnGetBarsHist" Content="Bars" HorizontalAlignment="Left" Margin="426,60,0,0" VerticalAlignment="Top" Width="75"/>
+                    <TextBox x:Name="tbCountHist" HorizontalAlignment="Left" Height="20" Margin="281,110,0,0" TextWrapping="Wrap" Text="60" VerticalAlignment="Top" Width="120"/>
+                    <TextBox x:Name="tbInterval" HorizontalAlignment="Left" Height="20" Margin="281,85,0,0" TextWrapping="Wrap" Text="1" VerticalAlignment="Top" Width="120"/>
+                    <DatePicker HorizontalAlignment="Left" Margin="281,135,0,0" VerticalAlignment="Top" Width="120"/>
+                    <Button x:Name="btnGetTickHist" Content="TickHist" HorizontalAlignment="Left" Margin="426,135,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnGetTick" Content="ListenTicks" HorizontalAlignment="Left" Margin="426,160,0,0" VerticalAlignment="Top" Width="75"/>
+
+                    <Button x:Name="btnStartTickGen" Content="StartTickGen" HorizontalAlignment="Left" Margin="426,186,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnStopTickGen" Content="StopTickGen" HorizontalAlignment="Left" Margin="426,211,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnGetFileHist" Content="История" HorizontalAlignment="Left" Margin="536,10,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnChartHistSlow" Content="ShowSlow" HorizontalAlignment="Left" Margin="536,35,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="btnChartHistFast" Content="ShowFast" HorizontalAlignment="Left" Margin="536,60,0,0" VerticalAlignment="Top" Width="75"/>
+
+                     <TextBox x:Name="tbLog"  
+                            TextWrapping="Wrap"
+                            AcceptsReturn="True"
+                            VerticalScrollBarVisibility="Visible" 
+                            SpellCheck.IsEnabled="True"/> 
+ */
