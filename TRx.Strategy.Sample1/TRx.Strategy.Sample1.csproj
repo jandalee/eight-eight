@@ -1,14 +1,15 @@
+
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{5E86736F-FE1B-4ECA-8C6E-91CB42D74B6B}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{CB3FB486-21C1-4221-A053-6F0513D37A68}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TRx.Program</RootNamespace>
-    <AssemblyName>TRx.Program.Sample3</AssemblyName>
+    <RootNamespace>TRx.Strategy</RootNamespace>
+    <AssemblyName>TRx.Strategy</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -54,6 +55,9 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.AspNet.SignalR.Core">
@@ -104,7 +108,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ProgramSample3.cs" />
+    <Compile Include="Sample1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -154,14 +158,6 @@
     <ProjectReference Include="..\TRx.Helpers\TRx.Helpers.csproj">
       <Project>{259cb4d5-447a-40c0-82dd-2fcb92c850d3}</Project>
       <Name>TRx.Helpers</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\TRx.Program\TRx.Program.csproj">
-      <Project>{5b9938db-08f3-467e-a906-a695636d4b17}</Project>
-      <Name>TRx.Program</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\TRx.Strategy.Sample3\TRx.Strategy.Sample3.csproj">
-      <Project>{7b1e58a4-45e3-420b-8191-9d84cb3e03b4}</Project>
-      <Name>TRx.Strategy.Sample3</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
