@@ -36,9 +36,9 @@ using TRx.Base;
 
 namespace TRx.Program
 {
-    class ProgramSample2 : TRx.Program.Template
+    class ProgramSample3 : TRx.Program.Template
     {
-        public ProgramSample2(string[] args) : base(args)
+        public ProgramSample3(string[] args) : base(args)
         {
         }
 
@@ -47,7 +47,7 @@ namespace TRx.Program
         //private static SmartComAdapter adapter { get; set; }
         //private static string[] assemblies = { "Interop.SmartCOM3Lib.dll", "TRL.Common.dll", "TRL.Connect.Smartcom.dll" };
 
-        private static TRx.Strategy.Sample2 strategySample2 { get; set; }
+        private static TRx.Strategy.Sample3 strategySample3 { get; set; }
 
         /// <summary>
         /// The main entry point for the application.
@@ -55,7 +55,7 @@ namespace TRx.Program
         //[STAThread]
         static void Main(string[] args)
         {
-            Template tmp = new ProgramSample2(args);
+            Template tmp = new ProgramSample3(args);
             tmp.Do();
         }
 
@@ -81,7 +81,7 @@ namespace TRx.Program
         /// </summary>
         override public void Initialize()
         {
-            Console.WriteLine("Оverride Program.Sample1.Initialize()");
+            Console.WriteLine("Оverride Program.Sample3.Initialize()");
             marketDataProvider = new MarketDataProvider();
             rawTradingDataProvider = new RawTradingDataProvider(DefaultLogger.Instance);
             symbolsDataProvider = new SymbolsDataProvider();
@@ -116,10 +116,10 @@ namespace TRx.Program
         /// <param name="args"></param>
         override public void SetupStrategy(string[] args)
         {
-            Console.WriteLine("Оverride Program.Sample2.SetupStrategy()");
+            Console.WriteLine("Оverride Program.Sample3.SetupStrategy()");
             // инициализация обработчиков стратегии
-            strategySample2 = new Strategy.Sample2(args);
-            strategyHeader = strategySample2.strategyHeader;
+            strategySample3 = new Strategy.Sample3(args);
+            strategyHeader = strategySample3.strategyHeader;
         }
         #endregion //
 
@@ -130,7 +130,7 @@ namespace TRx.Program
         /// </summary>
         override public void ConsoleHandlerB()
         {
-            Console.WriteLine("Оverride Program.Sample2.ConsoleHandlerB()");
+            Console.WriteLine("Оverride Program.Sample3.ConsoleHandlerB()");
             // здесь вызвать базовый метод
             base.ConsoleHandlerB();
             {
@@ -147,15 +147,15 @@ namespace TRx.Program
                 */
             }
             // здесь вызвать метод стратегии
-            strategySample2.ConsoleHandlerB();
+            strategySample3.ConsoleHandlerB();
         }
         override public void IsConnected()
         {
-            Console.WriteLine("Оverride Program.Sample2.IsConnected()");
+            Console.WriteLine("Оverride Program.Sample3.IsConnected()");
             // здесь вызвать базовый метод
             base.IsConnected();
             // здесь вызвать метод стратегии
-            strategySample2.IsConnected();
+            strategySample3.IsConnected();
         }
         #endregion //        
     }
