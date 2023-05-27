@@ -95,4 +95,151 @@ namespace TRx.Strategy
             //    new TakeProfitOrderSettings(strategyHeader, 86400);
 
             //private static StopPointsSettings spSettings =
- 
+            //    new StopPointsSettings(strategyHeader, AppSettings.GetValue<double>("StopPoints"), false);
+
+            //private static StopLossOrderSettings soSettings =
+            //    new StopLossOrderSettings(strategyHeader, 86400);
+
+            //SmartComHandlers.Instance.Add<_IStClient_DisconnectedEventHandler>(IsDisconnected);
+            //SmartComHandlers.Instance.Add<_IStClient_ConnectedEventHandler>(IsConnected);
+
+
+            AddStrategySettings();
+            //TradingData.Instance.Get<ICollection<StrategyHeader>>().Add(strategyHeader);
+            //TradingData.Instance.Get<ICollection<BarSettings>>().Add(barSettings);
+
+            AddStrategySubscriptions();
+            //DefaultSubscriber.Instance.Portfolios.Add(strategyHeader.Portfolio);
+            //DefaultSubscriber.Instance.BidsAndAsks.Add(strategyHeader.Symbol);
+            //DefaultSubscriber.Instance.Ticks.Add(strategyHeader.Symbol);
+        }
+        //private static string[] assemblies = { "Interop.SmartCOM3Lib.dll", "TRL.Common.dll", "TRL.Connect.Smartcom.dll" };
+
+        /// <summary>
+        /// пример
+        /// </summary>
+        /// <param name="args"></param>
+        public void SetupStrategy(string[] args)
+        {
+
+            //TradingData.Instance.Get<ICollection<Strategy>>().Add(strategyHeader);
+            //TradingData.Instance.Get<ICollection<BarSettings>>().Add(barSettings);
+            //TradingData.Instance.Get<ICollection<ProfitPointsSettings>>().Add(ppSettings);
+            //TradingData.Instance.Get<ICollection<TakeProfitOrderSettings>>().Add(poSettings);
+            //TradingData.Instance.Get<ICollection<StopPointsSettings>>().Add(spSettings);
+            //TradingData.Instance.Get<ICollection<StopLossOrderSettings>>().Add(soSettings);
+
+            //SMASettings smaSettings = new SMASettings(strategyHeader, 7, 14);
+            int maf = AppSettings.GetValue<int>("MaFast");
+            int mas = AppSettings.GetValue<int>("MaSlow");
+            SMASettings smaSettings = new SMASettings(strategyHeader, maf, mas);
+            TradingData.Instance.Get<ICollection<SMASettings>>().Add(smaSettings);
+
+            //ReversMaOnBar reversHandler =
+            //    new ReversMaOnBar(strategyHeader,
+            //        TradingData.Instance,
+            //        SignalQueue.Instance,
+            //        DefaultLogger.Instance);
+
+            //MakeRangeBarsOnTick updateBarsHandler;
+            updateBarsHandler = new MakeRangeBarsOnTick(barSettings,
+                    new TimeTracker(),
+                    TradingData.Instance,
+                    DefaultLogger.Instance);
+
+            //IndicatorOnBar2Ma indicatorsOnBar;
+            indicatorsOnBar = new IndicatorOnBar2Ma(strategyHeader,
+                    TradingData.Instance,
+                    SignalQueue.Instance,
+                    DefaultLogger.Instance);
+
+            indicatorsOnBar.AddMa1Handler(TradeConsole.ConsoleWriteLineValueDouble);
+            indicatorsOnBar.AddMa2Handler(TradeConsole.ConsoleWriteLineValueDouble);
+            indicatorsOnBar.AddCrossUpHandler(TradeConsole.ConsoleWriteLineValueBool);
+            indicatorsOnBar.AddCrossDnHandler(TradeConsole.ConsoleWriteLineValueBool);
+
+            //Отправляем данные клиентам
+            {
+                //SetupHubHandlers();
+                if (AppSettings.GetValue<bool>("SignalHub"))
+                {
+                    //отправляем через signalR
+                    indicatorsOnBar.AddMa1Handler(TradeHubStarter.sendValueDouble1);
+                    indicatorsOnBar.AddMa2Handler(TradeHubStarter.sendValueDouble2);
+                    indicatorsOnBar.AddCrossUpHandler(TradeHubStarter.sendValueBool);
+                    indicatorsOnBar.AddCrossDnHandler(TradeHubStarter.sendValueBool);
+
+                    //reversHandler.AddMa1Handler(TradeHubStarter.sendIndicator1);
+                    //reversHandler.AddMa2Handler(TradeHubStarter.sendIndicator2);
+                }
+                else
+                {
+                    Console.WriteLine(String.Format("SignalHub is off"));
+                }
+            }
+
+            //ReversMaOnBar reversHandler =
+            reversHandler = new ReversMaOnBar(strategyHeader,
+                    TradingData.Instance,
+                    SignalQueue.Instance,
+                    DefaultLogger.Instance)
+                {
+                    IndicatorsOnBar = indicatorsOnBar
+                };
+        }
+        #endregion //
+
+        #region // консольные команды
+        /// <summary>
+        /// необъодимо вызывать метод из переопределения консольной команды
+        /// Индикаторы
+        /// </summary>
+        public void ConsoleHandlerB()
+        {
+            //foreach (double item in indicatorsOnBar.MaFast)
+            //{
+            //    TradeHubStarter.sendDouble1(item);
+            //}
+            //foreach (double item in indicatorsOnBar.MaSlow)
+            //{
+            //    TradeHubStarter.sendDouble2(item);
+            //}
+            foreach (var item in indicatorsOnBar.MaFastValue)
+            {
+                TradeHubStarter.sendValueDouble1(item);
+            }
+            foreach (var item in indicatorsOnBar.MaSlowValue)
+            {
+                TradeHubStarter.sendValueDouble2(item);
+            }
+            foreach (var item in indicatorsOnBar.CrossX)
+            {
+                TradeHubStarter.sendValueBool(item);
+            }
+        }
+        #endregion //
+
+        public void AddStrategySubscriptions()
+        {
+            DefaultSubscriber.Instance.Portfolios.Add(strategyHeader.Portfolio);
+            DefaultSubscriber.Instance.BidsAndAsks.Add(strategyHeader.Symbol);
+            DefaultSubscriber.Instance.Ticks.Add(strategyHeader.Symbol);
+        }
+        public void AddStrategySettings()
+        {
+            TradingData.Instance.Get<ICollection<StrategyHeader>>().Add(strategyHeader);
+            TradingData.Instance.Get<ICollection<BarSettings>>().Add(barSettings);
+            //TradingData.Instance.Get<ICollection<ProfitPointsSettings>>().Add(ppSettings);
+            //TradingData.Instance.Get<ICollection<TakeProfitOrderSettings>>().Add(poSettings);
+            //TradingData.Instance.Get<ICollection<StopPointsSettings>>().Add(spSettings);
+            //TradingData.Instance.Get<ICollection<StopLossOrderSettings>>().Add(soSettings);
+        }
+        public void IsConnected()
+        {
+            //DefaultLogger.Instance.Log("IsConnected.");
+            //Console.WriteLine("IsConnected.");
+            ITransaction getBars = new GetBarsCommand(barSettings.Symbol, barSettings.Interval, 3);
+            getBars.Execute();
+        }
+    }
+}
